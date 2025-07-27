@@ -173,12 +173,35 @@ public class EntityMetadata<T> {
         List<String> columnDefs = new ArrayList<>();
         List<String> indexes = new ArrayList<>();
         
+        ColumnMetadata primaryKeyColumn = null;
+        ColumnMetadata shardKeyColumn = null;
+        
         for (ColumnMetadata column : columns) {
-            columnDefs.add(column.getColumnDefinition());
+            if (column.isPrimaryKey()) {
+                primaryKeyColumn = column;
+                // For partitioned tables, don't add PRIMARY KEY to individual column
+                if (shardingMode == ShardingMode.MULTI_TABLE) {
+                    String def = column.getColumnDefinition().replace(" PRIMARY KEY", "");
+                    columnDefs.add(def);
+                } else {
+                    columnDefs.add(column.getColumnDefinition());
+                }
+            } else {
+                columnDefs.add(column.getColumnDefinition());
+            }
+            
+            if (column.getColumnName().equals(shardKey)) {
+                shardKeyColumn = column;
+            }
             
             if (column.isIndexed() && !column.isPrimaryKey()) {
                 indexes.add("INDEX idx_" + column.getColumnName() + " (" + column.getColumnName() + ")");
             }
+        }
+        
+        // For partitioned tables, add composite primary key
+        if (shardingMode == ShardingMode.MULTI_TABLE && primaryKeyColumn != null && shardKeyColumn != null) {
+            columnDefs.add("PRIMARY KEY (" + primaryKeyColumn.getColumnName() + ", " + shardKey + ")");
         }
         
         sql.append(String.join(", ", columnDefs));
@@ -187,7 +210,20 @@ public class EntityMetadata<T> {
             sql.append(", ").append(String.join(", ", indexes));
         }
         
-        sql.append(")");
+        sql.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        
+        // For MULTI_TABLE mode, add hourly partitions (0-23)
+        if (shardingMode == ShardingMode.MULTI_TABLE) {
+            sql.append("\nPARTITION BY RANGE (HOUR(").append(shardKey).append(")) (");
+            
+            for (int hour = 0; hour < 24; hour++) {
+                if (hour > 0) sql.append(",");
+                sql.append("\n    PARTITION p").append(String.format("%02d", hour))
+                   .append(" VALUES LESS THAN (").append(hour + 1).append(")");
+            }
+            
+            sql.append("\n)");
+        }
         return sql.toString();
     }
     

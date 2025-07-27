@@ -14,6 +14,7 @@ public class ShardingRepositoryFactory {
     
     private final DataSource actualDataSource;
     private final DataSource shardingSphereDataSource;
+    private final String databaseName;
     private final ConcurrentHashMap<Class<?>, ShardingRepository<?>> repositoryCache = new ConcurrentHashMap<>();
     private final PartitionManagementService partitionService;
     
@@ -22,10 +23,12 @@ public class ShardingRepositoryFactory {
      * 
      * @param actualDataSource The actual MySQL DataSource (for table management)
      * @param shardingSphereDataSource The ShardingSphere wrapped DataSource (for queries)
+     * @param databaseName The database name for information_schema queries
      */
-    public ShardingRepositoryFactory(DataSource actualDataSource, DataSource shardingSphereDataSource) {
+    public ShardingRepositoryFactory(DataSource actualDataSource, DataSource shardingSphereDataSource, String databaseName) {
         this.actualDataSource = actualDataSource;
         this.shardingSphereDataSource = shardingSphereDataSource;
+        this.databaseName = databaseName;
         this.partitionService = new PartitionManagementService(actualDataSource);
     }
     
@@ -41,8 +44,24 @@ public class ShardingRepositoryFactory {
                 // Register entity for partition management (if autoManagePartition=true)
                 partitionService.registerEntity(entityClass);
                 
-                // Create repository
-                return new ShardingRepository<>(shardingSphereDataSource, entityClass);
+                // Create repository with actual DataSource for table management
+                ShardingRepository<T> repository = new ShardingRepository<>(shardingSphereDataSource, entityClass);
+                
+                // Get entity metadata
+                com.telcobright.db.metadata.EntityMetadata<T> metadata = 
+                    com.telcobright.db.metadata.EntityMetadata.of(entityClass);
+                
+                // Override the table manager to use actual DataSource instead of ShardingSphere DataSource
+                com.telcobright.db.repository.TableManager tableManager = 
+                    new com.telcobright.db.repository.TableManager(actualDataSource, metadata, databaseName);
+                repository.setTableManager(tableManager);
+                
+                // Initialize tables if auto-manage is enabled
+                if (metadata.isAutoManagePartition()) {
+                    tableManager.initializeTablesForRetentionWindow();
+                }
+                
+                return repository;
             }
         );
     }

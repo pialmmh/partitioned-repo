@@ -33,9 +33,11 @@ public class ShardingRepositoryBuilder {
     private String password;
     private int maxPoolSize = 10;
     private int minIdle = 5;
-    private long connectionTimeout = 30000;
+    private long connectionTimeout = 60000;    // 1 minute for partition operations
     private long idleTimeout = 600000;
     private long maxLifetime = 1800000;
+    private String charset = "utf8mb4"; // Default charset
+    private String collation = "utf8mb4_unicode_ci"; // Default collation
     
     /**
      * Set repository type (required)
@@ -95,6 +97,33 @@ public class ShardingRepositoryBuilder {
     }
     
     /**
+     * Set the character set for database connections
+     * Default: utf8mb4 (full UTF-8 Unicode support)
+     */
+    public ShardingRepositoryBuilder charset(String charset) {
+        this.charset = charset;
+        return this;
+    }
+    
+    /**
+     * Set the collation for database connections
+     * Default: utf8mb4_unicode_ci (case-insensitive Unicode collation)
+     */
+    public ShardingRepositoryBuilder collation(String collation) {
+        this.collation = collation;
+        return this;
+    }
+    
+    /**
+     * Set connection timeout for long-running operations (e.g., partition management)
+     * @param timeoutMillis Timeout in milliseconds (default: 60000 = 1 minute)
+     */
+    public ShardingRepositoryBuilder connectionTimeout(long timeoutMillis) {
+        this.connectionTimeout = timeoutMillis;
+        return this;
+    }
+    
+    /**
      * Set connection pool min idle (default: 5)
      */
     public ShardingRepositoryBuilder minIdle(int minIdle) {
@@ -102,13 +131,6 @@ public class ShardingRepositoryBuilder {
         return this;
     }
     
-    /**
-     * Set connection timeout in ms (default: 30000)
-     */
-    public ShardingRepositoryBuilder connectionTimeout(long connectionTimeout) {
-        this.connectionTimeout = connectionTimeout;
-        return this;
-    }
     
     /**
      * Set idle timeout in ms (default: 600000)
@@ -160,7 +182,8 @@ public class ShardingRepositoryBuilder {
         // 4. Create factory and return repository
         ShardingRepositoryFactory factory = new ShardingRepositoryFactory(
             actualDataSource, 
-            shardingSphereDataSource
+            shardingSphereDataSource,
+            database
         );
         
         return factory.getRepository(entityClass);
@@ -188,7 +211,7 @@ public class ShardingRepositoryBuilder {
             7                // Default retention
         );
         
-        return new ShardingRepositoryFactory(actualDataSource, shardingSphereDataSource);
+        return new ShardingRepositoryFactory(actualDataSource, shardingSphereDataSource, database);
     }
     
     /**
@@ -197,9 +220,12 @@ public class ShardingRepositoryBuilder {
     private DataSource createMySQLDataSource() {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        // MySQL JDBC driver uses "UTF-8" for utf8mb4 in the URL
+        String urlCharset = charset.equalsIgnoreCase("utf8mb4") ? "UTF-8" : charset;
+        
         config.setJdbcUrl(String.format(
-            "jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true",
-            host, port, database
+            "jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=%s&socketTimeout=%d&connectTimeout=%d",
+            host, port, database, urlCharset, connectionTimeout, connectionTimeout
         ));
         config.setUsername(username);
         config.setPassword(password);
@@ -207,9 +233,15 @@ public class ShardingRepositoryBuilder {
         // Connection pool settings
         config.setMaximumPoolSize(maxPoolSize);
         config.setMinimumIdle(minIdle);
-        config.setConnectionTimeout(connectionTimeout);
+        config.setConnectionTimeout(connectionTimeout);  // 1 minute default for partition ops
         config.setIdleTimeout(idleTimeout);
         config.setMaxLifetime(maxLifetime);
+        
+        // Set connection init SQL to ensure charset and collation
+        config.setConnectionInitSql(String.format(
+            "SET NAMES '%s' COLLATE '%s'",
+            charset, collation
+        ));
         
         return new HikariDataSource(config);
     }

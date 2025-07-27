@@ -17,39 +17,22 @@ public class ShardingRepository<T> {
     
     private final DataSource shardingSphereDataSource;
     private final EntityMetadata<T> metadata;
-    private final TableManager tableManager;
+    private TableManager tableManager;
     
     public ShardingRepository(DataSource shardingSphereDataSource, Class<T> entityClass) {
         this.shardingSphereDataSource = shardingSphereDataSource;
         this.metadata = EntityMetadata.of(entityClass);
-        this.tableManager = new TableManager(shardingSphereDataSource, metadata);
+        // TableManager will be set by factory with proper parameters
+        this.tableManager = null;
         
-        // Initialize tables/partitions if auto-manage is enabled
-        if (metadata.isAutoManagePartition()) {
-            tableManager.initializeTablesForRetentionWindow();
-        }
+        // Note: Table initialization is handled by the factory to ensure proper DataSource is used
     }
     
     /**
-     * Insert entity - Routes to correct date-based table
+     * Insert entity - ShardingSphere automatically routes to correct table/partition
      */
     public void insert(T entity) throws SQLException {
-        // Get the shard key value (date) to determine target table
-        ColumnMetadata shardKeyColumn = metadata.getShardKeyColumn();
-        if (shardKeyColumn == null) {
-            throw new IllegalStateException("No shard key column found for entity");
-        }
-        
-        Object shardKeyValue = shardKeyColumn.getValue(entity);
-        if (!(shardKeyValue instanceof LocalDateTime)) {
-            throw new IllegalStateException("Shard key must be LocalDateTime for date-based sharding");
-        }
-        
-        LocalDateTime dateTime = (LocalDateTime) shardKeyValue;
-        String targetTable = metadata.getTableNameForDate(dateTime);
-        
-        // Generate INSERT SQL for the specific table
-        String sql = generateInsertSqlForTable(targetTable);
+        String sql = metadata.generateInsertSql();
         
         try (Connection conn = shardingSphereDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -68,74 +51,49 @@ public class ShardingRepository<T> {
     }
     
     /**
-     * Find entities by date range - Queries across multiple date-based tables
+     * Find entities by date range - ShardingSphere handles cross-table/partition queries
      */
     public List<T> findByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        List<T> allResults = new ArrayList<>();
-        List<String> tableNames = generateTableNamesForDateRange(startDate, endDate);
+        String whereClause = metadata.getShardKey() + " BETWEEN ? AND ?";
+        String sql = metadata.generateSelectSql(whereClause);
         
-        for (String tableName : tableNames) {
-            // Query each table for entities in the date range
-            String whereClause = metadata.getShardKey() + " BETWEEN ? AND ?";
-            String sql = generateSelectSqlForTable(tableName, whereClause);
+        try (Connection conn = shardingSphereDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            try (Connection conn = shardingSphereDataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-                
-                stmt.setTimestamp(1, Timestamp.valueOf(startDate));
-                stmt.setTimestamp(2, Timestamp.valueOf(endDate));
-                
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        allResults.add(mapResultSetToEntity(rs));
-                    }
+            stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(2, Timestamp.valueOf(endDate));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<T> results = new ArrayList<>();
+                while (rs.next()) {
+                    results.add(mapResultSetToEntity(rs));
                 }
-            } catch (SQLException e) {
-                // Table might not exist - ignore and continue
-                if (!e.getMessage().contains("doesn't exist")) {
-                    throw e;
-                }
+                return results;
             }
         }
-        
-        return allResults;
     }
     
     /**
-     * Count entities in date range - Counts across multiple date-based tables
+     * Count entities in date range - ShardingSphere handles cross-table/partition aggregation
      */
     public long count(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        long totalCount = 0;
-        List<String> tableNames = generateTableNamesForDateRange(startDate, endDate);
+        String sql = "SELECT COUNT(*) FROM " + metadata.getTableName() + 
+                    " WHERE " + metadata.getShardKey() + " BETWEEN ? AND ?";
         
-        for (String tableName : tableNames) {
-            String sql = "SELECT COUNT(*) FROM " + tableName + 
-                        " WHERE " + metadata.getShardKey() + " BETWEEN ? AND ?";
+        try (Connection conn = shardingSphereDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            try (Connection conn = shardingSphereDataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-                
-                stmt.setTimestamp(1, Timestamp.valueOf(startDate));
-                stmt.setTimestamp(2, Timestamp.valueOf(endDate));
-                
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        totalCount += rs.getLong(1);
-                    }
-                }
-            } catch (SQLException e) {
-                // Table might not exist - ignore and continue
-                if (!e.getMessage().contains("doesn't exist")) {
-                    throw e;
-                }
+            stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(2, Timestamp.valueOf(endDate));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0;
             }
         }
-        
-        return totalCount;
     }
     
     /**
-     * Find entities by any field - Scans across all retention tables
+     * Find entities by any field - ShardingSphere handles cross-table/partition queries
      */
     public List<T> findByField(String fieldName, Object value) throws SQLException {
         ColumnMetadata column = metadata.getColumnByFieldName(fieldName);
@@ -143,75 +101,45 @@ public class ShardingRepository<T> {
             throw new IllegalArgumentException("Field '" + fieldName + "' not found in entity");
         }
         
-        // Scan across all tables in retention window
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate = now.minusDays(metadata.getRetentionSpanDays());
-        LocalDateTime endDate = now.plusDays(metadata.getRetentionSpanDays());
+        String whereClause = column.getColumnName() + " = ?";
+        String sql = metadata.generateSelectSql(whereClause);
         
-        List<T> allResults = new ArrayList<>();
-        List<String> tableNames = generateTableNamesForDateRange(startDate, endDate);
-        
-        for (String tableName : tableNames) {
-            String whereClause = column.getColumnName() + " = ?";
-            String sql = generateSelectSqlForTable(tableName, whereClause);
+        try (Connection conn = shardingSphereDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            try (Connection conn = shardingSphereDataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-                
-                setParameter(stmt, 1, value);
-                
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        allResults.add(mapResultSetToEntity(rs));
-                    }
+            setParameter(stmt, 1, value);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<T> results = new ArrayList<>();
+                while (rs.next()) {
+                    results.add(mapResultSetToEntity(rs));
                 }
-            } catch (SQLException e) {
-                // Table might not exist - ignore and continue
-                if (!e.getMessage().contains("doesn't exist")) {
-                    throw e;
-                }
+                return results;
             }
         }
-        
-        return allResults;
     }
     
     /**
-     * Execute custom query - Scans across all retention tables
+     * Execute custom query - ShardingSphere handles cross-table/partition queries
      */
     public List<T> query(String whereClause, Object... parameters) throws SQLException {
-        // Scan across all tables in retention window
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate = now.minusDays(metadata.getRetentionSpanDays());
-        LocalDateTime endDate = now.plusDays(metadata.getRetentionSpanDays());
+        String sql = metadata.generateSelectSql(whereClause);
         
-        List<T> allResults = new ArrayList<>();
-        List<String> tableNames = generateTableNamesForDateRange(startDate, endDate);
-        
-        for (String tableName : tableNames) {
-            String sql = generateSelectSqlForTable(tableName, whereClause);
+        try (Connection conn = shardingSphereDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            try (Connection conn = shardingSphereDataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-                
-                for (int i = 0; i < parameters.length; i++) {
-                    setParameter(stmt, i + 1, parameters[i]);
+            for (int i = 0; i < parameters.length; i++) {
+                setParameter(stmt, i + 1, parameters[i]);
+            }
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<T> results = new ArrayList<>();
+                while (rs.next()) {
+                    results.add(mapResultSetToEntity(rs));
                 }
-                
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        allResults.add(mapResultSetToEntity(rs));
-                    }
-                }
-            } catch (SQLException e) {
-                // Table might not exist - ignore and continue
-                if (!e.getMessage().contains("doesn't exist")) {
-                    throw e;
-                }
+                return results;
             }
         }
-        
-        return allResults;
     }
     
     /**
@@ -225,11 +153,16 @@ public class ShardingRepository<T> {
      * Example: 7-day retention = up to 14 tables scanned
      */
     public T findById(Object id) throws SQLException {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate = now.minusDays(metadata.getRetentionSpanDays());
-        LocalDateTime endDate = now.plusDays(metadata.getRetentionSpanDays());
+        ColumnMetadata primaryKeyColumn = metadata.getPrimaryKeyColumn();
+        if (primaryKeyColumn == null) {
+            throw new IllegalStateException("Entity " + metadata.getEntityClass().getSimpleName() + " has no primary key defined");
+        }
         
-        return findByIdAndDateRange(id, startDate, endDate);
+        // Let ShardingSphere handle the routing - it will scan all configured tables
+        String whereClause = primaryKeyColumn.getColumnName() + " = ?";
+        List<T> results = query(whereClause, id);
+        
+        return results.isEmpty() ? null : results.get(0);
     }
     
     /**
@@ -246,18 +179,25 @@ public class ShardingRepository<T> {
             throw new IllegalStateException("Entity " + metadata.getEntityClass().getSimpleName() + " has no primary key defined");
         }
         
-        // Generate table names for the date range
-        List<String> tableNames = generateTableNamesForDateRange(startDate, endDate);
+        // Use ShardingSphere with date range to limit table scanning
+        String whereClause = primaryKeyColumn.getColumnName() + " = ? AND " + 
+                           metadata.getShardKey() + " BETWEEN ? AND ?";
         
-        // Search across all tables in the date range
-        for (String tableName : tableNames) {
-            T result = findByIdInTable(id, tableName, primaryKeyColumn);
-            if (result != null) {
-                return result;
+        try (Connection conn = shardingSphereDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 metadata.generateSelectSql(whereClause))) {
+            
+            stmt.setObject(1, id);
+            stmt.setTimestamp(2, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(3, Timestamp.valueOf(endDate));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToEntity(rs);
+                }
+                return null;
             }
         }
-        
-        return null; // Not found in any table
     }
     
     /**
@@ -268,81 +208,13 @@ public class ShardingRepository<T> {
     }
     
     /**
-     * Generate list of table names for a date range
+     * Set a custom table manager (used by factory to inject actual DataSource)
      */
-    private List<String> generateTableNamesForDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-        List<String> tableNames = new ArrayList<>();
-        LocalDateTime current = startDate.toLocalDate().atStartOfDay();
-        
-        while (!current.isAfter(endDate)) {
-            String tableName = metadata.getTableNameForDate(current);
-            tableNames.add(tableName);
-            current = current.plusDays(1);
-        }
-        
-        return tableNames;
+    public void setTableManager(TableManager tableManager) {
+        this.tableManager = tableManager;
     }
     
-    /**
-     * Find entity by ID in a specific table
-     */
-    private T findByIdInTable(Object id, String tableName, ColumnMetadata primaryKeyColumn) throws SQLException {
-        String sql = generateSelectSqlForTable(tableName, primaryKeyColumn.getColumnName() + " = ?");
-        
-        try (Connection conn = shardingSphereDataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            setParameter(stmt, 1, id);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToEntity(rs);
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            // Table might not exist - ignore and continue
-            if (e.getMessage().contains("doesn't exist")) {
-                return null;
-            }
-            throw e;
-        }
-    }
     
-    /**
-     * Generate INSERT SQL for a specific table
-     */
-    private String generateInsertSqlForTable(String tableName) {
-        List<String> columnNames = new ArrayList<>();
-        List<String> placeholders = new ArrayList<>();
-        
-        for (ColumnMetadata column : metadata.getColumns()) {
-            if (!column.isPrimaryKey()) { // Skip auto-increment primary keys
-                columnNames.add(column.getColumnName());
-                placeholders.add("?");
-            }
-        }
-        
-        return "INSERT INTO " + tableName + " (" + 
-               String.join(", ", columnNames) + ") VALUES (" + 
-               String.join(", ", placeholders) + ")";
-    }
-    
-    /**
-     * Generate SELECT SQL for a specific table
-     */
-    private String generateSelectSqlForTable(String tableName, String whereClause) {
-        String columnNames = metadata.getColumns().stream()
-            .map(ColumnMetadata::getColumnName)
-            .reduce((a, b) -> a + ", " + b)
-            .orElse("*");
-        
-        String sql = "SELECT " + columnNames + " FROM " + tableName;
-        if (whereClause != null && !whereClause.trim().isEmpty()) {
-            sql += " WHERE " + whereClause;
-        }
-        return sql;
-    }
     
     private void setParameter(PreparedStatement stmt, int index, Object value) throws SQLException {
         if (value == null) {

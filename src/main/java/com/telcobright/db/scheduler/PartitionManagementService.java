@@ -35,12 +35,11 @@ public class PartitionManagementService {
         }
         
         String entityKey = entityClass.getSimpleName();
-        TableManager tableManager = new TableManager(dataSource, metadata);
+        // Use a placeholder database name - the factory will override this with proper TableManager
+        TableManager tableManager = new TableManager(dataSource, metadata, "default_db");
         
-        // Initialize tables for retention window
-        System.out.println("Initializing tables for " + entityClass.getSimpleName() + 
-                          " (retention: " + metadata.getRetentionSpanDays() + " days)");
-        tableManager.initializeTablesForRetentionWindow();
+        // Note: Table initialization is handled by the factory to ensure proper configuration
+        // The scheduler only manages daily maintenance, not initial setup
         
         // Store table manager
         tableManagers.put(entityKey, tableManager);

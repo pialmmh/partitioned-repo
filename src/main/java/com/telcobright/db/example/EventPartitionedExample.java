@@ -38,6 +38,8 @@ public class EventPartitionedExample {
                 .username("root")
                 .password("123456")
                 .maxPoolSize(15)
+                    .charset("utf8mb4")              // Full UTF-8 Unicode support
+                    .collation("utf8mb4_unicode_ci") // Case-insensitive Unicode collation
                 .buildRepository(EventEntity.class);
             
             System.out.println("   ✓ Partitioned repository ready with auto-management enabled\n");
