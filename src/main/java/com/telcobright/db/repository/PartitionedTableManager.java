@@ -11,7 +11,9 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Manages partition creation/deletion for partitioned table sharding strategy
@@ -48,12 +50,19 @@ public class PartitionedTableManager {
         Set<String> existingPartitions = queryExistingPartitions();
         System.out.println("Existing partitions (" + existingPartitions.size() + "): " + existingPartitions);
         
-        // 4. Create missing partitions
+        // 4. Handle dummy partition (remove it before creating real partitions)
+        if (existingPartitions.contains("p_dummy")) {
+            System.out.println("  Removing dummy partition before creating real partitions");
+            dropExcessPartitions(Set.of("p_dummy"));
+            existingPartitions.remove("p_dummy");
+        }
+        
+        // 5. Create missing partitions
         Set<String> missingPartitions = new HashSet<>(partitionsShouldExist);
         missingPartitions.removeAll(existingPartitions);
         createMissingPartitions(missingPartitions);
         
-        // 5. Drop excess partitions
+        // 6. Drop excess partitions
         Set<String> excessPartitions = new HashSet<>(existingPartitions);
         excessPartitions.removeAll(partitionsShouldExist);
         dropExcessPartitions(excessPartitions);
@@ -120,15 +129,24 @@ public class PartitionedTableManager {
             sql = sql.substring(0, sql.indexOf("PARTITION BY")).trim();
         }
         
-        // Add date-based partitioning by the shard key
-        sql += "\nPARTITION BY RANGE (TO_DAYS(" + metadata.getShardKey() + ")) (\n";
+        // For MySQL partitioning, we need to modify the PRIMARY KEY to include the partition column
+        // MySQL requires: "A PRIMARY KEY must include all columns in the table's partitioning function"
+        String shardKeyColumn = metadata.getShardKey();
         
-        // Add initial partition for current date
-        LocalDateTime now = LocalDateTime.now();
-        String partitionName = "p" + now.format(dateFormatter);
-        int dayValue = getDayValue(now);
+        // Find and replace the PRIMARY KEY constraint to include the shard key
+        // Handle different PRIMARY KEY patterns including AUTO_INCREMENT
+        if (sql.contains("AUTO_INCREMENT PRIMARY KEY")) {
+            sql = sql.replace("AUTO_INCREMENT PRIMARY KEY", "AUTO_INCREMENT, PRIMARY KEY (id, " + shardKeyColumn + ")");
+        } else if (sql.contains("PRIMARY KEY (`id`)")) {
+            sql = sql.replace("PRIMARY KEY (`id`)", "PRIMARY KEY (`id`, `" + shardKeyColumn + "`)");
+        } else if (sql.contains("PRIMARY KEY (id)")) {
+            sql = sql.replace("PRIMARY KEY (id)", "PRIMARY KEY (id, " + shardKeyColumn + ")");
+        }
         
-        sql += "    PARTITION " + partitionName + " VALUES LESS THAN (" + (dayValue + 1) + ")\n";
+        // Add date-based partitioning by the shard key (no initial partitions)
+        // We'll add all required partitions in managePartitionsAtStartup()
+        sql += "\nPARTITION BY RANGE (TO_DAYS(" + shardKeyColumn + ")) (\n";
+        sql += "    PARTITION p_dummy VALUES LESS THAN (1)\n";  // Dummy partition, will be replaced
         sql += ")";
         
         return sql;
@@ -223,7 +241,16 @@ public class PartitionedTableManager {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             
-            for (String partitionName : missingPartitions) {
+            // Sort partitions by date to ensure VALUES LESS THAN are in ascending order
+            List<String> sortedPartitions = missingPartitions.stream()
+                .sorted((p1, p2) -> {
+                    String date1 = p1.substring(1); // Remove 'p' prefix
+                    String date2 = p2.substring(1); // Remove 'p' prefix
+                    return date1.compareTo(date2);
+                })
+                .collect(Collectors.toList());
+            
+            for (String partitionName : sortedPartitions) {
                 // Extract date from partition name (pYYYYMMDD -> YYYYMMDD)
                 String datePart = partitionName.substring(1);
                 LocalDateTime partitionDate = LocalDateTime.parse(datePart + "0000", 
