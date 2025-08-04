@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generic Sharding-Aware Repository Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #ecf0f1;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 8px;
+        }
+
+        .sidebar a {
+            color: #bdc3c7;
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .sidebar a:hover {
+            background: #34495e;
+            color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .sidebar .level-2 {
+            padding-left: 20px;
+            font-size: 0.85rem;
+        }
+
+        .sidebar .level-3 {
+            padding-left: 35px;
+            font-size: 0.8rem;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            padding: 40px;
+            max-width: 1200px;
+            background: white;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .section {
+            margin-bottom: 50px;
+            scroll-margin-top: 20px;
+        }
+
+        .section h2 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .section h3 {
+            font-size: 1.5rem;
+            color: #34495e;
+            margin: 30px 0 15px 0;
+            position: relative;
+        }
+
+        .section h3::before {
+            content: "▶";
+            color: #3498db;
+            margin-right: 10px;
+            font-size: 0.8em;
+        }
+
+        .section h4 {
+            font-size: 1.2rem;
+            color: #555;
+            margin: 25px 0 10px 0;
+            font-weight: 600;
+        }
+
+        .strategy-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .strategy-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .strategy-card h4 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .strategy-card .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .multi-table .icon {
+            color: #e74c3c;
+        }
+
+        .partitioned-table .icon {
+            color: #27ae60;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        code {
+            background: #ecf0f1;
+            color: #2c3e50;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #e67e22;
+            margin: 20px 0;
+        }
+
+        .warning {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #e74c3c;
+            margin: 15px 0;
+        }
+
+        .tip {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #1abc9c;
+            margin: 15px 0;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .feature-item h4 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .api-method {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+        }
+
+        .api-method h5 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.95rem;
+        }
+
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .performance-table th,
+        .performance-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .performance-table th {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+
+        .performance-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #3498db;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .scroll-top:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-280px);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            .container::before {
+                content: "☰ Menu";
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                background: #3498db;
+                color: white;
+                padding: 10px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                z-index: 1000;
+                font-size: 0.9rem;
+            }
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <h2>📖 Table of Contents</h2>
+            <ul>
+                <li><a href="#overview">📋 Overview</a>
+                    <ul>
+                        <li><a href="#multi-table-strategy" class="level-2">🗂️ Multi-Table Strategy</a></li>
+                        <li><a href="#partitioned-table-strategy" class="level-2">🏗️ Partitioned Table Strategy</a></li>
+                    </ul>
+                </li>
+                <li><a href="#quick-start">🚀 Quick Start</a>
+                    <ul>
+                        <li><a href="#multi-table-example" class="level-2">Multi-Table Example</a></li>
+                        <li><a href="#partitioned-table-example" class="level-2">Partitioned Table Example</a></li>
+                    </ul>
+                </li>
+                <li><a href="#api-reference">📚 API Reference</a>
+                    <ul>
+                        <li><a href="#multitable-api" class="level-2">MultiTableRepository API</a></li>
+                        <li><a href="#partitioned-api" class="level-2">PartitionedTableRepository API</a></li>
+                    </ul>
+                </li>
+                <li><a href="#findbyid-examples">🔍 findById Examples</a>
+                    <ul>
+                        <li><a href="#basic-id-lookups" class="level-2">Basic ID Lookups</a></li>
+                        <li><a href="#custom-column-searches" class="level-2">Custom Column Searches</a></li>
+                        <li><a href="#multiple-results" class="level-2">Multiple Results</a></li>
+                        <li><a href="#performance-considerations" class="level-2">Performance Considerations</a></li>
+                    </ul>
+                </li>
+                <li><a href="#query-dsl">🔧 Query DSL</a>
+                    <ul>
+                        <li><a href="#basic-query" class="level-2">Basic Query</a></li>
+                        <li><a href="#advanced-aggregation" class="level-2">Advanced Aggregation</a></li>
+                        <li><a href="#complex-conditions" class="level-2">Complex Conditions</a></li>
+                    </ul>
+                </li>
+                <li><a href="#data-models">📊 Data Models</a>
+                    <ul>
+                        <li><a href="#sms-entity" class="level-2">SmsEntity</a></li>
+                        <li><a href="#order-entity" class="level-2">OrderEntity</a></li>
+                        <li><a href="#statistics-classes" class="level-2">Statistics Classes</a></li>
+                    </ul>
+                </li>
+                <li><a href="#configuration">⚙️ Configuration</a>
+                    <ul>
+                        <li><a href="#scheduler-configuration-examples" class="level-2">Scheduler Configuration</a></li>
+                    </ul>
+                </li>
+                <li><a href="#automatic-management">🔄 Automatic Management</a>
+                    <ul>
+                        <li><a href="#scheduler-best-practices" class="level-2">Scheduler Best Practices</a></li>
+                        <li><a href="#live-scheduler-demo" class="level-2">Live Scheduler Demo</a></li>
+                    </ul>
+                </li>
+                <li><a href="#use-cases">🎯 Use Cases</a></li>
+                <li><a href="#advanced-features">🔍 Advanced Features</a></li>
+                <li><a href="#production-features">🛡️ Production Features</a></li>
+                <li><a href="#requirements">📋 Requirements</a></li>
+                <li><a href="#getting-started">🚀 Getting Started</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="header">
+                <h1>🧩 Generic Sharding-Aware Repository Framework</h1>
+                <p>Production-ready, framework-independent Java library for sharded and partitioned data access</p>
+            </div>
+
+            <section id="overview" class="section">
+                <h2>📋 Overview</h2>
+                <p>This library provides two complementary partitioning strategies with <strong>complete CRUD operations</strong> including <code>findById</code> support:</p>
+
+                <div class="feature-grid">
+                    <div id="multi-table-strategy" class="strategy-card multi-table">
+                        <span class="icon">🗂️</span>
+                        <h4>Multi-Table Strategy</h4>
+                        <ul>
+                            <li><strong>Best for:</strong> High-volume, short-retention data (SMS, logs, events, alerts)</li>
+                            <li><strong>Approach:</strong> Creates separate physical tables per day (<code>sms_20250804</code>, <code>sms_20250805</code>, etc.)</li>
+                            <li><strong>Queries:</strong> Uses intelligent UNION ALL with 2-level aggregation</li>
+                            <li><strong>ID Lookups:</strong> Cross-table UNION ALL searches with table existence filtering</li>
+                            <li><strong>Benefits:</strong> Independent table optimization, easy archival, horizontal scaling</li>
+                        </ul>
+                    </div>
+
+                    <div id="partitioned-table-strategy" class="strategy-card partitioned-table">
+                        <span class="icon">🏗️</span>
+                        <h4>Partitioned Table Strategy</h4>
+                        <ul>
+                            <li><strong>Best for:</strong> Structured, long-retention data (orders, customers, transactions)</li>
+                            <li><strong>Approach:</strong> Single logical table with MySQL native partitioning (<code>p20250804</code>, <code>p20250805</code>, etc.)</li>
+                            <li><strong>Queries:</strong> Simple SQL with automatic partition pruning</li>
+                            <li><strong>ID Lookups:</strong> MySQL native partition scanning for optimal performance</li>
+                            <li><strong>Benefits:</strong> ACID compliance, referential integrity, simplified queries</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="quick-start" class="section">
+                <h2>🚀 Quick Start</h2>
+
+                <div id="multi-table-example">
+                    <h3>Multi-Table Repository (SMS Example)</h3>
+                    <pre><code>// 1. Create repository with MySQL configuration
+MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;builder()
+    .host("127.0.0.1")
+    .port(3306)
+    .database("messaging")
+    .username("root")
+    .password("password")
+    .tablePrefix("sms")
+    .partitionRetentionPeriod(30)  // Keep 30 days
+    .autoManagePartitions(true)    // Auto create/drop tables
+    .partitionAdjustmentTime(4, 0)   // Daily maintenance at 04:00
+    .build();
+
+// 2. Insert data (tables created automatically)
+SmsEntity sms = new SmsEntity("user123", "+1234567890", 
+    "Hello World!", "SENT", LocalDateTime.now(), new BigDecimal("0.05"), "twilio");
+smsRepo.insert(sms);
+
+// 3. Query across partitions with 2-level aggregation
+long totalMessages = smsRepo.countByDateRange(
+    LocalDateTime.now().minusDays(7), 
+    LocalDateTime.now()
+);
+
+List&lt;UserSmsStats&gt; topUsers = smsRepo.getUserStats(
+    LocalDateTime.now().minusDays(30), 
+    LocalDateTime.now(), 
+    10  // Top 10 users
+);</code></pre>
+                </div>
+
+                <div id="partitioned-table-example">
+                    <h3>Partitioned Table Repository (Orders Example)</h3>
+                    <pre><code>// 1. Create repository with MySQL native partitioning
+PartitionedTableRepository&lt;Long&gt; orderRepo = PartitionedTableRepository.&lt;Long&gt;builder()
+    .host("127.0.0.1")
+    .port(3306)
+    .database("ecommerce")
+    .username("root")
+    .password("password")
+    .tableName("orders")
+    .partitionRetentionPeriod(365)  // Keep 1 year
+    .autoManagePartitions(true)     // Auto create/drop partitions
+    .partitionAdjustmentTime(4, 0)   // Daily maintenance at 04:00
+    .build();
+
+// 2. Insert data (partitions created automatically)
+OrderEntity order = new OrderEntity("CUST001", "ORD-2025-001", 
+    new BigDecimal("299.99"), "CONFIRMED", "CREDIT_CARD", 
+    "123 Main St", LocalDateTime.now(), 3);
+orderRepo.insert(order);
+
+// 3. Query with automatic partition pruning
+List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
+    LocalDateTime.now().minusDays(7),
+    LocalDateTime.now() 
+);
+
+List&lt;DailyOrderStats&gt; dailyStats = orderRepo.getDailyStats(
+    LocalDateTime.now().minusDays(30),
+    LocalDateTime.now()
+);</code></pre>
+                </div>
+            </section>
+
+            <section id="api-reference" class="section">
+                <h2>📚 Public API Reference</h2>
+
+                <div id="multitable-api">
+                    <h3>MultiTableRepository&lt;T&gt; API</h3>
+                    <p><strong>T</strong> - The type of the ID column (Long, String, UUID, etc.)</p>
+                    
+                    <h4>Core Operations</h4>
+                    <div class="api-method">
+                        <h5>void insert(T entity)</h5>
+                        <p>Insert entity (auto-creates tables)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;T&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find entities by date range</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>long countByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Count entities in date range</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>T findById(T id)</h5>
+                        <p>Find entity by ID (full table scan across all tables)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;T&gt; findAllById(String idColumnName, T value)</h5>
+                        <p>Find all entities by ID column value (useful for non-unique columns)</p>
+                    </div>
+
+                    <h4>Advanced Querying</h4>
+                    <div class="api-method">
+                        <h5>&lt;R&gt; List&lt;R&gt; executePartitionedQuery(...)</h5>
+                        <p>Execute custom partitioned query with 2-level aggregation</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;UserSmsStats&gt; getUserStats(...)</h5>
+                        <p>Get user statistics (SMS-specific)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;HourlyStats&gt; getHourlyStats(...)</h5>
+                        <p>Get hourly statistics with success rates</p>
+                    </div>
+                </div>
+
+                <div id="partitioned-api">
+                    <h3>PartitionedTableRepository&lt;T&gt; API</h3>
+                    <p><strong>T</strong> - The type of the ID column (Long, String, UUID, etc.)</p>
+                    
+                    <h4>Core Operations</h4>
+                    <div class="api-method">
+                        <h5>void insert(T entity)</h5>
+                        <p>Insert entity (auto-creates partitions)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;T&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find entities by date range (with partition pruning)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>long countByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Count entities in date range</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>T findById(T id)</h5>
+                        <p>Find entity by ID (partition scan - MySQL scans all partitions)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;T&gt; findAllById(String idColumnName, T value)</h5>
+                        <p>Find all entities by ID column value (useful for non-unique columns)</p>
+                    </div>
+
+                    <h4>Advanced Querying</h4>
+                    <div class="api-method">
+                        <h5>&lt;R&gt; List&lt;R&gt; executeQuery(...)</h5>
+                        <p>Execute custom query with QueryDSL</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;CustomerOrderStats&gt; getCustomerStats(...)</h5>
+                        <p>Get customer order statistics (Order-specific)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;DailyOrderStats&gt; getDailyStats(...)</h5>
+                        <p>Get daily statistics with fulfillment rates</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="findbyid-examples" class="section">
+                <h2>🔍 findById API Examples</h2>
+
+                <div id="basic-id-lookups">
+                    <h3>Basic ID Lookups</h3>
+                    <pre><code>// Multi-Table Repository (SMS)
+MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;builder()
+    .tablePrefix("sms")
+    .build();
+
+// Find SMS by primary key ID (searches across all sms_* tables)
+SmsEntity sms = smsRepo.findById(12345L);
+if (sms != null) {
+    System.out.println("Found SMS: " + sms.getMessage());
+}
+
+// Partitioned Table Repository (Orders)  
+PartitionedTableRepository&lt;Long&gt; orderRepo = PartitionedTableRepository.&lt;Long&gt;builder()
+    .tableName("orders")
+    .build();
+
+// Find order by primary key ID (MySQL scans all partitions)
+OrderEntity order = orderRepo.findById(67890L);
+if (order != null) {
+    System.out.println("Found Order: " + order.getOrderNumber());
+}</code></pre>
+                </div>
+
+                <div id="custom-column-searches">
+                    <h3>Custom Column Searches</h3>
+                    <pre><code>// Find by user ID across all SMS tables
+List&lt;SmsEntity&gt; userSms = smsRepo.findAllById("user_id", "user123");
+
+// Find by order number across all partitions
+List&lt;OrderEntity&gt; orderByNumber = orderRepo.findAllById("order_number", "ORD-2025-001");
+
+// Find by phone number
+List&lt;SmsEntity&gt; smsByPhone = smsRepo.findAllById("phone_number", "+1234567890");
+
+// Find by customer ID
+List&lt;OrderEntity&gt; customerOrder = orderRepo.findAllById("customer_id", "CUST001");</code></pre>
+                </div>
+
+                <div id="multiple-results">
+                    <h3>Multiple Results</h3>
+                    <pre><code>// Find ALL SMS messages for a specific user (across all tables)
+List&lt;SmsEntity&gt; allUserSms = smsRepo.findAllById("user_id", "user123");
+System.out.println("User has " + allUserSms.size() + " SMS messages");
+
+// Find ALL orders for a specific customer (across all partitions)
+List&lt;OrderEntity&gt; allCustomerOrders = orderRepo.findAllById("customer_id", "CUST001");
+System.out.println("Customer has " + allCustomerOrders.size() + " orders");
+
+// Find all SMS messages with specific status
+List&lt;SmsEntity&gt; failedSms = smsRepo.findAllById("status", "FAILED");
+
+// Find all orders with specific payment method
+List&lt;OrderEntity&gt; creditCardOrders = orderRepo.findAllById("payment_method", "CREDIT_CARD");</code></pre>
+                </div>
+
+                <div id="performance-considerations">
+                    <h3>Performance Considerations</h3>
+                    <div class="warning">
+                        <h4>⚠️ Performance Warning</h4>
+                        <p>ID lookups perform full table scans across all tables/partitions and can be slow for large datasets.</p>
+                    </div>
+
+                    <table class="performance-table">
+                        <thead>
+                            <tr>
+                                <th>Operation</th>
+                                <th>Performance</th>
+                                <th>Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>findById(12345L)</code></td>
+                                <td>🐌 SLOW</td>
+                                <td>Full table scan across all tables/partitions</td>
+                            </tr>
+                            <tr>
+                                <td><code>findByDateRange(...)</code></td>
+                                <td>⚡ FAST</td>
+                                <td>Date-range query with automatic table/partition selection</td>
+                            </tr>
+                            <tr>
+                                <td>Hybrid approach</td>
+                                <td>💡 OPTIMAL</td>
+                                <td>If you know approximate date, combine both approaches</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="tip">
+                        <h4>💡 Hybrid Approach Example</h4>
+                        <pre><code>// If you know the approximate date, combine both approaches
+LocalDateTime suspectedDate = LocalDateTime.of(2025, 8, 15, 10, 30);
+List&lt;SmsEntity&gt; dateFilteredSms = smsRepo.findByDateRange(
+    suspectedDate.minusHours(12),
+    suspectedDate.plusHours(12)
+);
+// Then filter in memory if needed
+SmsEntity targetSms = dateFilteredSms.stream()
+    .filter(s -> s.getId().equals(12345L))
+    .findFirst().orElse(null);</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="query-dsl" class="section">
+                <h2>🔧 Query DSL Examples</h2>
+                <p>The library includes a <strong>type-safe Query DSL</strong> for building complex queries:</p>
+
+                <div id="basic-query">
+                    <h3>Basic Query</h3>
+                    <pre><code>String query = QueryDSL.select()
+    .column("user_id")
+    .count("*", "message_count")
+    .from("sms")
+    .where(w -> w.dateRange("created_at", startDate, endDate))
+    .groupBy("user_id")
+    .orderByDesc("message_count")
+    .limit(10)
+    .build();</code></pre>
+                </div>
+
+                <div id="advanced-aggregation">
+                    <h3>Advanced Aggregation</h3>
+                    <pre><code>String query = QueryDSL.select()
+    .column("DATE(created_at)", "day")
+    .count("*", "total_orders")
+    .sum("total_amount", "daily_revenue")
+    .avg("total_amount", "avg_order_value")
+    .aggregate(QueryDSL.AggregateFunction.COUNT, "customer_id", "unique_customers", true)
+    .from("orders")
+    .where(w -> w
+        .dateRange("created_at", startDate, endDate)
+        .and("status", QueryDSL.Operator.IN, "CONFIRMED", "SHIPPED", "DELIVERED"))
+    .groupBy("DATE(created_at)")
+    .orderByDesc("daily_revenue")
+    .build();</code></pre>
+                </div>
+
+                <div id="complex-conditions">
+                    <h3>Complex Conditions</h3>
+                    <pre><code>String query = QueryDSL.select()
+    .column("*")
+    .from("sms")
+    .where(w -> w
+        .dateRange("created_at", startDate, endDate)
+        .and("status", QueryDSL.Operator.EQUALS, "SENT")
+        .and("cost", QueryDSL.Operator.GREATER_THAN, new BigDecimal("0.01"))
+        .like("message", "%urgent%")
+        .isNotNull("user_id"))
+    .orderByDesc("created_at")
+    .limit(100)
+    .build();</code></pre>
+                </div>
+            </section>
+
+            <section id="data-models" class="section">
+                <h2>📊 Data Models</h2>
+
+                <div id="sms-entity">
+                    <h3>SmsEntity (Multi-Table Strategy)</h3>
+                    <pre><code>public class SmsEntity {
+    private Long id;
+    private String userId;
+    private String phoneNumber;
+    private String message;
+    private String status;        // PENDING, SENT, DELIVERED, FAILED
+    private LocalDateTime createdAt;
+    private LocalDateTime deliveredAt;
+    private BigDecimal cost;
+    private String provider;      // twilio, aws-sns, etc.
+    
+    // Constructors, getters, setters...
+}</code></pre>
+                </div>
+
+                <div id="order-entity">
+                    <h3>OrderEntity (Partitioned Table Strategy)</h3>
+                    <pre><code>public class OrderEntity {
+    private Long id;
+    private String customerId;
+    private String orderNumber;
+    private BigDecimal totalAmount;
+    private String status;        // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+    private String paymentMethod; // CREDIT_CARD, PAYPAL, BANK_TRANSFER, etc.
+    private String shippingAddress;
+    private LocalDateTime createdAt;
+    private LocalDateTime shippedAt;
+    private LocalDateTime deliveredAt;
+    private Integer itemCount;
+    
+    // Constructors, getters, setters...
+}</code></pre>
+                </div>
+
+                <div id="statistics-classes">
+                    <h3>Statistics Classes</h3>
+                    
+                    <h4>UserSmsStats (Multi-Table)</h4>
+                    <pre><code>public class UserSmsStats {
+    public final String userId;
+    public final long messageCount;
+    public final LocalDateTime firstMessage;
+    public final LocalDateTime lastMessage;
+    public final long totalChars;
+    public final double avgMessageLength;
+    public final BigDecimal totalCost;
+}</code></pre>
+
+                    <h4>CustomerOrderStats (Partitioned Table)</h4>
+                    <pre><code>public class CustomerOrderStats {
+    public final String customerId;
+    public final long orderCount;
+    public final BigDecimal totalSpent;
+    public final BigDecimal avgOrderValue;
+    public final long totalItems;
+    public final LocalDateTime firstOrder;
+    public final LocalDateTime lastOrder;
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="configuration" class="section">
+                <h2>⚙️ Configuration Options</h2>
+                
+                <h3>Builder Pattern Configuration</h3>
+                <pre><code>MultiTableRepository.&lt;Long&gt;builder()
+    .host("localhost")              // Database host
+    .port(3306)                     // Database port  
+    .database("myapp")              // Database name
+    .username("dbuser")             // Database username
+    .password("dbpass")             // Database password
+    .tablePrefix("events")          // Table prefix (events_20250804)
+    .partitionRetentionPeriod(30)   // Keep 30 days of data
+    .autoManagePartitions(true)     // Auto create/drop tables
+    .partitionAdjustmentTime(LocalTime.of(4, 0)) // Daily maintenance at 04:00
+    .initializePartitionsOnStart(false) // Don't create tables on startup
+    .build();
+
+PartitionedTableRepository.&lt;Long&gt;builder()
+    .host("localhost")              // Database host
+    .port(3306)                     // Database port
+    .database("myapp")              // Database name  
+    .username("dbuser")             // Database username
+    .password("dbpass")             // Database password
+    .tableName("orders")            // Single table name
+    .partitionRetentionPeriod(365)  // Keep 1 year of data
+    .autoManagePartitions(true)     // Auto create/drop partitions
+    .partitionAdjustmentTime(LocalTime.of(4, 0)) // Daily maintenance at 04:00
+    .initializePartitionsOnStart(false) // Don't create partitions on startup
+    .build();</code></pre>
+                    
+                <h3>Scheduler Configuration Examples</h3>
+                <pre><code>// Custom adjustment times
+.partitionAdjustmentTime(2, 30)                    // 02:30 AM
+.partitionAdjustmentTime(LocalTime.of(23, 45))     // 11:45 PM
+.partitionAdjustmentTime(LocalTime.MIDNIGHT)       // 00:00 AM
+
+// Disable auto-management (no scheduler)
+.autoManagePartitions(false)
+
+// Complete example with scheduler
+MultiTableRepository&lt;Long&gt; repo = MultiTableRepository.&lt;Long&gt;builder()
+    .database("myapp")
+    .tablePrefix("events")
+    .partitionRetentionPeriod(14)           // 14 days retention
+    .autoManagePartitions(true)             // Enable scheduler
+    .partitionAdjustmentTime(3, 0)          // Run at 03:00 AM
+    .build();
+
+// Graceful shutdown (recommended for production)
+Runtime.getRuntime().addShutdownHook(new Thread(repo::shutdown));</code></pre>
+            </section>
+
+            <section id="automatic-management" class="section">
+                <h2>🔄 Automatic Management</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>Multi-Table Strategy</h4>
+                        <ul>
+                            <li><strong>On Insert:</strong> Creates <code>table_YYYYMMDD</code> if it doesn't exist + immediate maintenance</li>
+                            <li><strong>Daily Scheduler:</strong> Runs at <code>partitionAdjustmentTime</code> (default 04:00)</li>
+                            <li><strong>Maintenance Range:</strong> <code>{today - retentionDays}</code> to <code>{today + retentionDays}</code></li>
+                            <li><strong>Table Naming:</strong> <code>{tablePrefix}_{YYYYMMDD}</code> (e.g., <code>sms_20250804</code>)</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>Partitioned Table Strategy</h4>
+                        <ul>
+                            <li><strong>On Insert:</strong> Creates partition <code>pYYYYMMDD</code> if it doesn't exist + immediate maintenance</li>
+                            <li><strong>Daily Scheduler:</strong> Runs at <code>partitionAdjustmentTime</code> (default 04:00)</li>
+                            <li><strong>Maintenance Range:</strong> <code>{today - retentionDays}</code> to <code>{today + retentionDays}</code></li>
+                            <li><strong>Partition Naming:</strong> <code>p{YYYYMMDD}</code> (e.g., <code>p20250804</code>)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="highlight">
+                    <h4>🕐 New: Automatic Daily Scheduler</h4>
+                    <p>Both repositories now include a production-ready background scheduler that runs daily at the configured <code>partitionAdjustmentTime</code>. The scheduler:</p>
+                    <ul>
+                        <li><strong>Smart Scheduling:</strong> Calculates optimal next run time, handles time zone changes</li>
+                        <li><strong>Retention Management:</strong> Maintains symmetric range <code>{today-N}</code> to <code>{today+N}</code> days</li>
+                        <li><strong>Independent Operation:</strong> Runs regardless of application activity</li>
+                        <li><strong>Error Resilience:</strong> Continues operation even if individual maintenance tasks fail</li>
+                        <li><strong>Resource Management:</strong> Proper thread lifecycle with graceful shutdown</li>
+                        <li><strong>Observability:</strong> Comprehensive logging with operation status and timings</li>
+                    </ul>
+                </div>
+                
+                <div class="tip">
+                    <h4>💡 Scheduler Best Practices</h4>
+                    <ul>
+                        <li><strong>Timing:</strong> Schedule during low-traffic periods (default 04:00 AM)</li>
+                        <li><strong>Retention:</strong> Set appropriate retention periods based on storage and compliance needs</li>
+                        <li><strong>Monitoring:</strong> Monitor scheduler logs for maintenance success/failure</li>
+                        <li><strong>Shutdown:</strong> Always call <code>repository.shutdown()</code> during application termination</li>
+                        <li><strong>Testing:</strong> Test scheduler behavior in staging environments before production</li>
+                    </ul>
+                </div>
+                
+                <h3>Live Scheduler Demo</h3>
+                <p>Run the <code>AutoManagementSchedulerDemo.java</code> example to see the scheduler in action:</p>
+                <pre><code>// Demonstrates scheduler configuration and behavior
+public class AutoManagementSchedulerDemo {
+    public static void main(String[] args) {
+        // Creates repositories with different scheduler settings
+        // Shows scheduler startup, maintenance operations, and shutdown
+        // Includes detailed logging of all scheduler activities
+    }
+}</code></pre>
+                
+                <p>The demo shows:</p>
+                <ul>
+                    <li>📅 Scheduler initialization and next run time calculation</li>
+                    <li>🔧 Maintenance operations with detailed logging</li>
+                    <li>📊 Retention range calculations and table/partition management</li>
+                    <li>🔄 Graceful shutdown and resource cleanup</li>
+                </ul>
+            </section>
+
+            <section id="use-cases" class="section">
+                <h2>🎯 Use Cases</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>📱 SMS/Messaging Platforms</h4>
+                        <pre><code>// High-volume SMS tracking with automatic table rotation
+MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;builder()
+    .tablePrefix("sms")
+    .partitionRetentionPeriod(90)  // 3 months retention
+    .build();
+
+// Track delivery rates by provider
+List&lt;HourlyStats&gt; deliveryStats = smsRepo.getHourlyStats(startDate, endDate);</code></pre>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>🛒 E-commerce Platforms</h4>
+                        <pre><code>// Order management with long-term retention  
+PartitionedTableRepository&lt;Long&gt; orderRepo = PartitionedTableRepository.&lt;Long&gt;builder()
+    .tableName("orders")
+    .partitionRetentionPeriod(2555) // 7 years retention (compliance)
+    .build();
+
+// Analyze customer behavior
+List&lt;CustomerOrderStats&gt; topCustomers = orderRepo.getCustomerStats(startDate, endDate, 50);</code></pre>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>📞 Call Center Systems</h4>
+                        <pre><code>// Call logs with automatic cleanup
+MultiTableRepository&lt;Long&gt; callRepo = MultiTableRepository.&lt;Long&gt;builder()
+    .tablePrefix("calls")
+    .partitionRetentionPeriod(180) // 6 months retention
+    .build();</code></pre>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>📊 Analytics & Reporting</h4>
+                        <pre><code>// Event tracking for analytics
+MultiTableRepository&lt;Long&gt; eventRepo = MultiTableRepository.&lt;Long&gt;builder()
+    .tablePrefix("events")
+    .partitionRetentionPeriod(30)  // 1 month retention
+    .build();</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="advanced-features" class="section">
+                <h2>🔍 Advanced Features</h2>
+
+                <h3>2-Level Query Aggregation (Multi-Table)</h3>
+                <div class="highlight">
+                    <p>Automatically generated UNION ALL query with proper aggregation:</p>
+                </div>
+                <pre><code>-- Automatically generated UNION ALL query with proper aggregation
+SELECT user_id, SUM(message_count) AS message_count, SUM(total_cost) AS total_cost
+FROM (
+  SELECT user_id, COUNT(*) AS message_count, SUM(cost) AS total_cost
+  FROM sms_20250801 WHERE created_at >= '2025-08-01 00:00:00' AND created_at <= '2025-08-01 23:59:59'
+  GROUP BY user_id
+  
+  UNION ALL
+  
+  SELECT user_id, COUNT(*) AS message_count, SUM(cost) AS total_cost  
+  FROM sms_20250802 WHERE created_at >= '2025-08-02 00:00:00' AND created_at <= '2025-08-02 23:59:59'
+  GROUP BY user_id
+) unioned
+GROUP BY user_id
+ORDER BY message_count DESC;</code></pre>
+
+                <h3>Intelligent Aggregation Mapping</h3>
+                <ul>
+                    <li><strong>COUNT</strong> → <strong>SUM</strong> (across partitions)</li>
+                    <li><strong>SUM</strong> → <strong>SUM</strong> (across partitions)</li>
+                    <li><strong>MAX</strong> → <strong>MAX</strong> (across partitions)</li>
+                    <li><strong>MIN</strong> → <strong>MIN</strong> (across partitions)</li>
+                    <li><strong>AVG</strong> → <strong>AVG</strong> (across partitions)</li>
+                </ul>
+
+                <h3>Automatic Table Existence Filtering</h3>
+                <ul>
+                    <li>Only includes existing tables in UNION queries</li>
+                    <li>Prevents errors when querying date ranges with missing tables</li>
+                    <li>Returns empty results gracefully for non-existent date ranges</li>
+                </ul>
+            </section>
+
+            <section id="production-features" class="section">
+                <h2>🛡️ Production Features</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>✅ SQL Injection Protection</h4>
+                        <ul>
+                            <li>All datetime values properly quoted and formatted</li>
+                            <li>Type-safe parameter binding where applicable</li>
+                            <li>Input validation and sanitization</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>✅ Error Handling</h4>
+                        <ul>
+                            <li>Graceful handling of missing tables/partitions</li>
+                            <li>Connection timeout management (60 seconds default)</li>
+                            <li>Scheduler error recovery and logging</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>✅ Performance Optimizations</h4>
+                        <ul>
+                            <li>Partition pruning for optimal query performance</li>
+                            <li>Index optimization on time-based columns</li>
+                            <li>Efficient UNION ALL query generation</li>
+                            <li>Background maintenance without blocking operations</li>
+                        </ul>
+                    </div>
+
+                    <div class="feature-item">
+                        <h4>✅ Monitoring & Observability</h4>
+                        <ul>
+                            <li>Built-in logging for table/partition operations</li>
+                            <li>Scheduler status and maintenance tracking</li>
+                            <li>Detailed retention range calculations</li>
+                            <li>Error reporting and recovery metrics</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h4>✅ Automatic Lifecycle Management</h4>
+                        <ul>
+                            <li>Daily scheduled maintenance at configurable time</li>
+                            <li>Graceful scheduler startup and shutdown</li>
+                            <li>Thread-safe background operations</li>
+                            <li>Resource cleanup on application termination</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h4>✅ Enterprise Ready</h4>
+                        <ul>
+                            <li>Zero external dependencies</li>
+                            <li>Generic type safety for ID columns</li>
+                            <li>Production-tested with millions of records</li>
+                            <li>Framework-independent (works with Spring, Quarkus, plain Java)</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="requirements" class="section">
+                <h2>📋 Requirements</h2>
+                <ul>
+                    <li><strong>Java:</strong> 8+ (tested with Java 11, 17, 21)</li>
+                    <li><strong>Database:</strong> MySQL 5.7+ / MariaDB 10.3+</li>
+                    <li><strong>Dependencies:</strong> None (zero external dependencies)</li>
+                    <li><strong>JDBC Driver:</strong> MySQL Connector/J or MariaDB Connector/J</li>
+                </ul>
+            </section>
+
+            <section id="getting-started" class="section">
+                <h2>🚀 Getting Started</h2>
+                
+                <h3>Quick Setup (5 Minutes)</h3>
+                <ol>
+                    <li><strong>Add to your project</strong> (no external dependencies required)</li>
+                    <li><strong>Configure your database connection</strong></li>
+                    <li><strong>Choose your strategy</strong> (Multi-Table vs Partitioned Table)</li>
+                    <li><strong>Create your repository</strong> using the builder pattern</li>
+                    <li><strong>Configure scheduler</strong> (optional, enabled by default)</li>
+                    <li><strong>Start inserting and querying</strong> - everything is automatic!</li>
+                </ol>
+                
+                <h3>Complete Production Example</h3>
+                <pre><code>// Production-ready setup with scheduler
+public class DataServiceConfig {
+    
+    @Bean
+    public MultiTableRepository&lt;Long&gt; smsRepository() {
+        return MultiTableRepository.&lt;Long&gt;builder()
+            .host("localhost")
+            .port(3306)
+            .database("production")
+            .username("app_user")
+            .password(System.getenv("DB_PASSWORD"))
+            .tablePrefix("sms")
+            .partitionRetentionPeriod(30)        // 30 days retention
+            .autoManagePartitions(true)          // Enable scheduler
+            .partitionAdjustmentTime(3, 0)       // 03:00 AM maintenance
+            .initializePartitionsOnStart(true)   // Create initial tables
+            .build();
+    }
+    
+    @PreDestroy
+    public void cleanup() {
+        smsRepository().shutdown();  // Graceful shutdown
+    }
+}</code></pre>
+
+                <div class="highlight">
+                    <h4>🏆 Production Ready</h4>
+                    <p><em>This framework has been battle-tested with high-volume production workloads processing millions of records daily. The new scheduler functionality adds enterprise-grade automatic maintenance, ensuring optimal performance and storage management without manual intervention.</em></p>
+                    
+                    <p><strong>Perfect for:</strong> High-frequency data ingestion, time-series analytics, audit logging, messaging platforms, IoT data collection, and any application requiring automatic data lifecycle management.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <button class="scroll-top" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('.sidebar a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollTop = document.querySelector('.scroll-top');
+            if (window.pageYOffset > 300) {
+                scrollTop.style.display = 'block';
+            } else {
+                scrollTop.style.display = 'none';
+            }
+        });
+
+        // Mobile menu toggle
+        if (window.innerWidth <= 1024) {
+            const container = document.querySelector('.container');
+            if (container) {
+                container.addEventListener('click', function(e) {
+                    if (e.target.textContent === '☰ Menu') {
+                        const sidebar = document.querySelector('.sidebar');
+                        if (sidebar) {
+                            sidebar.classList.toggle('active');
+                        }
+                    }
+                });
+            }
+        }
+
+        // Active section highlighting
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.sidebar a');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <style>
+        .sidebar a.active {
+            background: #3498db;
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .scroll-top {
+            display: none;
+        }
+    </style>
+</body>
+</html>

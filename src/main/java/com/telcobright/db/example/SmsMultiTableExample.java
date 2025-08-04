@@ -28,7 +28,7 @@ public class SmsMultiTableExample {
     
     private static void demoSmsRepository() throws SQLException {
         // Create SMS repository with MySQL configuration
-        MultiTableRepository smsRepo = MultiTableRepository.builder()
+        MultiTableRepository<Long> smsRepo = MultiTableRepository.<Long>builder()
             .host("127.0.0.1")               // MySQL host
             .port(3306)                      // MySQL port
             .database("test")                // Database name
@@ -107,9 +107,52 @@ public class SmsMultiTableExample {
         );
         
         statusStats.forEach(System.out::println);
+        System.out.println();
+        
+        // Query 5: Find by ID (full table scan)
+        System.out.println("Query 5: Find SMS by ID (full table scan)");
+        System.out.println("---------------------------------------");
+        // Get a sample SMS first to find by ID
+        List<SmsEntity> sampleSms = smsRepo.findByDateRange(
+            LocalDateTime.now().minusDays(2), 
+            LocalDateTime.now().minusDays(1)
+        );
+        
+        if (!sampleSms.isEmpty()) {
+            SmsEntity sample = sampleSms.get(0);
+            System.out.println("Searching for SMS with ID: " + sample.getId());
+            
+            SmsEntity foundById = smsRepo.findById(sample.getId());
+            if (foundById != null) {
+                System.out.println("Found SMS: " + foundById.toString());
+            } else {
+                System.out.println("SMS not found");
+            }
+            
+            // Also test findAllById with custom column (using String-typed repository)
+            System.out.println("Searching for SMS with user_id: " + sample.getUserId());
+            
+            // Create a String-typed repository for user_id searches
+            MultiTableRepository<String> smsRepoForStrings = MultiTableRepository.<String>builder()
+                .host("127.0.0.1")
+                .port(3306)
+                .database("test")
+                .username("root")
+                .password("123456")
+                .tablePrefix("sms")
+                .partitionRetentionPeriod(7)
+                .autoManagePartitions(true)
+                .initializePartitionsOnStart(false)
+                .build();
+            
+            List<SmsEntity> foundByUserId = smsRepoForStrings.findAllById("user_id", sample.getUserId());
+            System.out.println("Found " + foundByUserId.size() + " SMS messages for user: " + sample.getUserId());
+        } else {
+            System.out.println("No sample SMS found for ID search test");
+        }
     }
     
-    private static void insertDemoSmsData(MultiTableRepository smsRepo) throws SQLException {
+    private static void insertDemoSmsData(MultiTableRepository<Long> smsRepo) throws SQLException {
         Random rand = new Random();
         String[] users = {"user001", "user002", "user003", "user004", "user005"};
         String[] statuses = {"SENT", "DELIVERED", "FAILED", "PENDING"};

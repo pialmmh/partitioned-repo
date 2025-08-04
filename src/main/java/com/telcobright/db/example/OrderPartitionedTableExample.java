@@ -28,7 +28,7 @@ public class OrderPartitionedTableExample {
     
     private static void demoOrderRepository() throws SQLException {
         // Create order repository with MySQL configuration
-        PartitionedTableRepository orderRepo = PartitionedTableRepository.builder()
+        PartitionedTableRepository<Long> orderRepo = PartitionedTableRepository.<Long>builder()
             .host("127.0.0.1")               // MySQL host
             .port(3306)                      // MySQL port
             .database("test")                // Database name
@@ -107,9 +107,52 @@ public class OrderPartitionedTableExample {
         );
         
         paymentStats.forEach(System.out::println);
+        System.out.println();
+        
+        // Query 5: Find by ID (partition scan)
+        System.out.println("Query 5: Find Order by ID (partition scan)");
+        System.out.println("------------------------------------------");
+        // Get a sample order first to find by ID
+        List<OrderEntity> sampleOrders = orderRepo.findByDateRange(
+            LocalDateTime.now().minusDays(3), 
+            LocalDateTime.now().minusDays(2)
+        );
+        
+        if (!sampleOrders.isEmpty()) {
+            OrderEntity sample = sampleOrders.get(0);
+            System.out.println("Searching for Order with ID: " + sample.getId());
+            
+            OrderEntity foundById = orderRepo.findById(sample.getId());
+            if (foundById != null) {
+                System.out.println("Found Order: " + foundById.toString());
+            } else {
+                System.out.println("Order not found");
+            }
+            
+            // Also test findAllById with custom column (using String-typed repository)
+            System.out.println("Searching for Orders with customer_id: " + sample.getCustomerId());
+            
+            // Create a String-typed repository for customer_id searches
+            PartitionedTableRepository<String> orderRepoForStrings = PartitionedTableRepository.<String>builder()
+                .host("127.0.0.1")
+                .port(3306)
+                .database("test")
+                .username("root")
+                .password("123456")
+                .tableName("orders")
+                .partitionRetentionPeriod(30)
+                .autoManagePartitions(true)
+                .initializePartitionsOnStart(false)
+                .build();
+            
+            List<OrderEntity> foundByCustomerId = orderRepoForStrings.findAllById("customer_id", sample.getCustomerId());
+            System.out.println("Found " + foundByCustomerId.size() + " orders for customer: " + sample.getCustomerId());
+        } else {
+            System.out.println("No sample orders found for ID search test");
+        }
     }
     
-    private static void insertDemoOrderData(PartitionedTableRepository orderRepo) throws SQLException {
+    private static void insertDemoOrderData(PartitionedTableRepository<Long> orderRepo) throws SQLException {
         Random rand = new Random();
         String[] customers = {"CUST001", "CUST002", "CUST003", "CUST004", "CUST005", "CUST006"};
         String[] statuses = {"PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"};
