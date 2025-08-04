@@ -1,5 +1,6 @@
 package com.telcobright.db.entity;
 
+import com.telcobright.db.annotation.*;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
@@ -8,18 +9,42 @@ import java.math.BigDecimal;
  * Uses MySQL native partitioning on a single table 'orders'
  * Partitions by date range: p20250803, p20250804, etc.
  */
+@Table(name = "orders")
 public class OrderEntity {
     
+    @Id
+    @Column(name = "id", insertable = false, updatable = false)
     private Long id;
+    
+    @Column(name = "customer_id", nullable = false)
     private String customerId;
+    
+    @Column(name = "order_number", nullable = false)
     private String orderNumber;
+    
+    @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
+    
+    @Column(name = "status", nullable = false)
     private String status; // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+    
+    @Column(name = "payment_method")
     private String paymentMethod;
+    
+    @Column(name = "shipping_address")
     private String shippingAddress;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    
+    @Column(name = "shipped_at")
     private LocalDateTime shippedAt;
+    
+    @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
+    
+    @Column(name = "item_count")
     private Integer itemCount;
     
     // Constructors

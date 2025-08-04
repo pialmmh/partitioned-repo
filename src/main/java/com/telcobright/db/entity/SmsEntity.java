@@ -1,5 +1,6 @@
 package com.telcobright.db.entity;
 
+import com.telcobright.db.annotation.*;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
@@ -7,16 +8,36 @@ import java.math.BigDecimal;
  * SMS entity for multi-table partitioning strategy
  * Each day gets its own table: sms_20250803, sms_20250804, etc.
  */
+@Table(name = "sms")
 public class SmsEntity {
     
+    @Id
+    @Column(name = "id", insertable = false, updatable = false)
     private Long id;
+    
+    @Column(name = "user_id")
     private String userId;
+    
+    @Column(name = "phone_number")
     private String phoneNumber;
+    
+    @Column(name = "message")
     private String message;
+    
+    @Column(name = "status")
     private String status; // PENDING, SENT, DELIVERED, FAILED
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    
+    @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
+    
+    @Column(name = "cost")
     private BigDecimal cost;
+    
+    @Column(name = "provider")
     private String provider;
     
     // Constructors
