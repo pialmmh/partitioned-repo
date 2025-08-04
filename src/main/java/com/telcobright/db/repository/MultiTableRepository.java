@@ -571,14 +571,14 @@ public class MultiTableRepository<T> {
         
         long initialDelayMinutes = java.time.Duration.between(now, nextRun).toMinutes();
         
-        System.out.println("📅 MultiTable Scheduler: Next maintenance at " + nextRun + 
+        System.out.println(" MultiTable Scheduler: Next maintenance at " + nextRun + 
                           " (in " + initialDelayMinutes + " minutes)");
         
         scheduler.scheduleAtFixedRate(() -> {
             try {
                 performScheduledMaintenance();
             } catch (Exception e) {
-                System.err.println("❌ MultiTable scheduled maintenance failed: " + e.getMessage());
+                System.err.println(" MultiTable scheduled maintenance failed: " + e.getMessage());
                 e.printStackTrace();
             }
         }, initialDelayMinutes, 24 * 60, TimeUnit.MINUTES); // Run daily
@@ -590,13 +590,13 @@ public class MultiTableRepository<T> {
     private void performScheduledMaintenance() throws SQLException {
         LocalDateTime today = LocalDateTime.now();
         
-        System.out.println("🔧 MultiTable scheduled maintenance started at " + today);
+        System.out.println(" MultiTable scheduled maintenance started at " + today);
         
         // Calculate the valid range: {today - retentionDays} to {today + retentionDays}
         LocalDateTime startRange = today.minusDays(partitionRetentionPeriod);
         LocalDateTime endRange = today.plusDays(partitionRetentionPeriod);
         
-        System.out.println("📊 Valid table range: " + startRange.toLocalDate() + " to " + endRange.toLocalDate());
+        System.out.println(" Valid table range: " + startRange.toLocalDate() + " to " + endRange.toLocalDate());
         
         // Create missing tables in the valid range
         createTablesForDateRange(startRange, endRange);
@@ -604,7 +604,7 @@ public class MultiTableRepository<T> {
         // Drop tables outside the valid range (older than startRange)
         dropOldTables(startRange);
         
-        System.out.println("✅ MultiTable scheduled maintenance completed");
+        System.out.println(" MultiTable scheduled maintenance completed");
     }
     
     /**

@@ -348,27 +348,27 @@
 <body>
     <div class="container">
         <nav class="sidebar">
-            <h2>📖 Table of Contents</h2>
+            <h2>Table of Contents</h2>
             <ul>
-                <li><a href="#overview">📋 Overview</a>
+                <li><a href="#overview">Overview</a>
                     <ul>
-                        <li><a href="#multi-table-strategy" class="level-2">🗂️ Multi-Table Strategy</a></li>
-                        <li><a href="#partitioned-table-strategy" class="level-2">🏗️ Partitioned Table Strategy</a></li>
+                        <li><a href="#multi-table-strategy" class="level-2">Multi-Table Strategy</a></li>
+                        <li><a href="#partitioned-table-strategy" class="level-2">Partitioned Table Strategy</a></li>
                     </ul>
                 </li>
-                <li><a href="#quick-start">🚀 Quick Start</a>
+                <li><a href="#quick-start">Quick Start</a>
                     <ul>
                         <li><a href="#multi-table-example" class="level-2">Multi-Table Example</a></li>
                         <li><a href="#partitioned-table-example" class="level-2">Partitioned Table Example</a></li>
                     </ul>
                 </li>
-                <li><a href="#api-reference">📚 API Reference</a>
+                <li><a href="#api-reference">API Reference</a>
                     <ul>
                         <li><a href="#multitable-api" class="level-2">MultiTableRepository API</a></li>
                         <li><a href="#partitioned-api" class="level-2">PartitionedTableRepository API</a></li>
                     </ul>
                 </li>
-                <li><a href="#findbyid-examples">🔍 findById Examples</a>
+                <li><a href="#findbyid-examples">findById Examples</a>
                     <ul>
                         <li><a href="#basic-id-lookups" class="level-2">Basic ID Lookups</a></li>
                         <li><a href="#custom-column-searches" class="level-2">Custom Column Searches</a></li>
@@ -376,52 +376,62 @@
                         <li><a href="#performance-considerations" class="level-2">Performance Considerations</a></li>
                     </ul>
                 </li>
-                <li><a href="#query-dsl">🔧 Query DSL</a>
+                <li><a href="#query-dsl">Query DSL</a>
                     <ul>
                         <li><a href="#basic-query" class="level-2">Basic Query</a></li>
                         <li><a href="#advanced-aggregation" class="level-2">Advanced Aggregation</a></li>
                         <li><a href="#complex-conditions" class="level-2">Complex Conditions</a></li>
                     </ul>
                 </li>
-                <li><a href="#data-models">📊 Data Models</a>
+                <li><a href="#data-models">Data Models</a>
                     <ul>
                         <li><a href="#sms-entity" class="level-2">SmsEntity</a></li>
                         <li><a href="#order-entity" class="level-2">OrderEntity</a></li>
                         <li><a href="#statistics-classes" class="level-2">Statistics Classes</a></li>
                     </ul>
                 </li>
-                <li><a href="#configuration">⚙️ Configuration</a>
+                <li><a href="#configuration">Configuration</a>
                     <ul>
                         <li><a href="#scheduler-configuration-examples" class="level-2">Scheduler Configuration</a></li>
                     </ul>
                 </li>
-                <li><a href="#automatic-management">🔄 Automatic Management</a>
+                <li><a href="#automatic-management">Automatic Management</a>
                     <ul>
                         <li><a href="#scheduler-best-practices" class="level-2">Scheduler Best Practices</a></li>
                         <li><a href="#live-scheduler-demo" class="level-2">Live Scheduler Demo</a></li>
                     </ul>
                 </li>
-                <li><a href="#use-cases">🎯 Use Cases</a></li>
-                <li><a href="#advanced-features">🔍 Advanced Features</a></li>
-                <li><a href="#production-features">🛡️ Production Features</a></li>
-                <li><a href="#requirements">📋 Requirements</a></li>
-                <li><a href="#getting-started">🚀 Getting Started</a></li>
+                <li><a href="#use-cases">Use Cases</a></li>
+                <li><a href="#advanced-features">Advanced Features</a></li>
+                <li><a href="#production-features">Production Features</a></li>
+                <li><a href="#requirements">Requirements</a></li>
+                <li><a href="#getting-started">Getting Started</a></li>
             </ul>
         </nav>
 
         <main class="main-content">
             <div class="header">
-                <h1>🧩 Generic Sharding-Aware Repository Framework</h1>
-                <p>Production-ready, framework-independent Java library for sharded and partitioned data access</p>
+                <h1>Generic Sharding-Aware Repository Framework</h1>
+                <p>Production-ready, framework-independent Java library with automatic SQL generation, HikariCP pooling, and type-safe generic repositories</p>
             </div>
 
             <section id="overview" class="section">
-                <h2>📋 Overview</h2>
-                <p>This library provides two complementary partitioning strategies with <strong>complete CRUD operations</strong> including <code>findById</code> support:</p>
+                <h2>Overview</h2>
+                <p>This library provides <strong>generic, type-safe repositories</strong> with automatic SQL generation and HikariCP-based connection pooling. It supports two complementary partitioning strategies with <strong>complete CRUD operations</strong>:</p>
+                
+                <div class="highlight">
+                    <h4>New Features</h4>
+                    <ul>
+                        <li><strong>Generic Type Safety:</strong> <code>Repository&lt;TEntity, TKey&gt;</code> with compile-time guarantees</li>
+                        <li><strong>Automatic SQL Generation:</strong> INSERT, SELECT, CREATE TABLE statements inferred from entity annotations</li>
+                        <li><strong>Zero Runtime Reflection:</strong> All metadata parsed once at startup for maximum performance</li>
+                        <li><strong>HikariCP Integration:</strong> Production-ready connection pooling with full configuration options</li>
+                        <li><strong>Annotation-Based Mapping:</strong> Simple <code>@Table</code>, <code>@Column</code>, <code>@Id</code>, <code>@ShardingKey</code> annotations</li>
+                    </ul>
+                </div>
 
                 <div class="feature-grid">
                     <div id="multi-table-strategy" class="strategy-card multi-table">
-                        <span class="icon">🗂️</span>
                         <h4>Multi-Table Strategy</h4>
                         <ul>
                             <li><strong>Best for:</strong> High-volume, short-retention data (SMS, logs, events, alerts)</li>
@@ -433,7 +443,6 @@
                     </div>
 
                     <div id="partitioned-table-strategy" class="strategy-card partitioned-table">
-                        <span class="icon">🏗️</span>
                         <h4>Partitioned Table Strategy</h4>
                         <ul>
                             <li><strong>Best for:</strong> Structured, long-retention data (orders, customers, transactions)</li>
@@ -447,106 +456,168 @@
             </section>
 
             <section id="quick-start" class="section">
-                <h2>🚀 Quick Start</h2>
+                <h2>Quick Start</h2>
 
                 <div id="multi-table-example">
-                    <h3>Multi-Table Repository (SMS Example)</h3>
-                    <pre><code>// 1. Create repository with MySQL configuration
-MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;builder()
-    .host("127.0.0.1")
-    .port(3306)
-    .database("messaging")
-    .username("root")
-    .password("password")
-    .tablePrefix("sms")
-    .partitionRetentionPeriod(30)  // Keep 30 days
-    .autoManagePartitions(true)    // Auto create/drop tables
-    .partitionAdjustmentTime(4, 0)   // Daily maintenance at 04:00
-    .build();
+                    <h3>Generic Multi-Table Repository (SMS Example)</h3>
+                    <pre><code>// 1. Entity with annotations (automatic SQL generation)
+@Table(name = "sms")
+public class SmsEntity {
+    @Id
+    @Column(name = "id", insertable = false)
+    private Long id;
+    
+    @Column(name = "user_id")
+    private String userId;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "message")
+    private String message;
+    // ... other fields
+}
 
-// 2. Insert data (tables created automatically)
+// 2. Create generic repository with type safety and HikariCP
+GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
+    GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
+        .host("127.0.0.1")
+        .port(3306)
+        .database("messaging")
+        .username("root")
+        .password("password")
+        .tablePrefix("sms")        // Optional: inferred from @Table
+        .partitionRetentionPeriod(30)  // Keep 30 days
+        .autoManagePartitions(true)    // Auto create/drop tables
+        .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
+        // HikariCP connection pool configuration
+        .maxPoolSize(25)               // 25 connections max
+        .minIdleConnections(5)         // 5 idle connections
+        .connectionTimeout(30000)      // 30s timeout
+        .build();
+
+// 3. Insert data - SQL automatically generated from annotations
 SmsEntity sms = new SmsEntity("user123", "+1234567890", 
     "Hello World!", "SENT", LocalDateTime.now(), new BigDecimal("0.05"), "twilio");
-smsRepo.insert(sms);
+smsRepo.insert(sms);  // Auto-generates: INSERT INTO messaging.sms_20250804 (user_id, phone_number, message, status, created_at, cost, provider) VALUES (?, ?, ?, ?, ?, ?, ?)
 
-// 3. Query across partitions with 2-level aggregation
+// 4. Type-safe queries with automatic table routing
 long totalMessages = smsRepo.countByDateRange(
     LocalDateTime.now().minusDays(7), 
     LocalDateTime.now()
 );
 
-List&lt;UserSmsStats&gt; topUsers = smsRepo.getUserStats(
-    LocalDateTime.now().minusDays(30), 
-    LocalDateTime.now(), 
-    10  // Top 10 users
-);</code></pre>
+// 5. Find by ID across all tables
+SmsEntity foundSms = smsRepo.findById(12345L);
+
+// 6. Find all SMS for a user
+List&lt;SmsEntity&gt; userSms = smsRepo.findAllById("user_id", "user123");</code></pre>
                 </div>
 
                 <div id="partitioned-table-example">
-                    <h3>Partitioned Table Repository (Orders Example)</h3>
-                    <pre><code>// 1. Create repository with MySQL native partitioning
-PartitionedTableRepository&lt;Long&gt; orderRepo = PartitionedTableRepository.&lt;Long&gt;builder()
-    .host("127.0.0.1")
-    .port(3306)
-    .database("ecommerce")
-    .username("root")
-    .password("password")
-    .tableName("orders")
-    .partitionRetentionPeriod(365)  // Keep 1 year
-    .autoManagePartitions(true)     // Auto create/drop partitions
-    .partitionAdjustmentTime(4, 0)   // Daily maintenance at 04:00
-    .build();
+                    <h3>Generic Partitioned Table Repository (Orders Example)</h3>
+                    <pre><code>// 1. Entity with annotations (automatic SQL generation)
+@Table(name = "orders")
+public class OrderEntity {
+    @Id
+    @Column(name = "id", insertable = false)
+    private Long id;
+    
+    @Column(name = "customer_id", nullable = false)
+    private String customerId;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
+    // ... other fields
+}
 
-// 2. Insert data (partitions created automatically)
+// 2. Create generic repository with MySQL native partitioning and HikariCP
+GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
+    GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
+        .host("127.0.0.1")
+        .port(3306)
+        .database("ecommerce")
+        .username("root")
+        .password("password")
+        .tableName("orders")           // Optional: inferred from @Table
+        .partitionRetentionPeriod(365) // Keep 1 year
+        .autoManagePartitions(true)    // Auto create/drop partitions
+        .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
+        // HikariCP connection pool configuration for high-volume processing
+        .maxPoolSize(30)               // 30 connections for order processing
+        .minIdleConnections(10)        // 10 idle connections ready
+        .idleTimeout(900000)           // 15 min idle timeout
+        .maxLifetime(3600000)          // 1 hour max connection lifetime
+        .build();
+
+// 3. Insert data - SQL automatically generated with partition routing
 OrderEntity order = new OrderEntity("CUST001", "ORD-2025-001", 
     new BigDecimal("299.99"), "CONFIRMED", "CREDIT_CARD", 
     "123 Main St", LocalDateTime.now(), 3);
-orderRepo.insert(order);
+orderRepo.insert(order);  // Auto-generates: INSERT INTO ecommerce.orders (customer_id, order_number, total_amount, status, payment_method, shipping_address, created_at, item_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 
-// 3. Query with automatic partition pruning
+// 4. Type-safe queries with automatic partition pruning
 List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
     LocalDateTime.now().minusDays(7),
     LocalDateTime.now() 
 );
 
-List&lt;DailyOrderStats&gt; dailyStats = orderRepo.getDailyStats(
-    LocalDateTime.now().minusDays(30),
-    LocalDateTime.now()
-);</code></pre>
+// 5. Find by ID with MySQL partition scanning
+OrderEntity foundOrder = orderRepo.findById(67890L);
+
+// 6. Find all orders for a customer
+List&lt;OrderEntity&gt; customerOrders = orderRepo.findAllById("customer_id", "CUST001");</code></pre>
                 </div>
             </section>
 
             <section id="api-reference" class="section">
-                <h2>📚 Public API Reference</h2>
+                <h2>Public API Reference</h2>
 
                 <div id="multitable-api">
-                    <h3>MultiTableRepository&lt;T&gt; API</h3>
-                    <p><strong>T</strong> - The type of the ID column (Long, String, UUID, etc.)</p>
+                    <h3>GenericMultiTableRepository&lt;TEntity, TKey&gt; API</h3>
+                    <p><strong>TEntity</strong> - The entity type (SmsEntity, EventEntity, etc.)</p>
+                    <p><strong>TKey</strong> - The primary key type (Long, String, UUID, etc.)</p>
                     
-                    <h4>Core Operations</h4>
+                    <h4>Builder Configuration</h4>
                     <div class="api-method">
-                        <h5>void insert(T entity)</h5>
-                        <p>Insert entity (auto-creates tables)</p>
+                        <h5>GenericMultiTableRepository.&lt;TEntity, TKey&gt;builder(Class&lt;TEntity&gt;, Class&lt;TKey&gt;)</h5>
+                        <p>Create builder with entity and key types for compile-time safety</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;T&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Find entities by date range</p>
+                        <h5>.maxPoolSize(int) / .minIdleConnections(int) / .connectionTimeout(long)</h5>
+                        <p>Configure HikariCP connection pool settings</p>
+                    </div>
+                    
+                    <h4>Core Operations</h4>
+                    <div class="api-method">
+                        <h5>void insert(TEntity entity)</h5>
+                        <p>Insert entity with automatic SQL generation (auto-creates tables)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find entities by date range with automatic table selection</p>
                     </div>
                     
                     <div class="api-method">
                         <h5>long countByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Count entities in date range</p>
+                        <p>Count entities in date range across all relevant tables</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>T findById(T id)</h5>
-                        <p>Find entity by ID (full table scan across all tables)</p>
+                        <h5>TEntity findById(TKey id)</h5>
+                        <p>Find entity by primary key (searches across all tables)</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;T&gt; findAllById(String idColumnName, T value)</h5>
-                        <p>Find all entities by ID column value (useful for non-unique columns)</p>
+                        <h5>List&lt;TEntity&gt; findAllById(String columnName, Object value)</h5>
+                        <p>Find all entities by any column value (useful for non-unique columns)</p>
                     </div>
 
                     <h4>Advanced Querying</h4>
@@ -567,33 +638,45 @@ List&lt;DailyOrderStats&gt; dailyStats = orderRepo.getDailyStats(
                 </div>
 
                 <div id="partitioned-api">
-                    <h3>PartitionedTableRepository&lt;T&gt; API</h3>
-                    <p><strong>T</strong> - The type of the ID column (Long, String, UUID, etc.)</p>
+                    <h3>GenericPartitionedTableRepository&lt;TEntity, TKey&gt; API</h3>
+                    <p><strong>TEntity</strong> - The entity type (OrderEntity, CustomerEntity, etc.)</p>
+                    <p><strong>TKey</strong> - The primary key type (Long, String, UUID, etc.)</p>
                     
-                    <h4>Core Operations</h4>
+                    <h4>Builder Configuration</h4>
                     <div class="api-method">
-                        <h5>void insert(T entity)</h5>
-                        <p>Insert entity (auto-creates partitions)</p>
+                        <h5>GenericPartitionedTableRepository.&lt;TEntity, TKey&gt;builder(Class&lt;TEntity&gt;, Class&lt;TKey&gt;)</h5>
+                        <p>Create builder with entity and key types for compile-time safety</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;T&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Find entities by date range (with partition pruning)</p>
+                        <h5>.maxPoolSize(int) / .idleTimeout(long) / .maxLifetime(long)</h5>
+                        <p>Configure HikariCP connection pool settings for high-volume processing</p>
+                    </div>
+                    
+                    <h4>Core Operations</h4>
+                    <div class="api-method">
+                        <h5>void insert(TEntity entity)</h5>
+                        <p>Insert entity with automatic SQL generation (auto-creates partitions)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find entities by date range with MySQL partition pruning</p>
                     </div>
                     
                     <div class="api-method">
                         <h5>long countByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Count entities in date range</p>
+                        <p>Count entities in date range with partition optimization</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>T findById(T id)</h5>
-                        <p>Find entity by ID (partition scan - MySQL scans all partitions)</p>
+                        <h5>TEntity findById(TKey id)</h5>
+                        <p>Find entity by primary key (MySQL native partition scanning)</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;T&gt; findAllById(String idColumnName, T value)</h5>
-                        <p>Find all entities by ID column value (useful for non-unique columns)</p>
+                        <h5>List&lt;TEntity&gt; findAllById(String columnName, Object value)</h5>
+                        <p>Find all entities by any column value with partition efficiency</p>
                     </div>
 
                     <h4>Advanced Querying</h4>
@@ -615,7 +698,7 @@ List&lt;DailyOrderStats&gt; dailyStats = orderRepo.getDailyStats(
             </section>
 
             <section id="findbyid-examples" class="section">
-                <h2>🔍 findById API Examples</h2>
+                <h2>findById API Examples</h2>
 
                 <div id="basic-id-lookups">
                     <h3>Basic ID Lookups</h3>
@@ -677,7 +760,7 @@ List&lt;OrderEntity&gt; creditCardOrders = orderRepo.findAllById("payment_method
                 <div id="performance-considerations">
                     <h3>Performance Considerations</h3>
                     <div class="warning">
-                        <h4>⚠️ Performance Warning</h4>
+                        <h4>Performance Warning</h4>
                         <p>ID lookups perform full table scans across all tables/partitions and can be slow for large datasets.</p>
                     </div>
 
@@ -692,24 +775,24 @@ List&lt;OrderEntity&gt; creditCardOrders = orderRepo.findAllById("payment_method
                         <tbody>
                             <tr>
                                 <td><code>findById(12345L)</code></td>
-                                <td>🐌 SLOW</td>
+                                <td>SLOW</td>
                                 <td>Full table scan across all tables/partitions</td>
                             </tr>
                             <tr>
                                 <td><code>findByDateRange(...)</code></td>
-                                <td>⚡ FAST</td>
+                                <td>FAST</td>
                                 <td>Date-range query with automatic table/partition selection</td>
                             </tr>
                             <tr>
                                 <td>Hybrid approach</td>
-                                <td>💡 OPTIMAL</td>
+                                <td>OPTIMAL</td>
                                 <td>If you know approximate date, combine both approaches</td>
                             </tr>
                         </tbody>
                     </table>
 
                     <div class="tip">
-                        <h4>💡 Hybrid Approach Example</h4>
+                        <h4>Hybrid Approach Example</h4>
                         <pre><code>// If you know the approximate date, combine both approaches
 LocalDateTime suspectedDate = LocalDateTime.of(2025, 8, 15, 10, 30);
 List&lt;SmsEntity&gt; dateFilteredSms = smsRepo.findByDateRange(
@@ -725,7 +808,7 @@ SmsEntity targetSms = dateFilteredSms.stream()
             </section>
 
             <section id="query-dsl" class="section">
-                <h2>🔧 Query DSL Examples</h2>
+                <h2>Query DSL Examples</h2>
                 <p>The library includes a <strong>type-safe Query DSL</strong> for building complex queries:</p>
 
                 <div id="basic-query">
@@ -775,8 +858,60 @@ SmsEntity targetSms = dateFilteredSms.stream()
                 </div>
             </section>
 
+            <section id="annotations" class="section">
+                <h2>Entity Annotations</h2>
+                <p>Simple annotations for automatic SQL generation and entity mapping:</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4>@Table</h4>
+                        <pre><code>@Table(name = "orders")
+public class OrderEntity { ... }</code></pre>
+                        <p>Specifies the table name. If omitted, uses lowercase class name without "Entity" suffix.</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h4>@Id</h4>
+                        <pre><code>@Id
+@Column(name = "id", insertable = false)
+private Long id;</code></pre>
+                        <p>Marks the primary key field. Supports auto-generation with <code>autoGenerated = true</code> (default).</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h4>@ShardingKey</h4>
+                        <pre><code>@ShardingKey
+@Column(name = "created_at", nullable = false)
+private LocalDateTime createdAt;</code></pre>
+                        <p>Marks the field used for date-based partitioning/sharding (usually a DateTime field).</p>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <h4>@Column</h4>
+                        <pre><code>@Column(name = "user_id", nullable = false)
+private String userId;
+
+@Column(name = "message")
+private String message;</code></pre>
+                        <p>Maps field to database column. Supports <code>nullable</code>, <code>insertable</code>, <code>updatable</code> options.</p>
+                    </div>
+                </div>
+                
+                <div class="highlight">
+                    <h4>Automatic SQL Generation</h4>
+                    <p>From these annotations, the framework automatically generates:</p>
+                    <ul>
+                        <li><strong>INSERT statements:</strong> <code>INSERT INTO table (col1, col2) VALUES (?, ?)</code></li>
+                        <li><strong>SELECT statements:</strong> <code>SELECT col1, col2 FROM table WHERE id = ?</code></li>
+                        <li><strong>CREATE TABLE statements:</strong> With proper column types, constraints, and indexes</li>
+                        <li><strong>Parameter binding:</strong> Type-safe parameter setting based on field types</li>
+                        <li><strong>Result mapping:</strong> Automatic ResultSet to entity conversion</li>
+                    </ul>
+                </div>
+            </section>
+
             <section id="data-models" class="section">
-                <h2>📊 Data Models</h2>
+                <h2>Data Models</h2>
 
                 <div id="sms-entity">
                     <h3>SmsEntity (Multi-Table Strategy)</h3>
@@ -842,34 +977,49 @@ SmsEntity targetSms = dateFilteredSms.stream()
             </section>
 
             <section id="configuration" class="section">
-                <h2>⚙️ Configuration Options</h2>
+                <h2>Configuration Options</h2>
                 
-                <h3>Builder Pattern Configuration</h3>
-                <pre><code>MultiTableRepository.&lt;Long&gt;builder()
-    .host("localhost")              // Database host
-    .port(3306)                     // Database port  
-    .database("myapp")              // Database name
-    .username("dbuser")             // Database username
-    .password("dbpass")             // Database password
-    .tablePrefix("events")          // Table prefix (events_20250804)
-    .partitionRetentionPeriod(30)   // Keep 30 days of data
-    .autoManagePartitions(true)     // Auto create/drop tables
-    .partitionAdjustmentTime(LocalTime.of(4, 0)) // Daily maintenance at 04:00
-    .initializePartitionsOnStart(false) // Don't create tables on startup
-    .build();
+                <h3>Generic Builder Configuration with HikariCP</h3>
+                <pre><code>// Multi-Table Repository with HikariCP
+GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
+    GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
+        .host("localhost")              // Database host
+        .port(3306)                     // Database port  
+        .database("messaging")          // Database name
+        .username("dbuser")             // Database username
+        .password("dbpass")             // Database password
+        .tablePrefix("sms")             // Table prefix (sms_20250804)
+        .partitionRetentionPeriod(30)   // Keep 30 days of data
+        .autoManagePartitions(true)     // Auto create/drop tables
+        .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
+        // HikariCP Configuration
+        .maxPoolSize(25)                // Maximum 25 connections
+        .minIdleConnections(5)          // Minimum 5 idle connections
+        .connectionTimeout(30000)       // 30 second connection timeout
+        .idleTimeout(600000)            // 10 minute idle timeout
+        .maxLifetime(1800000)           // 30 minute max connection lifetime
+        .leakDetectionThreshold(60000)  // 1 minute leak detection
+        .build();
 
-PartitionedTableRepository.&lt;Long&gt;builder()
-    .host("localhost")              // Database host
-    .port(3306)                     // Database port
-    .database("myapp")              // Database name  
-    .username("dbuser")             // Database username
-    .password("dbpass")             // Database password
-    .tableName("orders")            // Single table name
-    .partitionRetentionPeriod(365)  // Keep 1 year of data
-    .autoManagePartitions(true)     // Auto create/drop partitions
-    .partitionAdjustmentTime(LocalTime.of(4, 0)) // Daily maintenance at 04:00
-    .initializePartitionsOnStart(false) // Don't create partitions on startup
-    .build();</code></pre>
+// Partitioned Table Repository with HikariCP
+GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
+    GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
+        .host("localhost")              // Database host
+        .port(3306)                     // Database port
+        .database("ecommerce")          // Database name  
+        .username("dbuser")             // Database username
+        .password("dbpass")             // Database password
+        .tableName("orders")            // Single table name
+        .partitionRetentionPeriod(365)  // Keep 1 year of data
+        .autoManagePartitions(true)     // Auto create/drop partitions
+        .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
+        // HikariCP Configuration for high-volume processing
+        .maxPoolSize(30)                // Maximum 30 connections
+        .minIdleConnections(10)         // Minimum 10 idle connections
+        .idleTimeout(900000)            // 15 minute idle timeout
+        .maxLifetime(3600000)           // 1 hour max connection lifetime
+        .leakDetectionThreshold(120000) // 2 minute leak detection
+        .build();</code></pre>
                     
                 <h3>Scheduler Configuration Examples</h3>
                 <pre><code>// Custom adjustment times
@@ -894,7 +1044,7 @@ Runtime.getRuntime().addShutdownHook(new Thread(repo::shutdown));</code></pre>
             </section>
 
             <section id="automatic-management" class="section">
-                <h2>🔄 Automatic Management</h2>
+                <h2>Automatic Management</h2>
 
                 <div class="feature-grid">
                     <div class="feature-item">
@@ -932,7 +1082,7 @@ Runtime.getRuntime().addShutdownHook(new Thread(repo::shutdown));</code></pre>
                 </div>
                 
                 <div class="tip">
-                    <h4>💡 Scheduler Best Practices</h4>
+                    <h4>Scheduler Best Practices</h4>
                     <ul>
                         <li><strong>Timing:</strong> Schedule during low-traffic periods (default 04:00 AM)</li>
                         <li><strong>Retention:</strong> Set appropriate retention periods based on storage and compliance needs</li>
@@ -955,19 +1105,19 @@ public class AutoManagementSchedulerDemo {
                 
                 <p>The demo shows:</p>
                 <ul>
-                    <li>📅 Scheduler initialization and next run time calculation</li>
-                    <li>🔧 Maintenance operations with detailed logging</li>
-                    <li>📊 Retention range calculations and table/partition management</li>
-                    <li>🔄 Graceful shutdown and resource cleanup</li>
+                    <li>Scheduler initialization and next run time calculation</li>
+                    <li>Maintenance operations with detailed logging</li>
+                    <li>Retention range calculations and table/partition management</li>
+                    <li>Graceful shutdown and resource cleanup</li>
                 </ul>
             </section>
 
             <section id="use-cases" class="section">
-                <h2>🎯 Use Cases</h2>
+                <h2>Use Cases</h2>
 
                 <div class="feature-grid">
                     <div class="feature-item">
-                        <h4>📱 SMS/Messaging Platforms</h4>
+                        <h4>SMS/Messaging Platforms</h4>
                         <pre><code>// High-volume SMS tracking with automatic table rotation
 MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;builder()
     .tablePrefix("sms")
@@ -979,7 +1129,7 @@ List&lt;HourlyStats&gt; deliveryStats = smsRepo.getHourlyStats(startDate, endDat
                     </div>
 
                     <div class="feature-item">
-                        <h4>🛒 E-commerce Platforms</h4>
+                        <h4>E-commerce Platforms</h4>
                         <pre><code>// Order management with long-term retention  
 PartitionedTableRepository&lt;Long&gt; orderRepo = PartitionedTableRepository.&lt;Long&gt;builder()
     .tableName("orders")
@@ -991,7 +1141,7 @@ List&lt;CustomerOrderStats&gt; topCustomers = orderRepo.getCustomerStats(startDa
                     </div>
 
                     <div class="feature-item">
-                        <h4>📞 Call Center Systems</h4>
+                        <h4>Call Center Systems</h4>
                         <pre><code>// Call logs with automatic cleanup
 MultiTableRepository&lt;Long&gt; callRepo = MultiTableRepository.&lt;Long&gt;builder()
     .tablePrefix("calls")
@@ -1000,7 +1150,7 @@ MultiTableRepository&lt;Long&gt; callRepo = MultiTableRepository.&lt;Long&gt;bui
                     </div>
 
                     <div class="feature-item">
-                        <h4>📊 Analytics & Reporting</h4>
+                        <h4>Analytics & Reporting</h4>
                         <pre><code>// Event tracking for analytics
 MultiTableRepository&lt;Long&gt; eventRepo = MultiTableRepository.&lt;Long&gt;builder()
     .tablePrefix("events")
@@ -1011,7 +1161,7 @@ MultiTableRepository&lt;Long&gt; eventRepo = MultiTableRepository.&lt;Long&gt;bu
             </section>
 
             <section id="advanced-features" class="section">
-                <h2>🔍 Advanced Features</h2>
+                <h2>Advanced Features</h2>
 
                 <h3>2-Level Query Aggregation (Multi-Table)</h3>
                 <div class="highlight">
@@ -1051,11 +1201,11 @@ ORDER BY message_count DESC;</code></pre>
             </section>
 
             <section id="production-features" class="section">
-                <h2>🛡️ Production Features</h2>
+                <h2>Production Features</h2>
 
                 <div class="feature-grid">
                     <div class="feature-item">
-                        <h4>✅ SQL Injection Protection</h4>
+                        <h4>SQL Injection Protection</h4>
                         <ul>
                             <li>All datetime values properly quoted and formatted</li>
                             <li>Type-safe parameter binding where applicable</li>
@@ -1064,7 +1214,7 @@ ORDER BY message_count DESC;</code></pre>
                     </div>
 
                     <div class="feature-item">
-                        <h4>✅ Error Handling</h4>
+                        <h4>Error Handling</h4>
                         <ul>
                             <li>Graceful handling of missing tables/partitions</li>
                             <li>Connection timeout management (60 seconds default)</li>
@@ -1073,7 +1223,7 @@ ORDER BY message_count DESC;</code></pre>
                     </div>
 
                     <div class="feature-item">
-                        <h4>✅ Performance Optimizations</h4>
+                        <h4>Performance Optimizations</h4>
                         <ul>
                             <li>Partition pruning for optimal query performance</li>
                             <li>Index optimization on time-based columns</li>
@@ -1083,7 +1233,7 @@ ORDER BY message_count DESC;</code></pre>
                     </div>
 
                     <div class="feature-item">
-                        <h4>✅ Monitoring & Observability</h4>
+                        <h4>Monitoring & Observability</h4>
                         <ul>
                             <li>Built-in logging for table/partition operations</li>
                             <li>Scheduler status and maintenance tracking</li>
@@ -1093,7 +1243,7 @@ ORDER BY message_count DESC;</code></pre>
                     </div>
                     
                     <div class="feature-item">
-                        <h4>✅ Automatic Lifecycle Management</h4>
+                        <h4>Automatic Lifecycle Management</h4>
                         <ul>
                             <li>Daily scheduled maintenance at configurable time</li>
                             <li>Graceful scheduler startup and shutdown</li>
@@ -1103,7 +1253,7 @@ ORDER BY message_count DESC;</code></pre>
                     </div>
                     
                     <div class="feature-item">
-                        <h4>✅ Enterprise Ready</h4>
+                        <h4>Enterprise Ready</h4>
                         <ul>
                             <li>Zero external dependencies</li>
                             <li>Generic type safety for ID columns</li>
@@ -1115,59 +1265,104 @@ ORDER BY message_count DESC;</code></pre>
             </section>
 
             <section id="requirements" class="section">
-                <h2>📋 Requirements</h2>
+                <h2>Requirements</h2>
                 <ul>
                     <li><strong>Java:</strong> 8+ (tested with Java 11, 17, 21)</li>
                     <li><strong>Database:</strong> MySQL 5.7+ / MariaDB 10.3+</li>
-                    <li><strong>Dependencies:</strong> None (zero external dependencies)</li>
-                    <li><strong>JDBC Driver:</strong> MySQL Connector/J or MariaDB Connector/J</li>
+                    <li><strong>Connection Pooling:</strong> HikariCP 5.0.1+ (included)</li>
+                    <li><strong>JDBC Driver:</strong> MySQL Connector/J 8.0+ (included)</li>
+                    <li><strong>Framework Independence:</strong> Works with Spring Boot, Quarkus, or plain Java</li>
                 </ul>
+                
+                <div class="highlight">
+                    <h4>HikariCP Integration</h4>
+                    <p>All database operations are strictly HikariCP-based for optimal performance:</p>
+                    <ul>
+                        <li><strong>High Performance:</strong> Fastest JDBC connection pool available</li>
+                        <li><strong>Production Ready:</strong> Battle-tested in high-load environments</li>
+                        <li><strong>Connection Management:</strong> Automatic lifecycle and leak detection</li>
+                        <li><strong>Monitoring:</strong> JMX metrics and named pools for observability</li>
+                        <li><strong>MySQL Optimized:</strong> Prepared statement caching, batch rewriting</li>
+                    </ul>
+                </div>
             </section>
 
             <section id="getting-started" class="section">
-                <h2>🚀 Getting Started</h2>
+                <h2>Getting Started</h2>
                 
                 <h3>Quick Setup (5 Minutes)</h3>
                 <ol>
-                    <li><strong>Add to your project</strong> (no external dependencies required)</li>
-                    <li><strong>Configure your database connection</strong></li>
+                    <li><strong>Annotate your entities</strong> with @Table, @Id, @ShardingKey, @Column</li>
                     <li><strong>Choose your strategy</strong> (Multi-Table vs Partitioned Table)</li>
-                    <li><strong>Create your repository</strong> using the builder pattern</li>
+                    <li><strong>Create generic repository</strong> with entity and key types</li>
+                    <li><strong>Configure HikariCP pool</strong> for your workload</li>
                     <li><strong>Configure scheduler</strong> (optional, enabled by default)</li>
-                    <li><strong>Start inserting and querying</strong> - everything is automatic!</li>
+                    <li><strong>Start inserting and querying</strong> - SQL generated automatically!</li>
                 </ol>
                 
                 <h3>Complete Production Example</h3>
-                <pre><code>// Production-ready setup with scheduler
+                <pre><code>// 1. Annotated Entity
+@Table(name = "sms")
+public class SmsEntity {
+    @Id
+    @Column(name = "id", insertable = false)
+    private Long id;
+    
+    @Column(name = "user_id")
+    private String userId;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "message")
+    private String message;
+    // ... other fields with getters/setters
+}
+
+// 2. Production-ready repository with HikariCP
+@Configuration
 public class DataServiceConfig {
     
     @Bean
-    public MultiTableRepository&lt;Long&gt; smsRepository() {
-        return MultiTableRepository.&lt;Long&gt;builder()
-            .host("localhost")
+    public GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepository() {
+        return GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
+            .host("production-db")
             .port(3306)
-            .database("production")
+            .database("messaging")
             .username("app_user")
             .password(System.getenv("DB_PASSWORD"))
-            .tablePrefix("sms")
             .partitionRetentionPeriod(30)        // 30 days retention
             .autoManagePartitions(true)          // Enable scheduler
             .partitionAdjustmentTime(3, 0)       // 03:00 AM maintenance
-            .initializePartitionsOnStart(true)   // Create initial tables
+            // Production HikariCP settings
+            .maxPoolSize(50)                     // High-load configuration
+            .minIdleConnections(10)              // Keep connections ready
+            .connectionTimeout(20000)            // 20s timeout
+            .idleTimeout(300000)                 // 5 min idle timeout
+            .maxLifetime(1200000)                // 20 min max lifetime
+            .leakDetectionThreshold(0)           // Disable in production
             .build();
     }
     
     @PreDestroy
     public void cleanup() {
-        smsRepository().shutdown();  // Graceful shutdown
+        smsRepository().shutdown();  // Graceful HikariCP shutdown
     }
 }</code></pre>
 
                 <div class="highlight">
-                    <h4>🏆 Production Ready</h4>
-                    <p><em>This framework has been battle-tested with high-volume production workloads processing millions of records daily. The new scheduler functionality adds enterprise-grade automatic maintenance, ensuring optimal performance and storage management without manual intervention.</em></p>
+                    <h4>Production Ready with Modern Features</h4>
+                    <p><em>This framework combines battle-tested partitioning strategies with modern Java features:</em></p>
+                    <ul>
+                        <li><strong>Generic Type Safety:</strong> Full compile-time guarantees with <code>Repository&lt;TEntity, TKey&gt;</code></li>
+                        <li><strong>Zero Runtime Reflection:</strong> All metadata parsed once at startup for maximum performance</li>
+                        <li><strong>HikariCP Integration:</strong> Enterprise-grade connection pooling with full configuration control</li>
+                        <li><strong>Automatic SQL Generation:</strong> No more hardcoded SQL - everything inferred from annotations</li>
+                        <li><strong>Scheduler Automation:</strong> Enterprise-grade automatic maintenance and lifecycle management</li>
+                    </ul>
                     
-                    <p><strong>Perfect for:</strong> High-frequency data ingestion, time-series analytics, audit logging, messaging platforms, IoT data collection, and any application requiring automatic data lifecycle management.</p>
+                    <p><strong>Perfect for:</strong> High-frequency data ingestion, time-series analytics, audit logging, messaging platforms, IoT data collection, microservices, and any application requiring type-safe, high-performance data access with automatic lifecycle management.</p>
                 </div>
             </section>
         </main>

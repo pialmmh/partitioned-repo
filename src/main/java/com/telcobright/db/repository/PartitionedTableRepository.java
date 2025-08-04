@@ -591,14 +591,14 @@ public class PartitionedTableRepository<T> {
         
         long initialDelayMinutes = java.time.Duration.between(now, nextRun).toMinutes();
         
-        System.out.println("📅 Partitioned Scheduler: Next maintenance at " + nextRun + 
+        System.out.println(" Partitioned Scheduler: Next maintenance at " + nextRun + 
                           " (in " + initialDelayMinutes + " minutes)");
         
         scheduler.scheduleAtFixedRate(() -> {
             try {
                 performScheduledMaintenance();
             } catch (Exception e) {
-                System.err.println("❌ Partitioned scheduled maintenance failed: " + e.getMessage());
+                System.err.println(" Partitioned scheduled maintenance failed: " + e.getMessage());
                 e.printStackTrace();
             }
         }, initialDelayMinutes, 24 * 60, TimeUnit.MINUTES); // Run daily
@@ -610,13 +610,13 @@ public class PartitionedTableRepository<T> {
     private void performScheduledMaintenance() throws SQLException {
         LocalDateTime today = LocalDateTime.now();
         
-        System.out.println("🔧 Partitioned scheduled maintenance started at " + today);
+        System.out.println(" Partitioned scheduled maintenance started at " + today);
         
         // Calculate the valid range: {today - retentionDays} to {today + retentionDays}
         LocalDateTime startRange = today.minusDays(partitionRetentionPeriod);
         LocalDateTime endRange = today.plusDays(partitionRetentionPeriod);
         
-        System.out.println("📊 Valid partition range: " + startRange.toLocalDate() + " to " + endRange.toLocalDate());
+        System.out.println(" Valid partition range: " + startRange.toLocalDate() + " to " + endRange.toLocalDate());
         
         // Ensure table exists
         createTableIfNotExists();
@@ -627,7 +627,7 @@ public class PartitionedTableRepository<T> {
         // Drop partitions outside the valid range (older than startRange)
         dropOldPartitions(startRange);
         
-        System.out.println("✅ Partitioned scheduled maintenance completed");
+        System.out.println(" Partitioned scheduled maintenance completed");
     }
     
     /**

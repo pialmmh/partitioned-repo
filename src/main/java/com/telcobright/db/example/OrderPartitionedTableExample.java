@@ -46,15 +46,15 @@ public class OrderPartitionedTableExample {
         System.out.println("- MySQL handles partition pruning automatically\n");
         
         // Repository configuration
-        System.out.println("📋 Repository configured for automatic partition management:");
+        System.out.println(" Repository configured for automatic partition management:");
         System.out.println("   - Retention Period: " + orderRepo.getPartitionRetentionPeriod() + " days");
         System.out.println("   - Auto Manage: " + orderRepo.isAutoManagePartitions());
         System.out.println("   - Partitions will be created automatically during inserts\n");
         
         // Insert demo order data
-        System.out.println("📝 Inserting demo order data...");
+        System.out.println(" Inserting demo order data...");
         insertDemoOrderData(orderRepo);
-        System.out.println("✅ Demo order data inserted\n");
+        System.out.println(" Demo order data inserted\n");
         
         // Test queries
         LocalDateTime startDate = LocalDateTime.now().minusDays(5);

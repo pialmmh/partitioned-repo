@@ -23,18 +23,18 @@ The Query DSL provides a type-safe, fluent API for building SQL queries that:
 
 ## Features
 
-### ✅ Type Safety
+### Type Safety
 - **Compile-time validation** - Invalid queries won't compile
 - **Type-safe operators** - No string-based operators that can be misspelled
 - **Enforced query structure** - Can't forget required clauses
 - **IDE support** - Full auto-completion, refactoring, and find usages
 
-### 🛡️ Security
+### Security
 - **SQL injection prevention** - All values are properly parameterized
 - **No string concatenation** - Eliminates common security vulnerabilities
 - **Validated operators** - Only valid SQL operators are allowed
 
-### 🚀 Productivity
+### Productivity
 - **Fluent API** - Natural, readable query building
 - **Automatic formatting** - Dates, strings, and numbers handled automatically
 - **Less boilerplate** - No manual string building or formatting
@@ -457,7 +457,7 @@ List<ProductSales> results = repository.executeRawQuery(
 
 The DSL prevents common SQL errors at compile time:
 
-### ❌ Cannot forget FROM clause
+### Cannot forget FROM clause
 ```java
 // This won't compile
 QueryDSL.select()
@@ -465,13 +465,13 @@ QueryDSL.select()
     .build();  // Error: Cannot invoke build() on SelectBuilder
 ```
 
-### ❌ Cannot use invalid operators
+### Cannot use invalid operators
 ```java
 // This won't compile
 .where(w -> w.and("age", "GREATER", 18))  // Error: No such operator
 ```
 
-### ❌ Type-safe date handling
+### Type-safe date handling
 ```java
 // Automatic formatting - no manual date strings
 .where(w -> w.dateRange("created_at", 
@@ -479,7 +479,7 @@ QueryDSL.select()
     LocalDateTime.now()))
 ```
 
-### ❌ Protected against SQL injection
+### Protected against SQL injection
 ```java
 // Safe - values are parameterized
 .where(w -> w.equals("name", userInput))

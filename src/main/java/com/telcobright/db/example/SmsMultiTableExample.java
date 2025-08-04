@@ -40,21 +40,21 @@ public class SmsMultiTableExample {
             .initializePartitionsOnStart(false) // Don't auto-create on start
             .build();
         
-        System.out.println("📱 SMS Multi-Table Strategy:");
+        System.out.println("SMS Multi-Table Strategy:");
         System.out.println("- Creates separate tables: sms_20250803, sms_20250804, etc.");
         System.out.println("- Uses UNION ALL for cross-table queries");
         System.out.println("- Each table can be optimized independently\n");
         
         // Repository configuration
-        System.out.println("📋 Repository configured for automatic table management:");
+        System.out.println("Repository configured for automatic table management:");
         System.out.println("   - Retention Period: " + smsRepo.getPartitionRetentionPeriod() + " days");
         System.out.println("   - Auto Manage: " + smsRepo.isAutoManagePartitions());
         System.out.println("   - Tables will be created automatically during inserts\n");
         
         // Insert demo SMS data
-        System.out.println("📝 Inserting demo SMS data...");
+        System.out.println("Inserting demo SMS data...");
         insertDemoSmsData(smsRepo);
-        System.out.println("✅ Demo SMS data inserted\n");
+        System.out.println("Demo SMS data inserted\n");
         
         // Test queries
         LocalDateTime startDate = LocalDateTime.now().minusDays(5);

@@ -26,7 +26,7 @@ public class CompilationTestExample {
                     .maxPoolSize(5)
                     .build();
             
-            System.out.println("✅ GenericMultiTableRepository created successfully");
+            System.out.println(" GenericMultiTableRepository created successfully");
             
             // Test Partitioned Table Repository instantiation  
             System.out.println("Creating GenericPartitionedTableRepository...");
@@ -40,18 +40,18 @@ public class CompilationTestExample {
                     .maxPoolSize(5)
                     .build();
             
-            System.out.println("✅ GenericPartitionedTableRepository created successfully");
+            System.out.println(" GenericPartitionedTableRepository created successfully");
             
             // Test shutdown
             System.out.println("Shutting down repositories...");
             smsRepo.shutdown();
             orderRepo.shutdown();
             
-            System.out.println("✅ All repositories shut down successfully");
-            System.out.println("✅ Compilation and instantiation test PASSED");
+            System.out.println(" All repositories shut down successfully");
+            System.out.println(" Compilation and instantiation test PASSED");
             
         } catch (Exception e) {
-            System.err.println("❌ Test FAILED: " + e.getMessage());
+            System.err.println(" Test FAILED: " + e.getMessage());
             e.printStackTrace();
         }
     }

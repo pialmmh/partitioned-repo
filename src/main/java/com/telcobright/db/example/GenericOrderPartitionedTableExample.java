@@ -39,10 +39,10 @@ public class GenericOrderPartitionedTableExample {
                     .leakDetectionThreshold(120000) // 2 minute leak detection for complex queries
                     .build();
             
-            System.out.println("✅ Repository created successfully with automatic metadata parsing and HikariCP pooling");
+            System.out.println(" Repository created successfully with automatic metadata parsing and HikariCP pooling");
             
             // Insert entities - SQL is automatically generated from annotations
-            System.out.println("\n📝 Inserting Order entities...");
+            System.out.println("\n Inserting Order entities...");
             
             OrderEntity order1 = new OrderEntity("CUST001", "ORD-2025-001", 
                 new BigDecimal("299.99"), "CONFIRMED", "CREDIT_CARD", 
@@ -55,59 +55,60 @@ public class GenericOrderPartitionedTableExample {
             orderRepo.insert(order1);
             orderRepo.insert(order2);
             
-            System.out.println("✅ Inserted Order with auto-generated ID: " + order1.getId());
-            System.out.println("✅ Inserted Order with auto-generated ID: " + order2.getId());
+            System.out.println(" Inserted Order with auto-generated ID: " + order1.getId());
+            System.out.println(" Inserted Order with auto-generated ID: " + order2.getId());
             
             // Find by ID (MySQL partition scan)
-            System.out.println("\n🔍 Finding Order by ID...");
+            System.out.println("\n Finding Order by ID...");
             OrderEntity foundOrder = orderRepo.findById(order1.getId());
             if (foundOrder != null) {
-                System.out.println("✅ Found Order: " + foundOrder);
+                System.out.println(" Found Order: " + foundOrder);
             } else {
-                System.out.println("❌ Order not found");
+                System.out.println(" Order not found");
             }
             
-            // Find all orders for a customer
-            System.out.println("\n👤 Finding all orders for CUST001...");
-            List<OrderEntity> customerOrders = orderRepo.findAllById("customer_id", "CUST001");
-            System.out.println("✅ Found " + customerOrders.size() + " orders for CUST001");
+            // Find all orders for a customer (using date range to get recent orders)
+            System.out.println("\n Finding recent orders...");
+            LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
+            List<OrderEntity> recentOrders = orderRepo.findByDateRange(weekAgo, LocalDateTime.now());
+            System.out.println(" Found " + recentOrders.size() + " recent orders");
             
             // Find by date range (with partition pruning)
-            System.out.println("\n📅 Finding orders in last 24 hours...");
+            System.out.println("\n Finding orders in last 24 hours...");
             LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
             LocalDateTime now = LocalDateTime.now();
             
-            List<OrderEntity> recentOrders = orderRepo.findByDateRange(yesterday, now);
-            System.out.println("✅ Found " + recentOrders.size() + " orders in date range");
+            List<OrderEntity> dailyOrders = orderRepo.findByDateRange(yesterday, now);
+            System.out.println(" Found " + dailyOrders.size() + " orders in date range");
             
-            // Count by date range
-            long count = orderRepo.countByDateRange(yesterday, now);
-            System.out.println("✅ Total count: " + count);
+            // Count by date range (manual count from results)
+            long count = dailyOrders.size();
+            System.out.println(" Total count: " + count);
             
-            // Find orders with specific payment method
-            System.out.println("\n💳 Finding orders with CREDIT_CARD payment...");
-            List<OrderEntity> creditCardOrders = orderRepo.findAllById("payment_method", "CREDIT_CARD");
-            System.out.println("✅ Found " + creditCardOrders.size() + " credit card orders");
+            // Find orders before a specific date
+            System.out.println("\n Finding orders before today...");
+            List<OrderEntity> oldOrders = orderRepo.findBeforeDate(LocalDateTime.now().minusDays(1));
+            System.out.println(" Found " + oldOrders.size() + " older orders");
             
             // Demonstrate automatic partition creation
-            System.out.println("\n🏗️ Testing automatic partition creation...");
+            System.out.println("\n Testing automatic partition creation...");
             OrderEntity futureOrder = new OrderEntity("CUST003", "ORD-2025-003", 
                 new BigDecimal("499.99"), "PENDING", "BANK_TRANSFER", 
                 "789 Pine St, Future City, State 11111", LocalDateTime.now().plusDays(2), 5);
             
             orderRepo.insert(futureOrder);
-            System.out.println("✅ Successfully inserted order for future date (partition auto-created)");
+            System.out.println(" Successfully inserted order for future date (partition auto-created)");
             
             // Graceful shutdown
-            System.out.println("\n🔄 Shutting down repository...");
+            System.out.println("\n Shutting down repository...");
             orderRepo.shutdown();
-            System.out.println("✅ Repository shutdown complete");
+            System.out.println(" Repository shutdown complete");
             
         } catch (SQLException e) {
-            System.err.println("❌ Database error: " + e.getMessage());
+            System.err.println(" Database error: " + e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("❌ Unexpected error: " + e.getMessage());
+            System.err.println(" Unexpected error: " + e.getMessage());
             e.printStackTrace();
         }
     }
