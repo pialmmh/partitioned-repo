@@ -371,6 +371,7 @@
                 <li><a href="#findbyid-examples">🔍 findById Examples</a>
                     <ul>
                         <li><a href="#basic-id-lookups" class="level-2">Basic ID Lookups</a></li>
+                        <li><a href="#optimized-date-range-lookups" class="level-2">Optimized Date Range Lookups</a></li>
                         <li><a href="#custom-column-searches" class="level-2">Custom Column Searches</a></li>
                         <li><a href="#multiple-results" class="level-2">Multiple Results</a></li>
                         <li><a href="#performance-considerations" class="level-2">Performance Considerations</a></li>
@@ -545,8 +546,18 @@ List&lt;DailyOrderStats&gt; dailyStats = orderRepo.getDailyStats(
                     </div>
                     
                     <div class="api-method">
+                        <h5>T findByIdAndDateRange(T id, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find entity by ID within date range (optimized - only searches relevant tables)</p>
+                    </div>
+                    
+                    <div class="api-method">
                         <h5>List&lt;T&gt; findAllById(String idColumnName, T value)</h5>
                         <p>Find all entities by ID column value (useful for non-unique columns)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;T&gt; findAllByIdAndDateRange(String idColumnName, T value, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find all entities by ID column value within date range (optimized)</p>
                     </div>
 
                     <h4>Advanced Querying</h4>
@@ -592,8 +603,18 @@ List&lt;DailyOrderStats&gt; dailyStats = orderRepo.getDailyStats(
                     </div>
                     
                     <div class="api-method">
+                        <h5>T findByIdAndDateRange(T id, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find entity by ID within date range (optimized with MySQL partition pruning)</p>
+                    </div>
+                    
+                    <div class="api-method">
                         <h5>List&lt;T&gt; findAllById(String idColumnName, T value)</h5>
                         <p>Find all entities by ID column value (useful for non-unique columns)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;T&gt; findAllByIdAndDateRange(String idColumnName, T value, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find all entities by ID column value within date range (optimized with partition pruning)</p>
                     </div>
 
                     <h4>Advanced Querying</h4>
@@ -644,17 +665,20 @@ if (order != null) {
 
                 <div id="custom-column-searches">
                     <h3>Custom Column Searches</h3>
-                    <pre><code>// Find by user ID across all SMS tables
+                    <pre><code>// Find by user ID across all SMS tables (full scan)
 List&lt;SmsEntity&gt; userSms = smsRepo.findAllById("user_id", "user123");
 
-// Find by order number across all partitions
-List&lt;OrderEntity&gt; orderByNumber = orderRepo.findAllById("order_number", "ORD-2025-001");
+// ⚡ BETTER: Find by user ID within date range (optimized)
+List&lt;SmsEntity&gt; recentUserSms = smsRepo.findAllByIdAndDateRange("user_id", "user123",
+    LocalDateTime.now().minusDays(30), LocalDateTime.now());
 
-// Find by phone number
-List&lt;SmsEntity&gt; smsByPhone = smsRepo.findAllById("phone_number", "+1234567890");
+// Find by order number with date optimization
+OrderEntity orderByNumber = orderRepo.findByIdAndDateRange("order_number", "ORD-2025-001",
+    LocalDateTime.now().minusDays(7), LocalDateTime.now());
 
-// Find by customer ID
-List&lt;OrderEntity&gt; customerOrder = orderRepo.findAllById("customer_id", "CUST001");</code></pre>
+// Find by customer ID in recent time period
+List&lt;OrderEntity&gt; recentCustomerOrders = orderRepo.findAllByIdAndDateRange("customer_id", "CUST001",
+    LocalDateTime.now().minusDays(90), LocalDateTime.now());</code></pre>
                 </div>
 
                 <div id="multiple-results">
@@ -678,7 +702,7 @@ List&lt;OrderEntity&gt; creditCardOrders = orderRepo.findAllById("payment_method
                     <h3>Performance Considerations</h3>
                     <div class="warning">
                         <h4>⚠️ Performance Warning</h4>
-                        <p>ID lookups perform full table scans across all tables/partitions and can be slow for large datasets.</p>
+                        <p>Plain ID lookups perform full table scans across all tables/partitions and can be slow for large datasets. Use date-range optimized methods when possible.</p>
                     </div>
 
                     <table class="performance-table">
@@ -696,30 +720,43 @@ List&lt;OrderEntity&gt; creditCardOrders = orderRepo.findAllById("payment_method
                                 <td>Full table scan across all tables/partitions</td>
                             </tr>
                             <tr>
+                                <td><code>findByIdAndDateRange(12345L, start, end)</code></td>
+                                <td>⚡ FAST</td>
+                                <td>Optimized scan - only searches relevant tables/partitions</td>
+                            </tr>
+                            <tr>
                                 <td><code>findByDateRange(...)</code></td>
                                 <td>⚡ FAST</td>
                                 <td>Date-range query with automatic table/partition selection</td>
                             </tr>
                             <tr>
-                                <td>Hybrid approach</td>
-                                <td>💡 OPTIMAL</td>
-                                <td>If you know approximate date, combine both approaches</td>
+                                <td>Combined ID + Date approach</td>
+                                <td>🚀 OPTIMAL</td>
+                                <td>Best of both worlds - precise ID lookup with date optimization</td>
                             </tr>
                         </tbody>
                     </table>
 
                     <div class="tip">
-                        <h4>💡 Hybrid Approach Example</h4>
-                        <pre><code>// If you know the approximate date, combine both approaches
-LocalDateTime suspectedDate = LocalDateTime.of(2025, 8, 15, 10, 30);
-List&lt;SmsEntity&gt; dateFilteredSms = smsRepo.findByDateRange(
-    suspectedDate.minusHours(12),
-    suspectedDate.plusHours(12)
-);
-// Then filter in memory if needed
-SmsEntity targetSms = dateFilteredSms.stream()
-    .filter(s -> s.getId().equals(12345L))
-    .findFirst().orElse(null);</code></pre>
+                        <h4>💡 Optimized ID Lookup Examples</h4>
+                        <pre><code>// ⚡ BEST: Use findByIdAndDateRange when you know approximate timeframe
+SmsEntity sms = smsRepo.findByIdAndDateRange(12345L, 
+    LocalDateTime.now().minusDays(7),    // Search last week
+    LocalDateTime.now());
+
+// 🐌 AVOID: Full table scan (slow for large datasets)
+SmsEntity slowSms = smsRepo.findById(12345L);
+
+// 💡 GOOD: Multiple results with date optimization
+List&lt;SmsEntity&gt; userMessages = smsRepo.findAllByIdAndDateRange("user_id", "user123",
+    LocalDateTime.now().minusDays(30),   // Last 30 days
+    LocalDateTime.now());
+
+// 🚀 OPTIMAL: Combine with business logic
+LocalDateTime orderDate = getOrderDateFromBusinessLogic();
+OrderEntity order = orderRepo.findByIdAndDateRange(orderId,
+    orderDate.minusDays(1),   // Small window around known date
+    orderDate.plusDays(1));</code></pre>
                     </div>
                 </div>
             </section>

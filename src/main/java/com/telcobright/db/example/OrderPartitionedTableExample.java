@@ -147,6 +147,16 @@ public class OrderPartitionedTableExample {
             
             List<OrderEntity> foundByCustomerId = orderRepoForStrings.findAllById("customer_id", sample.getCustomerId());
             System.out.println("Found " + foundByCustomerId.size() + " orders for customer: " + sample.getCustomerId());
+            
+            // Demo findByIdAndDateRange (much faster with partition pruning)
+            System.out.println("Searching for Order with ID: " + sample.getId() + " in last 3 days (optimized)");
+            OrderEntity foundByIdAndDate = orderRepo.findByIdAndDateRange(sample.getId(), 
+                LocalDateTime.now().minusDays(3), LocalDateTime.now());
+            if (foundByIdAndDate != null) {
+                System.out.println("Found Order with partition pruning: " + foundByIdAndDate.getOrderNumber());
+            } else {
+                System.out.println("Order not found in specified date range");
+            }
         } else {
             System.out.println("No sample orders found for ID search test");
         }

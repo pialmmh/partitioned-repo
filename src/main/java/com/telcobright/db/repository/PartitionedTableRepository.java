@@ -226,6 +226,41 @@ public class PartitionedTableRepository<T> {
     }
     
     /**
+     * Find entity by ID within a specific date range (optimized with partition pruning)
+     * MySQL will only scan partitions that match the date range, much faster than findById
+     * @param id The ID value to search for
+     * @param startDate Start of date range to search
+     * @param endDate End of date range to search
+     * @return The found entity or null if not found
+     */
+    public OrderEntity findByIdAndDateRange(T id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        return findByIdAndDateRange("id", id, startDate, endDate);
+    }
+    
+    /**
+     * Find entity by custom column and date range (optimized with partition pruning)
+     * @param idColumnName The name of the ID column to search by
+     * @param id The ID value to search for
+     * @param startDate Start of date range to search
+     * @param endDate End of date range to search
+     * @return The found entity or null if not found
+     */
+    public OrderEntity findByIdAndDateRange(String idColumnName, T id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String query = QueryDSL.select()
+            .column("*")
+            .from(tableName)
+            .where(w -> w
+                .equals(idColumnName, id)
+                .and("created_at", QueryDSL.Operator.GREATER_THAN_OR_EQUALS, startDate)
+                .and("created_at", QueryDSL.Operator.LESS_THAN_OR_EQUALS, endDate))
+            .limit(1)
+            .build();
+        
+        List<OrderEntity> results = executeQuery(query, null, this::mapOrderEntity);
+        return results.isEmpty() ? null : results.get(0);
+    }
+    
+    /**
      * Find entity by ID column value (partition scan - MySQL will scan all partitions)
      * Warning: This may be slower than date-range queries as MySQL scans all partitions
      * 
@@ -243,6 +278,27 @@ public class PartitionedTableRepository<T> {
         
         List<OrderEntity> results = executeQuery(query, null, this::mapOrderEntity);
         return results.isEmpty() ? null : results.get(0);
+    }
+    
+    /**
+     * Find all entities by ID column value and date range (optimized with partition pruning)
+     * @param idColumnName The name of the ID column to search by
+     * @param value The value to search for
+     * @param startDate Start of date range to search
+     * @param endDate End of date range to search
+     * @return List of found entities
+     */
+    public List<OrderEntity> findAllByIdAndDateRange(String idColumnName, T value, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String query = QueryDSL.select()
+            .column("*")
+            .from(tableName)
+            .where(w -> w
+                .equals(idColumnName, value)
+                .and("created_at", QueryDSL.Operator.GREATER_THAN_OR_EQUALS, startDate)
+                .and("created_at", QueryDSL.Operator.LESS_THAN_OR_EQUALS, endDate))
+            .build();
+        
+        return executeQuery(query, null, this::mapOrderEntity);
     }
     
     /**

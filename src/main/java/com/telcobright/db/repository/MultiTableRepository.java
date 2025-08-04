@@ -228,6 +228,61 @@ public class MultiTableRepository<T> {
     }
     
     /**
+     * Find entity by ID within a specific date range (optimized performance)
+     * This is much faster than findById as it only searches tables within the date range
+     * @param id The ID value to search for
+     * @param startDate Start of date range to search
+     * @param endDate End of date range to search
+     * @return The found entity or null if not found
+     */
+    public SmsEntity findByIdAndDateRange(T id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        return findByIdAndDateRange("id", id, startDate, endDate);
+    }
+    
+    /**
+     * Find entity by custom column and date range (optimized performance)
+     * @param idColumnName The name of the ID column to search by
+     * @param id The ID value to search for 
+     * @param startDate Start of date range to search
+     * @param endDate End of date range to search
+     * @return The found entity or null if not found
+     */
+    public SmsEntity findByIdAndDateRange(String idColumnName, T id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        // Get tables that exist within the date range
+        List<String> existingTables = getExistingTablesInDateRange(startDate, endDate);
+        
+        if (existingTables.isEmpty()) {
+            return null;
+        }
+        
+        // Build UNION ALL query across relevant tables only
+        StringBuilder queryBuilder = new StringBuilder();
+        for (int i = 0; i < existingTables.size(); i++) {
+            if (i > 0) {
+                queryBuilder.append(" UNION ALL ");
+            }
+            queryBuilder.append("SELECT * FROM ").append(existingTables.get(i))
+                       .append(" WHERE ").append(idColumnName).append(" = ");
+            
+            // Format value based on type
+            if (id instanceof String) {
+                queryBuilder.append("'").append(id).append("'");
+            } else {
+                queryBuilder.append(id);
+            }
+            
+            // Add date range filter
+            queryBuilder.append(" AND created_at >= '").append(formatDateTime(startDate))
+                       .append("' AND created_at <= '").append(formatDateTime(endDate)).append("'");
+        }
+        
+        queryBuilder.append(" LIMIT 1");
+        
+        List<SmsEntity> results = executeQuery(queryBuilder.toString(), null, this::mapSmsEntity);
+        return results.isEmpty() ? null : results.get(0);
+    }
+    
+    /**
      * Find entity by ID column value across all tables (full table scan)
      * Warning: This may be slow as it searches across all existing tables
      * 
@@ -264,6 +319,46 @@ public class MultiTableRepository<T> {
         
         List<SmsEntity> results = executeQuery(queryBuilder.toString(), null, this::mapSmsEntity);
         return results.isEmpty() ? null : results.get(0);
+    }
+    
+    /**
+     * Find all entities by ID column value and date range (optimized performance)
+     * @param idColumnName The name of the ID column to search by
+     * @param value The value to search for
+     * @param startDate Start of date range to search
+     * @param endDate End of date range to search
+     * @return List of found entities
+     */
+    public List<SmsEntity> findAllByIdAndDateRange(String idColumnName, T value, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        // Get tables that exist within the date range
+        List<String> existingTables = getExistingTablesInDateRange(startDate, endDate);
+        
+        if (existingTables.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Build UNION ALL query across relevant tables only
+        StringBuilder queryBuilder = new StringBuilder();
+        for (int i = 0; i < existingTables.size(); i++) {
+            if (i > 0) {
+                queryBuilder.append(" UNION ALL ");
+            }
+            queryBuilder.append("SELECT * FROM ").append(existingTables.get(i))
+                       .append(" WHERE ").append(idColumnName).append(" = ");
+            
+            // Format value based on type
+            if (value instanceof String) {
+                queryBuilder.append("'").append(value).append("'");
+            } else {
+                queryBuilder.append(value);
+            }
+            
+            // Add date range filter
+            queryBuilder.append(" AND created_at >= '").append(formatDateTime(startDate))
+                       .append("' AND created_at <= '").append(formatDateTime(endDate)).append("'");
+        }
+        
+        return executeQuery(queryBuilder.toString(), null, this::mapSmsEntity);
     }
     
     /**
@@ -524,6 +619,60 @@ public class MultiTableRepository<T> {
         }
         
         return tables;
+    }
+    
+    /**
+     * Get list of existing tables within a specific date range
+     * This is more efficient than scanning all tables
+     */
+    private List<String> getExistingTablesInDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        LocalDateTime current = startDate.toLocalDate().atStartOfDay();
+        LocalDateTime endDateStart = endDate.toLocalDate().atStartOfDay().plusDays(1);
+        
+        while (current.isBefore(endDateStart)) {
+            String expectedTableName = database + "." + tablePrefix + "_" + current.format(DATE_FORMAT);
+            
+            // Check if this table actually exists
+            if (tableExists(expectedTableName)) {
+                tables.add(expectedTableName);
+            }
+            
+            current = current.plusDays(1);
+        }
+        
+        return tables;
+    }
+    
+    /**
+     * Check if a specific table exists
+     */
+    private boolean tableExists(String fullTableName) throws SQLException {
+        String[] parts = fullTableName.split("\\.");
+        if (parts.length != 2) return false;
+        
+        String dbName = parts[0];
+        String tableName = parts[1];
+        
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 "SELECT 1 FROM information_schema.tables " +
+                 "WHERE table_schema = ? AND table_name = ? LIMIT 1")) {
+            
+            stmt.setString(1, dbName);
+            stmt.setString(2, tableName);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+    
+    /**
+     * Format LocalDateTime for SQL queries
+     */
+    private String formatDateTime(LocalDateTime dateTime) {
+        return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
     
     /**

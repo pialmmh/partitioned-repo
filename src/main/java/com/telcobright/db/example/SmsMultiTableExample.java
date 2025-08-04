@@ -147,6 +147,16 @@ public class SmsMultiTableExample {
             
             List<SmsEntity> foundByUserId = smsRepoForStrings.findAllById("user_id", sample.getUserId());
             System.out.println("Found " + foundByUserId.size() + " SMS messages for user: " + sample.getUserId());
+            
+            // Demo findByIdAndDateRange (much faster than full table scan)
+            System.out.println("Searching for SMS with ID: " + sample.getId() + " in last 2 days (optimized)");
+            SmsEntity foundByIdAndDate = smsRepo.findByIdAndDateRange(sample.getId(), 
+                LocalDateTime.now().minusDays(2), LocalDateTime.now());
+            if (foundByIdAndDate != null) {
+                System.out.println("Found SMS with date range optimization: " + foundByIdAndDate.getMessage());
+            } else {
+                System.out.println("SMS not found in specified date range");
+            }
         } else {
             System.out.println("No sample SMS found for ID search test");
         }
