@@ -73,10 +73,56 @@ public class EntityMetadata<T, K> {
         this.idField = tempIdField;
         this.shardingKeyField = tempShardingField;
         
+        // Enforce required columns
+        validateRequiredColumns();
+        
         // Generate SQL statements
         this.insertSQL = generateInsertSQL();
         this.selectByIdSQL = generateSelectByIdSQL();
         this.createTableSQL = generateCreateTableSQL();
+    }
+    
+    /**
+     * Validates that the entity has required columns for repository operations
+     */
+    private void validateRequiredColumns() {
+        // Validate ID field exists
+        if (idField == null) {
+            throw new IllegalArgumentException(
+                String.format("Entity %s must have a field annotated with @Id", entityClass.getSimpleName())
+            );
+        }
+        
+        // Validate sharding key field exists (created_at)
+        if (shardingKeyField == null) {
+            throw new IllegalArgumentException(
+                String.format("Entity %s must have a field annotated with @ShardingKey (typically 'created_at')", entityClass.getSimpleName())
+            );
+        }
+        
+        // Validate sharding key is LocalDateTime type
+        if (!LocalDateTime.class.isAssignableFrom(shardingKeyField.getType())) {
+            throw new IllegalArgumentException(
+                String.format("Entity %s sharding key field '%s' must be of type LocalDateTime", 
+                    entityClass.getSimpleName(), shardingKeyField.getFieldName())
+            );
+        }
+        
+        // Validate sharding key is named "created_at" (convention enforcement)
+        if (!"created_at".equals(shardingKeyField.getColumnName())) {
+            throw new IllegalArgumentException(
+                String.format("Entity %s sharding key field must map to column 'created_at' (found: '%s')", 
+                    entityClass.getSimpleName(), shardingKeyField.getColumnName())
+            );
+        }
+        
+        // Validate ID field is named "id" (convention enforcement)  
+        if (!"id".equals(idField.getColumnName())) {
+            throw new IllegalArgumentException(
+                String.format("Entity %s ID field must map to column 'id' (found: '%s')", 
+                    entityClass.getSimpleName(), idField.getColumnName())
+            );
+        }
     }
     
     private String generateInsertSQL() {
@@ -144,10 +190,17 @@ public class EntityMetadata<T, K> {
             first = false;
         }
         
-        // Add indexes
+        // Add indexes - ID already has PRIMARY KEY, but add explicit index for created_at
         if (shardingKeyField != null) {
             sql.append(", KEY idx_").append(shardingKeyField.getColumnName())
                .append(" (").append(shardingKeyField.getColumnName()).append(")");
+        }
+        
+        // Add composite index for common query patterns (id, created_at)
+        if (idField != null && shardingKeyField != null) {
+            sql.append(", KEY idx_id_created_at (")
+               .append(idField.getColumnName()).append(", ")
+               .append(shardingKeyField.getColumnName()).append(")");
         }
         
         sql.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");

@@ -2,10 +2,12 @@ package com.telcobright.db.example;
 
 import com.telcobright.db.entity.OrderEntity;
 import com.telcobright.db.repository.GenericPartitionedTableRepository;
+import com.telcobright.db.repository.ShardingRepository;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -18,7 +20,7 @@ public class GenericOrderPartitionedTableExample {
         
         try {
             // Create generic repository with type safety and HikariCP connection pooling
-            GenericPartitionedTableRepository<OrderEntity, Long> orderRepo = 
+            ShardingRepository<OrderEntity, Long> orderRepo = 
                 GenericPartitionedTableRepository.<OrderEntity, Long>builder(OrderEntity.class, Long.class)
                     .host("127.0.0.1")
                     .port(3306)
@@ -70,7 +72,7 @@ public class GenericOrderPartitionedTableExample {
             // Find all orders for a customer (using date range to get recent orders)
             System.out.println("\n Finding recent orders...");
             LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-            List<OrderEntity> recentOrders = orderRepo.findByDateRange(weekAgo, LocalDateTime.now());
+            List<OrderEntity> recentOrders = orderRepo.findAllByDateRange(weekAgo, LocalDateTime.now());
             System.out.println(" Found " + recentOrders.size() + " recent orders");
             
             // Find by date range (with partition pruning)
@@ -78,7 +80,7 @@ public class GenericOrderPartitionedTableExample {
             LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
             LocalDateTime now = LocalDateTime.now();
             
-            List<OrderEntity> dailyOrders = orderRepo.findByDateRange(yesterday, now);
+            List<OrderEntity> dailyOrders = orderRepo.findAllByDateRange(yesterday, now);
             System.out.println(" Found " + dailyOrders.size() + " orders in date range");
             
             // Count by date range (manual count from results)
@@ -87,8 +89,22 @@ public class GenericOrderPartitionedTableExample {
             
             // Find orders before a specific date
             System.out.println("\n Finding orders before today...");
-            List<OrderEntity> oldOrders = orderRepo.findBeforeDate(LocalDateTime.now().minusDays(1));
+            List<OrderEntity> oldOrders = orderRepo.findAllBeforeDate(LocalDateTime.now().minusDays(1));
             System.out.println(" Found " + oldOrders.size() + " older orders");
+            
+            // Demonstrate new APIs
+            System.out.println("\n Testing new API methods...");
+            
+            // Test findAllAfterDate
+            List<OrderEntity> futureOrders = orderRepo.findAllAfterDate(LocalDateTime.now().minusDays(1));
+            System.out.println(" Found " + futureOrders.size() + " orders after yesterday");
+            
+            // Test findAllByIdsAndDateRange (if we have some orders)
+            if (!recentOrders.isEmpty()) {
+                List<Long> ids = Arrays.asList(recentOrders.get(0).getId());
+                List<OrderEntity> foundByIds = orderRepo.findAllByIdsAndDateRange(ids, weekAgo, LocalDateTime.now());
+                System.out.println(" Found " + foundByIds.size() + " orders by ID list in date range");
+            }
             
             // Demonstrate automatic partition creation
             System.out.println("\n Testing automatic partition creation...");

@@ -3,10 +3,12 @@ package com.telcobright.db.example;
 import com.telcobright.db.entity.SmsEntity;
 import com.telcobright.db.entity.Student;
 import com.telcobright.db.repository.GenericMultiTableRepository;
+import com.telcobright.db.repository.ShardingRepository;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -19,7 +21,7 @@ public class GenericSmsMultiTableExample {
         
         try {
             // Create generic repository with type safety and HikariCP connection pooling
-            GenericMultiTableRepository<Student, Long> StudentRepo =
+            ShardingRepository<Student, Long> StudentRepo =
                 GenericMultiTableRepository.<Student, Long>builder(Student.class, Long.class)
                     .host("127.0.0.1")
                     .port(3306)
@@ -67,7 +69,7 @@ public class GenericSmsMultiTableExample {
             // Find students in recent time period
             System.out.println("\nFinding recent student records...");
             LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-            List<Student> recentStudents = StudentRepo.findByDateRange(weekAgo, LocalDateTime.now());
+            List<Student> recentStudents = StudentRepo.findAllByDateRange(weekAgo, LocalDateTime.now());
             System.out.println("Found " + recentStudents.size() + " recent student records");
             
             // Find by date range
@@ -75,12 +77,30 @@ public class GenericSmsMultiTableExample {
             LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
             LocalDateTime now = LocalDateTime.now();
             
-            List<Student> recentSms = StudentRepo.findByDateRange(yesterday, now);
+            List<Student> recentSms = StudentRepo.findAllByDateRange(yesterday, now);
             System.out.println("Found " + recentSms.size() + " SMS messages in date range");
             
             // Count by date range (manual count from results)
             long count = recentSms.size();
             System.out.println("Total count: " + count);
+            
+            // Demonstrate new APIs
+            System.out.println("\nTesting new API methods...");
+            
+            // Test findAllAfterDate
+            List<Student> futureRecords = StudentRepo.findAllAfterDate(LocalDateTime.now().minusDays(1));
+            System.out.println("Found " + futureRecords.size() + " records after yesterday");
+            
+            // Test findAllBeforeDate  
+            List<Student> oldRecords = StudentRepo.findAllBeforeDate(LocalDateTime.now().minusDays(5));
+            System.out.println("Found " + oldRecords.size() + " records before 5 days ago");
+            
+            // Test findAllByIdsAndDateRange (if we have some records)
+            if (!recentStudents.isEmpty()) {
+                List<Long> ids = Arrays.asList(recentStudents.get(0).getId());
+                List<Student> foundByIds = StudentRepo.findAllByIdsAndDateRange(ids, weekAgo, LocalDateTime.now());
+                System.out.println("Found " + foundByIds.size() + " records by ID list in date range");
+            }
             
             // Demonstrate automatic table creation
             System.out.println("\nTesting automatic table creation...");

@@ -368,11 +368,11 @@
                         <li><a href="#partitioned-api" class="level-2">PartitionedTableRepository API</a></li>
                     </ul>
                 </li>
-                <li><a href="#findbyid-examples">findById Examples</a>
+                <li><a href="#findbyid-examples">API Usage Examples</a>
                     <ul>
                         <li><a href="#basic-id-lookups" class="level-2">Basic ID Lookups</a></li>
-                        <li><a href="#custom-column-searches" class="level-2">Custom Column Searches</a></li>
-                        <li><a href="#multiple-results" class="level-2">Multiple Results</a></li>
+                        <li><a href="#basic-operations" class="level-2">Basic Operations</a></li>
+                        <li><a href="#batch-operations" class="level-2">Batch Operations & Date Filtering</a></li>
                         <li><a href="#performance-considerations" class="level-2">Performance Considerations</a></li>
                     </ul>
                 </li>
@@ -427,6 +427,19 @@
                         <li><strong>Zero Runtime Reflection:</strong> All metadata parsed once at startup for maximum performance</li>
                         <li><strong>HikariCP Integration:</strong> Production-ready connection pooling with full configuration options</li>
                         <li><strong>Annotation-Based Mapping:</strong> Simple <code>@Table</code>, <code>@Column</code>, <code>@Id</code>, <code>@ShardingKey</code> annotations</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight">
+                    <h4>Simplified API (6 Core Methods)</h4>
+                    <p>The repositories now provide a clean, focused API with exactly 6 methods:</p>
+                    <ul>
+                        <li><code>void insert(TEntity entity)</code> - Insert single entity</li>
+                        <li><code>void insertMultiple(List&lt;TEntity&gt; entities)</code> - Batch insert with optimization</li>
+                        <li><code>List&lt;TEntity&gt; findByDateRange(LocalDateTime start, LocalDateTime end)</code> - Date range queries</li>
+                        <li><code>TEntity findById(TKey id)</code> - Find by primary key</li>
+                        <li><code>TEntity findByIdAndDateRange(LocalDateTime start, LocalDateTime end)</code> - First entity in range</li>
+                        <li><code>List&lt;TEntity&gt; findBeforeDate(LocalDateTime before)</code> - Historical data queries</li>
                     </ul>
                 </div>
 
@@ -511,8 +524,9 @@ long totalMessages = smsRepo.countByDateRange(
 // 5. Find by ID across all tables
 SmsEntity foundSms = smsRepo.findById(12345L);
 
-// 6. Find all SMS for a user
-List&lt;SmsEntity&gt; userSms = smsRepo.findAllById("user_id", "user123");</code></pre>
+// 6. Find recent SMS messages
+List&lt;SmsEntity&gt; recentSms = smsRepo.findByDateRange(
+    LocalDateTime.now().minusDays(7), LocalDateTime.now());</code></pre>
                 </div>
 
                 <div id="partitioned-table-example">
@@ -570,8 +584,9 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
 // 5. Find by ID with MySQL partition scanning
 OrderEntity foundOrder = orderRepo.findById(67890L);
 
-// 6. Find all orders for a customer
-List&lt;OrderEntity&gt; customerOrders = orderRepo.findAllById("customer_id", "CUST001");</code></pre>
+// 6. Find recent orders 
+List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
+    LocalDateTime.now().minusDays(30), LocalDateTime.now());</code></pre>
                 </div>
             </section>
 
@@ -597,17 +612,17 @@ List&lt;OrderEntity&gt; customerOrders = orderRepo.findAllById("customer_id", "C
                     <h4>Core Operations</h4>
                     <div class="api-method">
                         <h5>void insert(TEntity entity)</h5>
-                        <p>Insert entity with automatic SQL generation (auto-creates tables)</p>
+                        <p>Insert single entity with automatic SQL generation (auto-creates tables)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>void insertMultiple(List&lt;TEntity&gt; entities)</h5>
+                        <p>Insert multiple entities with batch processing and automatic table creation</p>
                     </div>
                     
                     <div class="api-method">
                         <h5>List&lt;TEntity&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Find entities by date range with automatic table selection</p>
-                    </div>
-                    
-                    <div class="api-method">
-                        <h5>long countByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Count entities in date range across all relevant tables</p>
+                        <p>Find entities by date range with automatic table selection and UNION ALL queries</p>
                     </div>
                     
                     <div class="api-method">
@@ -616,24 +631,13 @@ List&lt;OrderEntity&gt; customerOrders = orderRepo.findAllById("customer_id", "C
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;TEntity&gt; findAllById(String columnName, Object value)</h5>
-                        <p>Find all entities by any column value (useful for non-unique columns)</p>
-                    </div>
-
-                    <h4>Advanced Querying</h4>
-                    <div class="api-method">
-                        <h5>&lt;R&gt; List&lt;R&gt; executePartitionedQuery(...)</h5>
-                        <p>Execute custom partitioned query with 2-level aggregation</p>
+                        <h5>TEntity findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find first entity within the specified date range</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;UserSmsStats&gt; getUserStats(...)</h5>
-                        <p>Get user statistics (SMS-specific)</p>
-                    </div>
-                    
-                    <div class="api-method">
-                        <h5>List&lt;HourlyStats&gt; getHourlyStats(...)</h5>
-                        <p>Get hourly statistics with success rates</p>
+                        <h5>List&lt;TEntity&gt; findBeforeDate(LocalDateTime beforeDate)</h5>
+                        <p>Find all entities created before the specified date</p>
                     </div>
                 </div>
 
@@ -656,7 +660,12 @@ List&lt;OrderEntity&gt; customerOrders = orderRepo.findAllById("customer_id", "C
                     <h4>Core Operations</h4>
                     <div class="api-method">
                         <h5>void insert(TEntity entity)</h5>
-                        <p>Insert entity with automatic SQL generation (auto-creates partitions)</p>
+                        <p>Insert single entity with automatic SQL generation (auto-creates partitions)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>void insertMultiple(List&lt;TEntity&gt; entities)</h5>
+                        <p>Insert multiple entities with batch processing and automatic partition creation</p>
                     </div>
                     
                     <div class="api-method">
@@ -665,40 +674,24 @@ List&lt;OrderEntity&gt; customerOrders = orderRepo.findAllById("customer_id", "C
                     </div>
                     
                     <div class="api-method">
-                        <h5>long countByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
-                        <p>Count entities in date range with partition optimization</p>
-                    </div>
-                    
-                    <div class="api-method">
                         <h5>TEntity findById(TKey id)</h5>
                         <p>Find entity by primary key (MySQL native partition scanning)</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;TEntity&gt; findAllById(String columnName, Object value)</h5>
-                        <p>Find all entities by any column value with partition efficiency</p>
-                    </div>
-
-                    <h4>Advanced Querying</h4>
-                    <div class="api-method">
-                        <h5>&lt;R&gt; List&lt;R&gt; executeQuery(...)</h5>
-                        <p>Execute custom query with QueryDSL</p>
+                        <h5>TEntity findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find first entity within the specified date range</p>
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;CustomerOrderStats&gt; getCustomerStats(...)</h5>
-                        <p>Get customer order statistics (Order-specific)</p>
-                    </div>
-                    
-                    <div class="api-method">
-                        <h5>List&lt;DailyOrderStats&gt; getDailyStats(...)</h5>
-                        <p>Get daily statistics with fulfillment rates</p>
+                        <h5>List&lt;TEntity&gt; findBeforeDate(LocalDateTime beforeDate)</h5>
+                        <p>Find all entities created before the specified date</p>
                     </div>
                 </div>
             </section>
 
             <section id="findbyid-examples" class="section">
-                <h2>findById API Examples</h2>
+                <h2>API Usage Examples</h2>
 
                 <div id="basic-id-lookups">
                     <h3>Basic ID Lookups</h3>
@@ -725,36 +718,41 @@ if (order != null) {
 }</code></pre>
                 </div>
 
-                <div id="custom-column-searches">
-                    <h3>Custom Column Searches</h3>
-                    <pre><code>// Find by user ID across all SMS tables
-List&lt;SmsEntity&gt; userSms = smsRepo.findAllById("user_id", "user123");
+                <div id="basic-operations">
+                    <h3>Basic Operations</h3>
+                    <pre><code>// Find SMS by ID across all tables
+SmsEntity sms = smsRepo.findById(12345L);
 
-// Find by order number across all partitions
-List&lt;OrderEntity&gt; orderByNumber = orderRepo.findAllById("order_number", "ORD-2025-001");
+// Find order by ID across all partitions  
+OrderEntity order = orderRepo.findById(67890L);
 
-// Find by phone number
-List&lt;SmsEntity&gt; smsByPhone = smsRepo.findAllById("phone_number", "+1234567890");
+// Find entities in date range
+List&lt;SmsEntity&gt; recentSms = smsRepo.findByDateRange(startDate, endDate);
 
-// Find by customer ID
-List&lt;OrderEntity&gt; customerOrder = orderRepo.findAllById("customer_id", "CUST001");</code></pre>
+// Find entities before specific date
+List&lt;OrderEntity&gt; oldOrders = orderRepo.findBeforeDate(cutoffDate);</code></pre>
                 </div>
 
-                <div id="multiple-results">
-                    <h3>Multiple Results</h3>
-                    <pre><code>// Find ALL SMS messages for a specific user (across all tables)
-List&lt;SmsEntity&gt; allUserSms = smsRepo.findAllById("user_id", "user123");
-System.out.println("User has " + allUserSms.size() + " SMS messages");
+                <div id="batch-operations">
+                    <h3>Batch Operations & Date Filtering</h3>
+                    <pre><code>// Find multiple entities in date range
+List&lt;SmsEntity&gt; weeklyMessages = smsRepo.findByDateRange(
+    LocalDateTime.now().minusDays(7), LocalDateTime.now());
+System.out.println("Found " + weeklyMessages.size() + " messages this week");
 
-// Find ALL orders for a specific customer (across all partitions)
-List&lt;OrderEntity&gt; allCustomerOrders = orderRepo.findAllById("customer_id", "CUST001");
-System.out.println("Customer has " + allCustomerOrders.size() + " orders");
+// Find entities before specific date
+List&lt;OrderEntity&gt; archivedOrders = orderRepo.findBeforeDate(
+    LocalDateTime.now().minusMonths(6));
+System.out.println("Found " + archivedOrders.size() + " archived orders");
 
-// Find all SMS messages with specific status
-List&lt;SmsEntity&gt; failedSms = smsRepo.findAllById("status", "FAILED");
+// Insert multiple entities at once
+List&lt;SmsEntity&gt; batchMessages = createBatchMessages();
+smsRepo.insertMultiple(batchMessages);
 
-// Find all orders with specific payment method
-List&lt;OrderEntity&gt; creditCardOrders = orderRepo.findAllById("payment_method", "CREDIT_CARD");</code></pre>
+// Find first entity in date range
+SmsEntity firstToday = smsRepo.findByIdAndDateRange(
+    LocalDateTime.now().withHour(0).withMinute(0),
+    LocalDateTime.now().withHour(23).withMinute(59));</code></pre>
                 </div>
 
                 <div id="performance-considerations">
@@ -1125,7 +1123,7 @@ MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;buil
     .build();
 
 // Track delivery rates by provider
-List&lt;HourlyStats&gt; deliveryStats = smsRepo.getHourlyStats(startDate, endDate);</code></pre>
+List&lt;SmsEntity&gt; todayMessages = smsRepo.findByDateRange(startDate, endDate);</code></pre>
                     </div>
 
                     <div class="feature-item">

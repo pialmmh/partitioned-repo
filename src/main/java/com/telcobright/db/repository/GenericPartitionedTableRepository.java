@@ -24,7 +24,7 @@ import java.util.logging.Logger;
  * @param <T> Entity type
  * @param <K> Primary key type
  */
-public class GenericPartitionedTableRepository<T, K> {
+public class GenericPartitionedTableRepository<T, K> implements ShardingRepository<T, K> {
     private static final Logger LOGGER = Logger.getLogger(GenericPartitionedTableRepository.class.getName());
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
@@ -78,6 +78,7 @@ public class GenericPartitionedTableRepository<T, K> {
     /**
      * Insert entity into partitioned table (MySQL handles routing)
      */
+    @Override
     public void insert(T entity) throws SQLException {
         LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(entity);
         
@@ -109,6 +110,7 @@ public class GenericPartitionedTableRepository<T, K> {
     /**
      * Insert multiple entities
      */
+    @Override
     public void insertMultiple(List<T> entities) throws SQLException {
         if (entities == null || entities.isEmpty()) {
             return;
@@ -154,9 +156,10 @@ public class GenericPartitionedTableRepository<T, K> {
     }
     
     /**
-     * Find entities by date range (with partition pruning)
+     * Find all entities by date range (with partition pruning)
      */
-    public List<T> findByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    @Override
+    public List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         String fullTableName = database + "." + tableName;
         
@@ -184,6 +187,7 @@ public class GenericPartitionedTableRepository<T, K> {
     /**
      * Find entity by ID (MySQL scans all partitions)
      */
+    @Override
     public T findById(K id) throws SQLException {
         String fullTableName = database + "." + tableName;
         String sql = String.format(metadata.getSelectByIdSQL(), fullTableName);
@@ -206,16 +210,61 @@ public class GenericPartitionedTableRepository<T, K> {
     /**
      * Find entity by ID within a date range
      */
+    @Override
     public T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         // Returns the first entity found in the date range
-        List<T> entities = findByDateRange(startDate, endDate);
+        List<T> entities = findAllByDateRange(startDate, endDate);
         return entities.isEmpty() ? null : entities.get(0);
     }
     
     /**
-     * Find entities before a specific date
+     * Find all entities by IDs within a date range
      */
-    public List<T> findBeforeDate(LocalDateTime beforeDate) throws SQLException {
+    @Override
+    public List<T> findAllByIdsAndDateRange(List<K> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        String idColumn = metadata.getIdField().getColumnName();
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        String fullTableName = database + "." + tableName;
+        
+        // Create IN clause with placeholders
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        String sql = String.format("SELECT * FROM %s WHERE %s IN (%s) AND %s >= ? AND %s <= ?", 
+                                 fullTableName, idColumn, placeholders, shardingColumn, shardingColumn);
+        
+        List<T> results = new ArrayList<>();
+        
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            // Set ID parameters
+            int paramIndex = 1;
+            for (K id : ids) {
+                setIdParameter(stmt, paramIndex++, id);
+            }
+            
+            // Set date range parameters
+            stmt.setTimestamp(paramIndex++, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(paramIndex, Timestamp.valueOf(endDate));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    results.add(metadata.mapResultSet(rs));
+                }
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Find all entities before a specific date
+     */
+    @Override
+    public List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         String fullTableName = database + "." + tableName;
         
@@ -227,6 +276,33 @@ public class GenericPartitionedTableRepository<T, K> {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setTimestamp(1, Timestamp.valueOf(beforeDate));
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    results.add(metadata.mapResultSet(rs));
+                }
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Find all entities after a specific date
+     */
+    @Override
+    public List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        String fullTableName = database + "." + tableName;
+        
+        String sql = String.format("SELECT * FROM %s WHERE %s > ?", fullTableName, shardingColumn);
+        
+        List<T> results = new ArrayList<>();
+        
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setTimestamp(1, Timestamp.valueOf(afterDate));
             
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -464,6 +540,7 @@ public class GenericPartitionedTableRepository<T, K> {
         performAutomaticMaintenance(now);
     }
     
+    @Override
     public void shutdown() {
         // Shutdown scheduler first
         if (scheduler != null && !scheduler.isShutdown()) {

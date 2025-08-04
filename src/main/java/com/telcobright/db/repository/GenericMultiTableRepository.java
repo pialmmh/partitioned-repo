@@ -24,7 +24,7 @@ import java.util.logging.Logger;
  * @param <T> Entity type
  * @param <K> Primary key type
  */
-public class GenericMultiTableRepository<T, K> {
+public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, K> {
     private static final Logger LOGGER = Logger.getLogger(GenericMultiTableRepository.class.getName());
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
@@ -77,6 +77,7 @@ public class GenericMultiTableRepository<T, K> {
     /**
      * Insert entity into appropriate daily table
      */
+    @Override
     public void insert(T entity) throws SQLException {
         LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(entity);
         
@@ -108,6 +109,7 @@ public class GenericMultiTableRepository<T, K> {
     /**
      * Insert multiple entities
      */
+    @Override
     public void insertMultiple(List<T> entities) throws SQLException {
         if (entities == null || entities.isEmpty()) {
             return;
@@ -159,9 +161,10 @@ public class GenericMultiTableRepository<T, K> {
     }
     
     /**
-     * Find entities by date range
+     * Find all entities by date range
      */
-    public List<T> findByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    @Override
+    public List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         
         String query = QueryDSL.select()
@@ -176,6 +179,7 @@ public class GenericMultiTableRepository<T, K> {
     /**
      * Find entity by ID across all tables
      */
+    @Override
     public T findById(K id) throws SQLException {
         List<String> tables = getExistingTables();
         
@@ -201,16 +205,75 @@ public class GenericMultiTableRepository<T, K> {
     /**
      * Find entity by ID within a date range
      */
+    @Override
     public T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         // This method returns the first entity found in the date range
-        List<T> entities = findByDateRange(startDate, endDate);
+        List<T> entities = findAllByDateRange(startDate, endDate);
         return entities.isEmpty() ? null : entities.get(0);
     }
     
     /**
-     * Find entities before a specific date
+     * Find all entities by IDs within a date range
      */
-    public List<T> findBeforeDate(LocalDateTime beforeDate) throws SQLException {
+    @Override
+    public List<T> findAllByIdsAndDateRange(List<K> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<T> results = new ArrayList<>();
+        String idColumn = metadata.getIdField().getColumnName();
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        
+        // Build list of relevant tables based on date range
+        List<String> relevantTables = new ArrayList<>();
+        LocalDateTime current = startDate.toLocalDate().atStartOfDay();
+        while (!current.isAfter(endDate)) {
+            String tableName = getTableName(current);
+            if (tableExists(tableName)) {
+                relevantTables.add(tableName);
+            }
+            current = current.plusDays(1);
+        }
+        
+        // Search for IDs in relevant tables
+        for (String table : relevantTables) {
+            if (ids.isEmpty()) break; // All IDs found
+            
+            // Create IN clause with placeholders
+            String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+            String sql = String.format("SELECT * FROM %s WHERE %s IN (%s) AND %s >= ? AND %s <= ?", 
+                                     table, idColumn, placeholders, shardingColumn, shardingColumn);
+            
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                
+                // Set ID parameters
+                int paramIndex = 1;
+                for (K id : ids) {
+                    setIdParameter(stmt, paramIndex++, id);
+                }
+                
+                // Set date range parameters
+                stmt.setTimestamp(paramIndex++, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(paramIndex, Timestamp.valueOf(endDate));
+                
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        results.add(metadata.mapResultSet(rs));
+                    }
+                }
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Find all entities before a specific date
+     */
+    @Override
+    public List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         List<T> results = new ArrayList<>();
         
@@ -234,6 +297,46 @@ public class GenericMultiTableRepository<T, K> {
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 
                 stmt.setTimestamp(1, Timestamp.valueOf(beforeDate));
+                
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        results.add(metadata.mapResultSet(rs));
+                    }
+                }
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Find all entities after a specific date
+     */
+    @Override
+    public List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        List<T> results = new ArrayList<>();
+        
+        // Get all existing tables
+        List<String> tables = getExistingTables();
+        
+        for (String table : tables) {
+            // Extract date from table name
+            String dateStr = table.substring(table.lastIndexOf('_') + 1);
+            LocalDateTime tableDate = LocalDateTime.parse(dateStr + "000000", 
+                DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            
+            // Skip tables before the cutoff date
+            if (tableDate.isBefore(afterDate)) {
+                continue;
+            }
+            
+            String sql = String.format("SELECT * FROM %s WHERE %s > ?", table, shardingColumn);
+            
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                
+                stmt.setTimestamp(1, Timestamp.valueOf(afterDate));
                 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -436,6 +539,7 @@ public class GenericMultiTableRepository<T, K> {
         performAutomaticMaintenance(now);
     }
     
+    @Override
     public void shutdown() {
         // Shutdown scheduler first
         if (scheduler != null && !scheduler.isShutdown()) {
