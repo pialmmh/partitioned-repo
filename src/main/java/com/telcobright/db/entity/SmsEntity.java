@@ -9,7 +9,7 @@ import java.math.BigDecimal;
  * Each day gets its own table: sms_20250803, sms_20250804, etc.
  */
 @Table(name = "sms")
-public class SmsEntity {
+public class SmsEntity implements ShardingEntity<Long> {
     
     @Id
     @Column(name = "id", insertable = false, updatable = false)

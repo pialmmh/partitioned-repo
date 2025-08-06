@@ -356,6 +356,9 @@
                         <li><a href="#partitioned-table-strategy" class="level-2">Partitioned Table Strategy</a></li>
                     </ul>
                 </li>
+                <li><a href="#flexible-fields">Flexible Field Naming</a></li>
+                <li><a href="#index-annotation">@Index Annotation</a></li>
+                <li><a href="#monitoring-system">Monitoring System</a></li>
                 <li><a href="#quick-start">Quick Start</a>
                     <ul>
                         <li><a href="#multi-table-example" class="level-2">Multi-Table Example</a></li>
@@ -402,7 +405,13 @@
                     </ul>
                 </li>
                 <li><a href="#use-cases">Use Cases</a></li>
-                <li><a href="#advanced-features">Advanced Features</a></li>
+                <li><a href="#advanced-features">Advanced Features</a>
+                    <ul>
+                        <li><a href="#flexible-field-naming" class="level-2">Flexible Field Naming</a></li>
+                        <li><a href="#index-annotation" class="level-2">@Index Annotation</a></li>
+                        <li><a href="#monitoring-system" class="level-2">Monitoring System</a></li>
+                    </ul>
+                </li>
                 <li><a href="#production-features">Production Features</a></li>
                 <li><a href="#requirements">Requirements</a></li>
                 <li><a href="#getting-started">Getting Started</a></li>
@@ -422,11 +431,13 @@
                 <div class="highlight">
                     <h4>New Features</h4>
                     <ul>
-                        <li><strong>Generic Type Safety:</strong> <code>Repository&lt;TEntity, TKey&gt;</code> with compile-time guarantees</li>
-                        <li><strong>Automatic SQL Generation:</strong> INSERT, SELECT, CREATE TABLE statements inferred from entity annotations</li>
+                        <li><strong>ShardingEntity Interface:</strong> Type-safe <code>Repository&lt;T extends ShardingEntity&lt;K&gt;, K&gt;</code> with compile-time guarantees</li>
+                        <li><strong>Flexible Field Naming:</strong> Any field names allowed - <code>@Id</code> and <code>@ShardingKey</code> annotations determine behavior</li>
+                        <li><strong>Custom Index Support:</strong> <code>@Index</code> annotation for automatic index creation with unique constraints</li>
+                        <li><strong>Comprehensive Monitoring:</strong> Built-in metrics with Prometheus, REST push, and formatted console output</li>
+                        <li><strong>Automatic SQL Generation:</strong> INSERT, SELECT, CREATE TABLE statements with indexes inferred from annotations</li>
                         <li><strong>Zero Runtime Reflection:</strong> All metadata parsed once at startup for maximum performance</li>
-                        <li><strong>HikariCP Integration:</strong> Production-ready connection pooling with full configuration options</li>
-                        <li><strong>Annotation-Based Mapping:</strong> Simple <code>@Table</code>, <code>@Column</code>, <code>@Id</code>, <code>@ShardingKey</code> annotations</li>
+                        <li><strong>HikariCP Integration:</strong> Production-ready connection pooling with full configuration</li>
                     </ul>
                 </div>
                 
@@ -468,6 +479,183 @@
                 </div>
             </section>
 
+            <section id="flexible-fields" class="section">
+                <h2>Flexible Field Naming with Annotations</h2>
+                <p>The repository system now supports <strong>flexible field naming</strong> through annotations. You can use any field names for ID and partitioning columns, and the system will detect them automatically.</p>
+                
+                <h3>ShardingEntity Interface</h3>
+                <p>All entities must implement the <code>ShardingEntity&lt;K&gt;</code> marker interface where <code>K</code> is your ID type:</p>
+                <pre><code>public interface ShardingEntity&lt;K&gt; {
+    // Marker interface - fields detected via @Id and @ShardingKey annotations
+}</code></pre>
+                
+                <h3>Flexible Field Examples</h3>
+                <div class="code-example">
+                    <h4>Example 1: Custom Field Names</h4>
+                    <pre><code>@Table(name = "user_events")
+public class UserEventEntity implements ShardingEntity&lt;String&gt; {
+    @Id
+    @Column(name = "event_uuid")
+    private String eventUuid;  // Any field name for ID
+    
+    @ShardingKey
+    @Column(name = "event_timestamp")
+    private LocalDateTime eventTimestamp;  // Any field name for partitioning
+    
+    @Column(name = "user_id")
+    private Long userId;
+    
+    @Column(name = "event_type")
+    private String eventType;
+}</code></pre>
+                </div>
+
+                <div class="code-example">
+                    <h4>Example 2: Traditional Names Still Work</h4>
+                    <pre><code>@Table(name = "orders")
+public class OrderEntity implements ShardingEntity&lt;Long&gt; {
+    @Id
+    @Column(name = "id", insertable = false)
+    private Long id;  // Traditional "id" field
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;  // Traditional "created_at" field
+    
+    @Column(name = "customer_id")
+    private String customerId;
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="index-annotation" class="section">
+                <h2>@Index Annotation for Automatic Index Creation</h2>
+                <p>The system automatically creates database indexes based on <code>@Index</code> annotations on entity fields.</p>
+                
+                <h3>Index Types</h3>
+                <div class="code-example">
+                    <pre><code>@Table(name = "user_activity")
+public class UserActivityEntity implements ShardingEntity&lt;Long&gt; {
+    @Id
+    @Column(name = "activity_id")
+    private Long activityId;
+    
+    @ShardingKey
+    @Column(name = "logged_at")
+    private LocalDateTime loggedAt;
+    
+    // Regular index for fast lookups
+    @Index
+    @Column(name = "user_id")
+    private String userId;
+    
+    // Unique index with custom name
+    @Index(name = "idx_session_unique", unique = true)
+    @Column(name = "session_token")
+    private String sessionToken;
+    
+    // Index with comment
+    @Index(name = "idx_status_search", comment = "Fast status filtering")
+    @Column(name = "status")
+    private String status;
+}</code></pre>
+                </div>
+                
+                <h3>Generated CREATE TABLE SQL</h3>
+                <pre><code>CREATE TABLE user_activity_20250806 (
+    activity_id BIGINT AUTO_INCREMENT,
+    logged_at DATETIME NOT NULL,
+    user_id VARCHAR(255),
+    session_token VARCHAR(255),
+    status VARCHAR(255),
+    
+    PRIMARY KEY (activity_id),
+    KEY idx_user_id (user_id),
+    UNIQUE KEY idx_session_unique (session_token),
+    KEY idx_status_search (status) COMMENT 'Fast status filtering'
+) ENGINE=InnoDB;</code></pre>
+            </section>
+
+            <section id="monitoring-system" class="section">
+                <h2>Repository Monitoring System</h2>
+                <p>Comprehensive monitoring system with multiple delivery methods: HTTP endpoints, REST push, Kafka, and SLF4J logging.</p>
+                
+                <h3>Monitoring Configuration</h3>
+                <pre><code>// Configure monitoring
+MonitoringConfig config = new MonitoringConfig.Builder()
+    .deliveryMethod(MonitoringConfig.DeliveryMethod.HTTP_ENDPOINT)
+    .metricFormat(MonitoringConfig.MetricFormat.PROMETHEUS)
+    .httpEndpointPath("/metrics")
+    .reportingIntervalSeconds(60)  // Report every minute
+    .serviceName("my-service")
+    .instanceId("prod-server-01")
+    .build();
+
+// Create repository with monitoring
+GenericMultiTableRepository&lt;OrderEntity, Long&gt; repository = 
+    GenericMultiTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
+        .host("127.0.0.1")
+        .database("ecommerce")
+        .username("root")
+        .password("123456")
+        .monitoring(config)  // Enable monitoring
+        .build();</code></pre>
+        
+                <h3>Console Output (Always Enabled)</h3>
+                <p>Regardless of delivery method, formatted metrics are <strong>always printed to console</strong>:</p>
+                <pre><code>========================================
+ REPOSITORY METRICS - 2025-08-07T10:30:45
+========================================
+Service: my-service (prod-server-01)
+Repository: order_events [MultiTable]
+Hostname: prod-server-01
+
+📅 SCHEDULER STATUS:
+   Last Run: 2025-08-07T10:25:45
+   Duration: 1250 ms
+   Next Run: 2025-08-07T10:35:45
+
+📊 PARTITION METRICS:
+   Total Partitions: 15
+   Prefixed Tables: 45
+   Created Last Run: 2
+   Deleted Last Run: 1
+   Active Partitions: [order_events_20250801, ...]
+
+🏥 HEALTH STATUS:
+   Last Job: ✅ HEALTHY
+   Total Failures: 0
+   Next Cleanup: 2 partitions
+
+📡 MONITORING CONFIG:
+   Delivery: HTTP_ENDPOINT
+   Format: PROMETHEUS
+   Interval: 60 seconds
+   Endpoint: /metrics
+========================================</code></pre>
+
+                <h3>Delivery Methods</h3>
+                <div class="monitoring-methods">
+                    <h4>1. Prometheus HTTP Endpoint</h4>
+                    <pre><code>// Metrics available at http://localhost:8080/metrics
+SimpleHttpMetricsServer server = SimpleHttpMetricsServer.startFor(
+    repository.getMonitoringService());</code></pre>
+                    
+                    <h4>2. REST Push to External System</h4>
+                    <pre><code>MonitoringConfig config = new MonitoringConfig.Builder()
+    .deliveryMethod(MonitoringConfig.DeliveryMethod.REST_PUSH)
+    .restPushUrl("http://monitoring-server:9090/api/metrics")
+    .metricFormat(MonitoringConfig.MetricFormat.JSON)
+    .build();</code></pre>
+                    
+                    <h4>3. SLF4J Logging</h4>
+                    <pre><code>MonitoringConfig config = new MonitoringConfig.Builder()
+    .deliveryMethod(MonitoringConfig.DeliveryMethod.SLF4J_LOGGING)
+    .metricFormat(MonitoringConfig.MetricFormat.JSON)
+    .build();</code></pre>
+                </div>
+            </section>
+
             <section id="quick-start" class="section">
                 <h2>Quick Start</h2>
 
@@ -475,7 +663,7 @@
                     <h3>Generic Multi-Table Repository (SMS Example)</h3>
                     <pre><code>// 1. Entity with annotations (automatic SQL generation)
 @Table(name = "sms")
-public class SmsEntity {
+public class SmsEntity implements ShardingEntity&lt;Long&gt; {
     @Id
     @Column(name = "id", insertable = false)
     private Long id;
@@ -487,27 +675,38 @@ public class SmsEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
+    @Index  // Automatic index creation
     @Column(name = "message")
     private String message;
     // ... other fields
 }
 
-// 2. Create generic repository with type safety and HikariCP
+// 2. Configure monitoring (console output + SLF4J logging)
+MonitoringConfig smsMonitoring = new MonitoringConfig.Builder()
+    .deliveryMethod(MonitoringConfig.DeliveryMethod.SLF4J_LOGGING)
+    .metricFormat(MonitoringConfig.MetricFormat.JSON)
+    .reportingIntervalSeconds(300)  // Report every 5 minutes
+    .serviceName("sms-service")
+    .instanceId("sms-server-01")
+    .build();
+
+// 3. Create generic repository with type safety, HikariCP, and monitoring
 GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
     GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
         .host("127.0.0.1")
         .port(3306)
         .database("messaging")
         .username("root")
-        .password("password")
-        .tablePrefix("sms")        // Optional: inferred from @Table
-        .partitionRetentionPeriod(30)  // Keep 30 days
-        .autoManagePartitions(true)    // Auto create/drop tables
+        .password("123456")           // Updated credentials
+        .monitoring(smsMonitoring)    // Enable console monitoring
+        .tablePrefix("sms")           // Optional: inferred from @Table
+        .partitionRetentionPeriod(30) // Keep 30 days
+        .autoManagePartitions(true)   // Auto create/drop tables
         .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
         // HikariCP connection pool configuration
-        .maxPoolSize(25)               // 25 connections max
-        .minIdleConnections(5)         // 5 idle connections
-        .connectionTimeout(30000)      // 30s timeout
+        .maxPoolSize(25)              // 25 connections max
+        .minIdleConnections(5)        // 5 idle connections
+        .connectionTimeout(30000)     // 30s timeout
         .build();
 
 // 3. Insert data - SQL automatically generated from annotations
@@ -526,7 +725,40 @@ SmsEntity foundSms = smsRepo.findById(12345L);
 
 // 6. Find recent SMS messages
 List&lt;SmsEntity&gt; recentSms = smsRepo.findByDateRange(
-    LocalDateTime.now().minusDays(7), LocalDateTime.now());</code></pre>
+    LocalDateTime.now().minusDays(7), LocalDateTime.now());
+
+// 7. Console monitoring output (automatic every 5 minutes):
+/*
+========================================
+ REPOSITORY METRICS - 2025-08-06T14:30:45
+========================================
+Service: sms-service (sms-server-01)
+Repository: sms [MultiTable]
+Hostname: sms-server-01
+
+📅 SCHEDULER STATUS:
+   Last Run: 2025-08-06T14:25:45
+   Duration: 850 ms
+   Next Run: 2025-08-06T15:25:45
+
+📊 PARTITION METRICS:
+   Total Partitions: 8
+   Prefixed Tables: 24
+   Created Last Run: 1
+   Deleted Last Run: 1
+   Active Partitions: [sms_20250801, sms_20250802, ...]
+
+🏥 HEALTH STATUS:
+   Last Job: ✅ HEALTHY
+   Total Failures: 0
+   Next Cleanup: 1 partitions
+
+📡 MONITORING CONFIG:
+   Delivery: SLF4J_LOGGING
+   Format: JSON
+   Interval: 300 seconds
+========================================
+*/</code></pre>
                 </div>
 
                 <div id="partitioned-table-example">

@@ -1,6 +1,10 @@
 package com.telcobright.db.repository;
 
+import com.telcobright.db.entity.ShardingEntity;
 import com.telcobright.db.metadata.EntityMetadata;
+import com.telcobright.db.monitoring.*;
+import com.telcobright.db.pagination.Page;
+import com.telcobright.db.pagination.PageRequest;
 import com.telcobright.db.query.QueryDSL;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -21,10 +25,13 @@ import java.util.logging.Logger;
  * Generic Multi-Table Repository implementation
  * Creates separate tables for each day based on sharding key
  * 
- * @param <T> Entity type
+ * Entities must implement ShardingEntity<K> to ensure they have
+ * required 'id' and 'created_at' fields.
+ * 
+ * @param <T> Entity type that implements ShardingEntity<K>
  * @param <K> Primary key type
  */
-public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, K> {
+public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> implements ShardingRepository<T, K> {
     private static final Logger LOGGER = Logger.getLogger(GenericMultiTableRepository.class.getName());
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
@@ -38,6 +45,7 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
     private final EntityMetadata<T, K> metadata;
     private final Class<T> entityClass;
     private final Class<K> keyClass;
+    private final MonitoringService monitoringService;
     
     private ScheduledExecutorService scheduler;
     
@@ -58,6 +66,17 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
         
         // Create DataSource
         this.dataSource = createDataSource(builder);
+        
+        // Initialize monitoring if enabled
+        if (builder.monitoringConfig != null && builder.monitoringConfig.isEnabled()) {
+            RepositoryMetrics metrics = new RepositoryMetrics("MultiTable", tablePrefix, 
+                    builder.monitoringConfig.getInstanceId());
+            MetricsCollector metricsCollector = new MetricsCollector(dataSource, database);
+            this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);
+            this.monitoringService.start();
+        } else {
+            this.monitoringService = null;
+        }
         
         // Initialize partitions if needed
         if (initializePartitionsOnStart) {
@@ -452,13 +471,46 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
     }
     
     private void performAutomaticMaintenance(LocalDateTime referenceDate) throws SQLException {
-        LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
-        LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
+        long startTime = System.currentTimeMillis();
+        int tablesCreated = 0;
+        int tablesDeleted = 0;
         
-        createTablesForDateRange(startDate, endDate);
+        // Record maintenance job start
+        if (monitoringService != null) {
+            monitoringService.recordMaintenanceJobStart();
+        }
         
-        LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);
-        dropOldTables(cutoffDate);
+        try {
+            LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
+            LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
+            
+            // Count existing tables before creation
+            List<String> beforeTables = getExistingTables();
+            createTablesForDateRange(startDate, endDate);
+            List<String> afterTables = getExistingTables();
+            tablesCreated = afterTables.size() - beforeTables.size();
+            
+            // Count tables before deletion
+            List<String> beforeDeletion = getExistingTables();
+            LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);
+            dropOldTables(cutoffDate);
+            List<String> afterDeletion = getExistingTables();
+            tablesDeleted = beforeDeletion.size() - afterDeletion.size();
+            
+            long duration = System.currentTimeMillis() - startTime;
+            
+            // Record success
+            if (monitoringService != null) {
+                monitoringService.recordMaintenanceJobSuccess(duration, tablesCreated, tablesDeleted);
+            }
+            
+        } catch (SQLException e) {
+            long duration = System.currentTimeMillis() - startTime;
+            if (monitoringService != null) {
+                monitoringService.recordMaintenanceJobFailure(duration, e);
+            }
+            throw e;
+        }
     }
     
     public void createTablesForDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -541,6 +593,11 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
     
     @Override
     public void shutdown() {
+        // Stop monitoring
+        if (monitoringService != null) {
+            monitoringService.stop();
+        }
+        
         // Shutdown scheduler first
         if (scheduler != null && !scheduler.isShutdown()) {
             scheduler.shutdown();
@@ -557,8 +614,14 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
         // Close HikariCP connection pool
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
-            LOGGER.info("HikariCP connection pool closed");
         }
+    }
+    
+    /**
+     * Get monitoring service for metrics access (if enabled)
+     */
+    public MonitoringService getMonitoringService() {
+        return monitoringService;
     }
     
     private HikariDataSource createDataSource(Builder<T, K> builder) {
@@ -612,7 +675,7 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
     /**
      * Builder for GenericMultiTableRepository
      */
-    public static class Builder<T, K> {
+    public static class Builder<T extends ShardingEntity<K>, K> {
         private final Class<T> entityClass;
         private final Class<K> keyClass;
         private String host = "localhost";
@@ -625,6 +688,7 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
         private boolean autoManagePartitions = true;
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);
         private boolean initializePartitionsOnStart = true;
+        private MonitoringConfig monitoringConfig;
         
         // HikariCP configuration
         private int maxPoolSize = 20;
@@ -694,6 +758,11 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
             return this;
         }
         
+        public Builder<T, K> monitoring(MonitoringConfig monitoringConfig) {
+            this.monitoringConfig = monitoringConfig;
+            return this;
+        }
+        
         // HikariCP configuration methods
         public Builder<T, K> maxPoolSize(int maxPoolSize) {
             this.maxPoolSize = maxPoolSize;
@@ -736,7 +805,7 @@ public class GenericMultiTableRepository<T, K> implements ShardingRepository<T, 
     /**
      * Create a new builder
      */
-    public static <T, K> Builder<T, K> builder(Class<T> entityClass, Class<K> keyClass) {
+    public static <T extends ShardingEntity<K>, K> Builder<T, K> builder(Class<T> entityClass, Class<K> keyClass) {
         return new Builder<>(entityClass, keyClass);
     }
 }

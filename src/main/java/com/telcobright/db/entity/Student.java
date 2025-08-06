@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 
 @Table(name = "student")
-public class Student {
+public class Student implements ShardingEntity<Long> {
     @Id
     @Column(name = "id", updatable = false)
     private Long id;

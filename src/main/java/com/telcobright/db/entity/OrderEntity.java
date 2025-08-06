@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  * Partitions by date range: p20250803, p20250804, etc.
  */
 @Table(name = "orders")
-public class OrderEntity {
+public class OrderEntity implements ShardingEntity<Long> {
     
     @Id
     @Column(name = "id", insertable = false, updatable = false)

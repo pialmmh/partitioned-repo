@@ -1,5 +1,9 @@
 package com.telcobright.db.repository;
 
+import com.telcobright.db.entity.ShardingEntity;
+import com.telcobright.db.pagination.Page;
+import com.telcobright.db.pagination.PageRequest;
+
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -7,10 +11,13 @@ import java.util.List;
 /**
  * Common interface for sharding-aware repositories
  * 
- * @param <T> Entity type
+ * Enforces that all entities used with this repository must implement ShardingEntity<K>,
+ * which guarantees the presence of required 'id' and 'created_at' fields.
+ * 
+ * @param <T> Entity type that must implement ShardingEntity
  * @param <K> Primary key type
  */
-public interface ShardingRepository<T, K> {
+public interface ShardingRepository<T extends ShardingEntity<K>, K> {
     
     /**
      * Insert a single entity

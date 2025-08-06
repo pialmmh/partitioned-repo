@@ -1,6 +1,10 @@
 package com.telcobright.db.repository;
 
+import com.telcobright.db.entity.ShardingEntity;
 import com.telcobright.db.metadata.EntityMetadata;
+import com.telcobright.db.monitoring.*;
+import com.telcobright.db.pagination.Page;
+import com.telcobright.db.pagination.PageRequest;
 import com.telcobright.db.query.QueryDSL;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -21,10 +25,13 @@ import java.util.logging.Logger;
  * Generic Partitioned Table Repository implementation
  * Uses MySQL native partitioning on a single table
  * 
- * @param <T> Entity type
+ * Entities must implement ShardingEntity<K> to ensure they have
+ * required 'id' and 'created_at' fields.
+ * 
+ * @param <T> Entity type that implements ShardingEntity<K>
  * @param <K> Primary key type
  */
-public class GenericPartitionedTableRepository<T, K> implements ShardingRepository<T, K> {
+public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> implements ShardingRepository<T, K> {
     private static final Logger LOGGER = Logger.getLogger(GenericPartitionedTableRepository.class.getName());
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
@@ -38,6 +45,7 @@ public class GenericPartitionedTableRepository<T, K> implements ShardingReposito
     private final EntityMetadata<T, K> metadata;
     private final Class<T> entityClass;
     private final Class<K> keyClass;
+    private final MonitoringService monitoringService;
     
     private ScheduledExecutorService scheduler;
     
@@ -58,6 +66,17 @@ public class GenericPartitionedTableRepository<T, K> implements ShardingReposito
         
         // Create DataSource
         this.dataSource = createDataSource(builder);
+        
+        // Initialize monitoring if enabled
+        if (builder.monitoringConfig != null && builder.monitoringConfig.isEnabled()) {
+            RepositoryMetrics metrics = new RepositoryMetrics("Partitioned", tableName, 
+                    builder.monitoringConfig.getInstanceId());
+            MetricsCollector metricsCollector = new MetricsCollector(dataSource, database);
+            this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);
+            this.monitoringService.start();
+        } else {
+            this.monitoringService = null;
+        }
         
         // Initialize table and partitions if needed
         if (initializePartitionsOnStart) {
@@ -613,7 +632,7 @@ public class GenericPartitionedTableRepository<T, K> implements ShardingReposito
     /**
      * Builder for GenericPartitionedTableRepository
      */
-    public static class Builder<T, K> {
+    public static class Builder<T extends ShardingEntity<K>, K> {
         private final Class<T> entityClass;
         private final Class<K> keyClass;
         private String host = "localhost";
@@ -626,6 +645,7 @@ public class GenericPartitionedTableRepository<T, K> implements ShardingReposito
         private boolean autoManagePartitions = true;
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);
         private boolean initializePartitionsOnStart = true;
+        private MonitoringConfig monitoringConfig;
         
         // HikariCP configuration
         private int maxPoolSize = 20;
@@ -695,6 +715,11 @@ public class GenericPartitionedTableRepository<T, K> implements ShardingReposito
             return this;
         }
         
+        public Builder<T, K> monitoring(MonitoringConfig monitoringConfig) {
+            this.monitoringConfig = monitoringConfig;
+            return this;
+        }
+        
         // HikariCP configuration methods
         public Builder<T, K> maxPoolSize(int maxPoolSize) {
             this.maxPoolSize = maxPoolSize;
@@ -737,7 +762,7 @@ public class GenericPartitionedTableRepository<T, K> implements ShardingReposito
     /**
      * Create a new builder
      */
-    public static <T, K> Builder<T, K> builder(Class<T> entityClass, Class<K> keyClass) {
+    public static <T extends ShardingEntity<K>, K> Builder<T, K> builder(Class<T> entityClass, Class<K> keyClass) {
         return new Builder<>(entityClass, keyClass);
     }
 }

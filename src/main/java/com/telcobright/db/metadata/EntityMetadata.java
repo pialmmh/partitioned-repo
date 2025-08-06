@@ -83,7 +83,7 @@ public class EntityMetadata<T, K> {
     }
     
     /**
-     * Validates that the entity has required columns for repository operations
+     * Validates that the entity has required fields for repository operations
      */
     private void validateRequiredColumns() {
         // Validate ID field exists
@@ -93,36 +93,23 @@ public class EntityMetadata<T, K> {
             );
         }
         
-        // Validate sharding key field exists (created_at)
+        // Validate sharding key field exists
         if (shardingKeyField == null) {
             throw new IllegalArgumentException(
-                String.format("Entity %s must have a field annotated with @ShardingKey (typically 'created_at')", entityClass.getSimpleName())
+                String.format("Entity %s must have a field annotated with @ShardingKey for date-based partitioning", entityClass.getSimpleName())
             );
         }
         
         // Validate sharding key is LocalDateTime type
         if (!LocalDateTime.class.isAssignableFrom(shardingKeyField.getType())) {
             throw new IllegalArgumentException(
-                String.format("Entity %s sharding key field '%s' must be of type LocalDateTime", 
-                    entityClass.getSimpleName(), shardingKeyField.getFieldName())
+                String.format("Entity %s sharding key field '%s' must be of type LocalDateTime, found: %s", 
+                    entityClass.getSimpleName(), shardingKeyField.getFieldName(), shardingKeyField.getType().getSimpleName())
             );
         }
         
-        // Validate sharding key is named "created_at" (convention enforcement)
-        if (!"created_at".equals(shardingKeyField.getColumnName())) {
-            throw new IllegalArgumentException(
-                String.format("Entity %s sharding key field must map to column 'created_at' (found: '%s')", 
-                    entityClass.getSimpleName(), shardingKeyField.getColumnName())
-            );
-        }
-        
-        // Validate ID field is named "id" (convention enforcement)  
-        if (!"id".equals(idField.getColumnName())) {
-            throw new IllegalArgumentException(
-                String.format("Entity %s ID field must map to column 'id' (found: '%s')", 
-                    entityClass.getSimpleName(), idField.getColumnName())
-            );
-        }
+        // Note: Column names are now flexible and determined by @Column annotations
+        // No longer enforcing specific column names like "id" or "created_at"
     }
     
     private String generateInsertSQL() {
@@ -190,17 +177,33 @@ public class EntityMetadata<T, K> {
             first = false;
         }
         
-        // Add indexes - ID already has PRIMARY KEY, but add explicit index for created_at
+        // Add automatic indexes - ID already has PRIMARY KEY, but add explicit index for sharding key
         if (shardingKeyField != null) {
             sql.append(", KEY idx_").append(shardingKeyField.getColumnName())
                .append(" (").append(shardingKeyField.getColumnName()).append(")");
         }
         
-        // Add composite index for common query patterns (id, created_at)
+        // Add composite index for common query patterns (id, sharding_key)
         if (idField != null && shardingKeyField != null) {
             sql.append(", KEY idx_id_created_at (")
                .append(idField.getColumnName()).append(", ")
                .append(shardingKeyField.getColumnName()).append(")");
+        }
+        
+        // Add custom indexes from @Index annotations
+        for (FieldMetadata field : fields) {
+            if (field.hasIndex()) {
+                String indexKeyword = field.getIndexAnnotation().unique() ? "UNIQUE KEY" : "KEY";
+                String indexName = field.getIndexName();
+                String comment = field.getIndexAnnotation().comment();
+                
+                sql.append(", ").append(indexKeyword).append(" ").append(indexName)
+                   .append(" (").append(field.getColumnName()).append(")");
+                
+                if (!comment.isEmpty()) {
+                    sql.append(" COMMENT '").append(comment).append("'");
+                }
+            }
         }
         
         sql.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
