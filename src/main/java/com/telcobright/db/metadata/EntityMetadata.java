@@ -247,7 +247,10 @@ public class EntityMetadata<T, K> {
         } else if (type == Integer.class || type == int.class) {
             stmt.setInt(index, (Integer) value);
         } else if (type == LocalDateTime.class) {
-            stmt.setTimestamp(index, Timestamp.valueOf((LocalDateTime) value));
+            // Create Timestamp from LocalDateTime and explicitly set with local Calendar
+            // to prevent MySQL JDBC driver from applying timezone conversion
+            Timestamp timestamp = Timestamp.valueOf((LocalDateTime) value);
+            stmt.setTimestamp(index, timestamp, java.util.Calendar.getInstance());
         } else if (type == BigDecimal.class) {
             stmt.setBigDecimal(index, (BigDecimal) value);
         } else if (type == Boolean.class || type == boolean.class) {
@@ -269,7 +272,8 @@ public class EntityMetadata<T, K> {
             int value = rs.getInt(columnName);
             return rs.wasNull() ? null : value;
         } else if (type == LocalDateTime.class) {
-            Timestamp ts = rs.getTimestamp(columnName);
+            // Get timestamp with local Calendar to prevent timezone conversion
+            Timestamp ts = rs.getTimestamp(columnName, java.util.Calendar.getInstance());
             return ts != null ? ts.toLocalDateTime() : null;
         } else if (type == BigDecimal.class) {
             return rs.getBigDecimal(columnName);
