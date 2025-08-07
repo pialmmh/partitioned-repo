@@ -1,23 +1,23 @@
 package com.telcobright.db.monitoring;
 
+import com.telcobright.db.connection.ConnectionProvider;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.sql.DataSource;
 
 /**
  * Collects metrics from database for repository monitoring
  */
 public class MetricsCollector {
     
-    private final DataSource dataSource;
+    private final ConnectionProvider connectionProvider;
     private final String databaseName;
     
-    public MetricsCollector(DataSource dataSource, String databaseName) {
-        this.dataSource = dataSource;
+    public MetricsCollector(ConnectionProvider connectionProvider, String databaseName) {
+        this.connectionProvider = connectionProvider;
         this.databaseName = databaseName;
     }
     
@@ -28,7 +28,7 @@ public class MetricsCollector {
         String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.PARTITIONS " +
                     "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_NAME IS NOT NULL";
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, databaseName);
@@ -56,7 +56,7 @@ public class MetricsCollector {
                     "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_NAME IS NOT NULL " +
                     "ORDER BY PARTITION_NAME";
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, databaseName);
@@ -81,7 +81,7 @@ public class MetricsCollector {
         String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES " +
                     "WHERE TABLE_SCHEMA = ? AND TABLE_NAME LIKE ?";
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, databaseName);
@@ -108,7 +108,7 @@ public class MetricsCollector {
                     "WHERE TABLE_SCHEMA = ? AND TABLE_NAME LIKE ? " +
                     "ORDER BY TABLE_NAME";
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, databaseName);
@@ -132,7 +132,7 @@ public class MetricsCollector {
     public String getCreateTableStatement(String tableName) {
         String sql = "SHOW CREATE TABLE " + tableName;
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             try (ResultSet rs = stmt.executeQuery()) {
@@ -154,7 +154,7 @@ public class MetricsCollector {
         String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES " +
                     "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, databaseName);

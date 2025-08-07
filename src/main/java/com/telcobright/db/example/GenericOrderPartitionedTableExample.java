@@ -24,24 +24,16 @@ public class GenericOrderPartitionedTableExample {
                 GenericPartitionedTableRepository.<OrderEntity, Long>builder(OrderEntity.class, Long.class)
                     .host("127.0.0.1")
                     .port(3306)
-                    .database("ecommerce")
+                    .database("test")
                     .username("root")
-                    .password("password")
-                    .tableName("orders")  // Optional: will use "orders" from @Table annotation if not provided
+                    .password("123456")
+                    .tableName("order")  // Optional: will use "orders" from @Table annotation if not provided
                     .partitionRetentionPeriod(365)
-                    .autoManagePartitions(true)
-                    .partitionAdjustmentTime(4, 0)
-                    .initializePartitionsOnStart(true)
-                    // HikariCP connection pool configuration for high-volume order processing
-                    .maxPoolSize(30)           // Maximum 30 connections for order processing
-                    .minIdleConnections(10)    // Keep 10 idle connections ready
-                    .connectionTimeout(30000)  // 30 second connection timeout
-                    .idleTimeout(900000)       // 15 minute idle timeout for long-running operations
-                    .maxLifetime(3600000)      // 1 hour max connection lifetime
-                    .leakDetectionThreshold(120000) // 2 minute leak detection for complex queries
+                    .autoManagePartitions(false)  // Disable for testing
+                    .initializePartitionsOnStart(false)  // Disable for testing
                     .build();
             
-            System.out.println(" Repository created successfully with automatic metadata parsing and HikariCP pooling");
+            System.out.println(" Repository created successfully with automatic metadata parsing");
             
             // Insert entities - SQL is automatically generated from annotations
             System.out.println("\n Inserting Order entities...");

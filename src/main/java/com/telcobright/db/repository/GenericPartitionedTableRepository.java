@@ -6,11 +6,8 @@ import com.telcobright.db.monitoring.*;
 import com.telcobright.db.pagination.Page;
 import com.telcobright.db.pagination.PageRequest;
 import com.telcobright.db.query.QueryDSL;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
-import javax.sql.DataSource;
+import com.telcobright.db.connection.ConnectionProvider;
+import com.telcobright.db.connection.ConnectionProvider.MaintenanceConnection;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -35,7 +32,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
     private static final Logger LOGGER = Logger.getLogger(GenericPartitionedTableRepository.class.getName());
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
-    private final HikariDataSource dataSource;
+    private final ConnectionProvider connectionProvider;
     private final String database;
     private final String tableName;
     private final int partitionRetentionPeriod;
@@ -64,14 +61,20 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         // Use provided table name or derive from entity
         this.tableName = builder.tableName != null ? builder.tableName : metadata.getTableName();
         
-        // Create DataSource
-        this.dataSource = createDataSource(builder);
+        // Create ConnectionProvider
+        this.connectionProvider = new ConnectionProvider.Builder()
+            .host(builder.host)
+            .port(builder.port)
+            .database(builder.database)
+            .username(builder.username)
+            .password(builder.password)
+            .build();
         
         // Initialize monitoring if enabled
         if (builder.monitoringConfig != null && builder.monitoringConfig.isEnabled()) {
             RepositoryMetrics metrics = new RepositoryMetrics("Partitioned", tableName, 
                     builder.monitoringConfig.getInstanceId());
-            MetricsCollector metricsCollector = new MetricsCollector(dataSource, database);
+            MetricsCollector metricsCollector = new MetricsCollector(connectionProvider, database);
             this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);
             this.monitoringService.start();
         } else {
@@ -79,10 +82,12 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         }
         
         // Initialize table and partitions if needed
+        // Initialize table and partitions for retention period on startup
         if (initializePartitionsOnStart) {
             try {
+                LOGGER.info("Initializing partitioned table and partitions for retention period...");
                 initializeTable();
-                initializePartitions();
+                initializePartitionsForRetentionPeriod();
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to initialize partitioned table", e);
             }
@@ -96,18 +101,14 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
     
     /**
      * Insert entity into partitioned table (MySQL handles routing)
+     * Note: Target partition must exist (created during startup), otherwise SQLException will be thrown
      */
     @Override
     public void insert(T entity) throws SQLException {
-        LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(entity);
-        
-        // Ensure partition exists for the date
-        ensurePartitionExistsForDate(shardingKeyValue);
-        
         String fullTableName = database + "." + tableName;
         String sql = String.format(metadata.getInsertSQL(), fullTableName);
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             metadata.setInsertParameters(stmt, entity);
@@ -128,6 +129,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
     
     /**
      * Insert multiple entities
+     * Note: Target partitions must exist (created during startup), otherwise SQLException will be thrown
      */
     @Override
     public void insertMultiple(List<T> entities) throws SQLException {
@@ -135,21 +137,10 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
             return;
         }
         
-        // Ensure partitions exist for all dates
-        Set<LocalDateTime> dates = new HashSet<>();
-        for (T entity : entities) {
-            LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(entity);
-            dates.add(shardingKeyValue);
-        }
-        
-        for (LocalDateTime date : dates) {
-            ensurePartitionExistsForDate(date);
-        }
-        
         String fullTableName = database + "." + tableName;
         String sql = String.format(metadata.getInsertSQL(), fullTableName);
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             for (T entity : entities) {
@@ -187,7 +178,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         
         List<T> results = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setTimestamp(1, Timestamp.valueOf(startDate));
@@ -211,7 +202,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         String fullTableName = database + "." + tableName;
         String sql = String.format(metadata.getSelectByIdSQL(), fullTableName);
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             setIdParameter(stmt, 1, id);
@@ -256,7 +247,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         
         List<T> results = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             // Set ID parameters
@@ -291,7 +282,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         
         List<T> results = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setTimestamp(1, Timestamp.valueOf(beforeDate));
@@ -318,7 +309,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         
         List<T> results = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setTimestamp(1, Timestamp.valueOf(afterDate));
@@ -337,12 +328,18 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         String fullTableName = database + "." + tableName;
         String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);
         
-        // Modify the create table SQL to add partitioning
+        // For partitioned tables, MySQL requires the partitioning column to be part of PRIMARY KEY
+        // Modify PRIMARY KEY to include sharding column
+        String idColumn = metadata.getIdField().getColumnName();
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
-        createSQL = createSQL.replace(") ENGINE=InnoDB", 
-            ") ENGINE=InnoDB\nPARTITION BY RANGE (TO_DAYS(" + shardingColumn + "))");
         
-        try (Connection conn = dataSource.getConnection();
+        createSQL = createSQL.replace(idColumn + " BIGINT PRIMARY KEY AUTO_INCREMENT", 
+                                     idColumn + " BIGINT AUTO_INCREMENT");
+        
+        createSQL = createSQL.replace(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 
+                ", PRIMARY KEY (" + idColumn + ", " + shardingColumn + ")) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4\nPARTITION BY RANGE (TO_DAYS(" + shardingColumn + "))");
+        
+        try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             
             // Check if table exists
@@ -352,10 +349,16 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
                     // Table doesn't exist, create it with initial partition
                     LocalDateTime now = LocalDateTime.now();
                     String partitionName = "p" + now.format(DATE_FORMAT);
-                    int partitionValue = (int) (now.toLocalDate().toEpochDay() + 719528); // MySQL epoch offset
+                    
+                    // Create partition for current date + 1 day (VALUES LESS THAN is exclusive)
+                    LocalDateTime nextDay = now.plusDays(1);
+                    String partitionValue = "TO_DAYS('" + nextDay.toLocalDate().toString() + "')";
                     
                     createSQL += " (\n  PARTITION " + partitionName + 
-                                " VALUES LESS THAN (" + (partitionValue + 1) + ")\n)";
+                                " VALUES LESS THAN (" + partitionValue + ")\n)";
+                    
+                    // Debug: Log the SQL being executed
+                    LOGGER.info("Executing CREATE TABLE SQL: " + createSQL);
                     
                     stmt.execute(createSQL);
                     LOGGER.info("Created partitioned table: " + fullTableName);
@@ -364,23 +367,12 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         }
     }
     
-    private void ensurePartitionExistsForDate(LocalDateTime date) throws SQLException {
-        String partitionName = "p" + date.format(DATE_FORMAT);
-        
-        if (!partitionExists(partitionName)) {
-            createPartition(partitionName, date);
-        }
-        
-        if (autoManagePartitions) {
-            performAutomaticMaintenance(date);
-        }
-    }
     
     private boolean partitionExists(String partitionName) throws SQLException {
         String sql = "SELECT partition_name FROM information_schema.partitions " +
                     "WHERE table_schema = ? AND table_name = ? AND partition_name = ?";
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, database);
@@ -394,12 +386,14 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
     }
     
     private void createPartition(String partitionName, LocalDateTime date) throws SQLException {
-        int partitionValue = (int) (date.toLocalDate().toEpochDay() + 719528 + 1); // MySQL epoch offset
+        // Create partition for the next day (VALUES LESS THAN is exclusive)
+        LocalDateTime nextDay = date.plusDays(1);
+        String partitionValue = "TO_DAYS('" + nextDay.toLocalDate().toString() + "')";
         
-        String sql = String.format("ALTER TABLE %s.%s ADD PARTITION (PARTITION %s VALUES LESS THAN (%d))",
+        String sql = String.format("ALTER TABLE %s.%s ADD PARTITION (PARTITION %s VALUES LESS THAN (%s))",
             database, tableName, partitionName, partitionValue);
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             LOGGER.info("Created partition: " + partitionName);
@@ -410,7 +404,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         String sql = String.format("ALTER TABLE %s.%s DROP PARTITION %s",
             database, tableName, partitionName);
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             LOGGER.info("Dropped partition: " + partitionName);
@@ -424,7 +418,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         
         List<String> partitions = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, database);
@@ -456,7 +450,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
                                     ResultSetMapper<R> mapper) throws SQLException {
         List<R> results = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             if (parameters != null) {
@@ -477,13 +471,22 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
     }
     
     private void performAutomaticMaintenance(LocalDateTime referenceDate) throws SQLException {
-        LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
-        LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
-        
-        createPartitionsForDateRange(startDate, endDate);
-        
-        LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);
-        dropOldPartitions(cutoffDate);
+        // Use MaintenanceConnection to get exclusive access during maintenance
+        try (MaintenanceConnection maintenanceConn = connectionProvider.getMaintenanceConnection(
+                "Automatic partition maintenance for " + tableName)) {
+            
+            LOGGER.info("Starting automatic partition maintenance for " + tableName);
+            
+            LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
+            LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
+            
+            createPartitionsForDateRange(startDate, endDate);
+            
+            LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);
+            dropOldPartitions(cutoffDate);
+            
+            LOGGER.info("Partition maintenance completed for " + tableName);
+        }
     }
     
     public void createPartitionsForDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -515,12 +518,22 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         }
     }
     
-    private void initializePartitions() throws SQLException {
+    /**
+     * Initialize all partitions needed for the retention period at startup.
+     * This ensures all partitions exist before any insert operations.
+     */
+    private void initializePartitionsForRetentionPeriod() throws SQLException {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
         LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
         
+        LOGGER.info(String.format("Initializing partitions for retention period: %s to %s (%d days)", 
+                    startDate.toLocalDate(), endDate.toLocalDate(), 
+                    partitionRetentionPeriod * 2 + 1));
+        
         createPartitionsForDateRange(startDate, endDate);
+        
+        LOGGER.info("Completed partition initialization for retention period");
     }
     
     private void startScheduler() {
@@ -574,52 +587,13 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
             }
         }
         
-        // Close HikariCP connection pool
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-            LOGGER.info("HikariCP connection pool closed");
+        // Shutdown ConnectionProvider
+        if (connectionProvider != null) {
+            connectionProvider.shutdown();
+            LOGGER.info("ConnectionProvider shutdown");
         }
     }
     
-    private HikariDataSource createDataSource(Builder<T, K> builder) {
-        HikariConfig config = new HikariConfig();
-        
-        // Basic connection settings
-        config.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s", builder.host, builder.port, builder.database));
-        config.setUsername(builder.username);
-        config.setPassword(builder.password);
-        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        
-        // HikariCP pool settings
-        config.setMaximumPoolSize(builder.maxPoolSize);
-        config.setMinimumIdle(builder.minIdleConnections);
-        config.setConnectionTimeout(builder.connectionTimeoutMs);
-        config.setIdleTimeout(builder.idleTimeoutMs);
-        config.setMaxLifetime(builder.maxLifetimeMs);
-        config.setLeakDetectionThreshold(builder.leakDetectionThresholdMs);
-        
-        // MySQL specific settings
-        config.addDataSourceProperty("serverTimezone", "UTC");
-        config.addDataSourceProperty("useSSL", "false");
-        config.addDataSourceProperty("allowPublicKeyRetrieval", "true");
-        config.addDataSourceProperty("useUnicode", "true");
-        config.addDataSourceProperty("characterEncoding", "UTF-8");
-        config.addDataSourceProperty("autoReconnect", "true");
-        config.addDataSourceProperty("failOverReadOnly", "false");
-        config.addDataSourceProperty("maxReconnects", "3");
-        
-        // Performance settings
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        config.addDataSourceProperty("useServerPrepStmts", "true");
-        config.addDataSourceProperty("rewriteBatchedStatements", "true");
-        
-        // Pool name for monitoring
-        config.setPoolName("PartitionedTableRepository-" + (tableName != null ? tableName : "unknown"));
-        
-        return new HikariDataSource(config);
-    }
     
     /**
      * Functional interface for mapping ResultSet to entity
@@ -641,19 +615,12 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         private String username;
         private String password;
         private String tableName;
-        private int partitionRetentionPeriod = 365;
+        private int partitionRetentionPeriod = 7;
         private boolean autoManagePartitions = true;
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);
         private boolean initializePartitionsOnStart = true;
         private MonitoringConfig monitoringConfig;
         
-        // HikariCP configuration
-        private int maxPoolSize = 20;
-        private int minIdleConnections = 5;
-        private long connectionTimeoutMs = 30000; // 30 seconds
-        private long idleTimeoutMs = 600000; // 10 minutes  
-        private long maxLifetimeMs = 1800000; // 30 minutes
-        private long leakDetectionThresholdMs = 60000; // 1 minute
         
         public Builder(Class<T> entityClass, Class<K> keyClass) {
             this.entityClass = entityClass;
@@ -720,36 +687,6 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
             return this;
         }
         
-        // HikariCP configuration methods
-        public Builder<T, K> maxPoolSize(int maxPoolSize) {
-            this.maxPoolSize = maxPoolSize;
-            return this;
-        }
-        
-        public Builder<T, K> minIdleConnections(int minIdleConnections) {
-            this.minIdleConnections = minIdleConnections;
-            return this;
-        }
-        
-        public Builder<T, K> connectionTimeout(long timeoutMs) {
-            this.connectionTimeoutMs = timeoutMs;
-            return this;
-        }
-        
-        public Builder<T, K> idleTimeout(long timeoutMs) {
-            this.idleTimeoutMs = timeoutMs;
-            return this;
-        }
-        
-        public Builder<T, K> maxLifetime(long lifetimeMs) {
-            this.maxLifetimeMs = lifetimeMs;
-            return this;
-        }
-        
-        public Builder<T, K> leakDetectionThreshold(long thresholdMs) {
-            this.leakDetectionThresholdMs = thresholdMs;
-            return this;
-        }
         
         public GenericPartitionedTableRepository<T, K> build() {
             if (database == null || username == null || password == null) {

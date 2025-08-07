@@ -703,10 +703,6 @@ GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo =
         .partitionRetentionPeriod(30) // Keep 30 days
         .autoManagePartitions(true)   // Auto create/drop tables
         .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
-        // HikariCP connection pool configuration
-        .maxPoolSize(25)              // 25 connections max
-        .minIdleConnections(5)        // 5 idle connections
-        .connectionTimeout(30000)     // 30s timeout
         .build();
 
 // 3. Insert data - SQL automatically generated from annotations
@@ -794,11 +790,6 @@ GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo =
         .partitionRetentionPeriod(365) // Keep 1 year
         .autoManagePartitions(true)    // Auto create/drop partitions
         .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
-        // HikariCP connection pool configuration for high-volume processing
-        .maxPoolSize(30)               // 30 connections for order processing
-        .minIdleConnections(10)        // 10 idle connections ready
-        .idleTimeout(900000)           // 15 min idle timeout
-        .maxLifetime(3600000)          // 1 hour max connection lifetime
         .build();
 
 // 3. Insert data - SQL automatically generated with partition routing
@@ -836,10 +827,6 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                         <p>Create builder with entity and key types for compile-time safety</p>
                     </div>
                     
-                    <div class="api-method">
-                        <h5>.maxPoolSize(int) / .minIdleConnections(int) / .connectionTimeout(long)</h5>
-                        <p>Configure HikariCP connection pool settings</p>
-                    </div>
                     
                     <h4>Core Operations</h4>
                     <div class="api-method">
@@ -884,10 +871,6 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                         <p>Create builder with entity and key types for compile-time safety</p>
                     </div>
                     
-                    <div class="api-method">
-                        <h5>.maxPoolSize(int) / .idleTimeout(long) / .maxLifetime(long)</h5>
-                        <p>Configure HikariCP connection pool settings for high-volume processing</p>
-                    </div>
                     
                     <h4>Core Operations</h4>
                     <div class="api-method">
@@ -1222,12 +1205,6 @@ GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo =
         .partitionRetentionPeriod(30)   // Keep 30 days of data
         .autoManagePartitions(true)     // Auto create/drop tables
         .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
-        // HikariCP Configuration
-        .maxPoolSize(25)                // Maximum 25 connections
-        .minIdleConnections(5)          // Minimum 5 idle connections
-        .connectionTimeout(30000)       // 30 second connection timeout
-        .idleTimeout(600000)            // 10 minute idle timeout
-        .maxLifetime(1800000)           // 30 minute max connection lifetime
         .leakDetectionThreshold(60000)  // 1 minute leak detection
         .build();
 
@@ -1243,11 +1220,6 @@ GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo =
         .partitionRetentionPeriod(365)  // Keep 1 year of data
         .autoManagePartitions(true)     // Auto create/drop partitions
         .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
-        // HikariCP Configuration for high-volume processing
-        .maxPoolSize(30)                // Maximum 30 connections
-        .minIdleConnections(10)         // Minimum 10 idle connections
-        .idleTimeout(900000)            // 15 minute idle timeout
-        .maxLifetime(3600000)           // 1 hour max connection lifetime
         .leakDetectionThreshold(120000) // 2 minute leak detection
         .build();</code></pre>
                     
@@ -1565,12 +1537,6 @@ public class DataServiceConfig {
             .partitionRetentionPeriod(30)        // 30 days retention
             .autoManagePartitions(true)          // Enable scheduler
             .partitionAdjustmentTime(3, 0)       // 03:00 AM maintenance
-            // Production HikariCP settings
-            .maxPoolSize(50)                     // High-load configuration
-            .minIdleConnections(10)              // Keep connections ready
-            .connectionTimeout(20000)            // 20s timeout
-            .idleTimeout(300000)                 // 5 min idle timeout
-            .maxLifetime(1200000)                // 20 min max lifetime
             .leakDetectionThreshold(0)           // Disable in production
             .build();
     }

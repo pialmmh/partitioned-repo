@@ -267,7 +267,7 @@ public class QueryDSL {
                 throw new IllegalStateException("Partitioned query requires a date range in WHERE clause");
             }
             
-            return PartitionedQueryBuilder.getQuery(buildQuery(true), tableName, database);
+            return PartitionedQueryBuilder.getQuery(buildQuery(true), tableName, database, whereClause.dateRangeField);
         }
         
         private String buildQuery(boolean includeTrailingSemicolon) {

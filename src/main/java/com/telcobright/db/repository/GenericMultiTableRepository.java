@@ -6,11 +6,8 @@ import com.telcobright.db.monitoring.*;
 import com.telcobright.db.pagination.Page;
 import com.telcobright.db.pagination.PageRequest;
 import com.telcobright.db.query.QueryDSL;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
-import javax.sql.DataSource;
+import com.telcobright.db.connection.ConnectionProvider;
+import com.telcobright.db.connection.ConnectionProvider.MaintenanceConnection;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -24,6 +21,12 @@ import java.util.logging.Logger;
 /**
  * Generic Multi-Table Repository implementation
  * Creates separate tables for each day based on sharding key
+ * Each daily table is internally partitioned by hour (24 partitions per day)
+ * 
+ * Table Structure:
+ * - Daily tables: database.tablePrefix_YYYYMMDD (e.g., test.sms_20250807)
+ * - Hourly partitions within each table: h00, h01, h02, ..., h23
+ * - Partitioning function: HOUR(sharding_column)
  * 
  * Entities must implement ShardingEntity<K> to ensure they have
  * required 'id' and 'created_at' fields.
@@ -35,7 +38,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
     private static final Logger LOGGER = Logger.getLogger(GenericMultiTableRepository.class.getName());
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
-    private final HikariDataSource dataSource;
+    private final ConnectionProvider connectionProvider;
     private final String database;
     private final String tablePrefix;
     private final int partitionRetentionPeriod;
@@ -48,6 +51,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
     private final MonitoringService monitoringService;
     
     private ScheduledExecutorService scheduler;
+    private volatile long lastMaintenanceRun = 0;
+    private static final long MAINTENANCE_COOLDOWN_MS = 60000; // 1 minute minimum between maintenance runs
     
     private GenericMultiTableRepository(Builder<T, K> builder) {
         this.database = builder.database;
@@ -64,49 +69,62 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         // Use provided table prefix or derive from entity
         this.tablePrefix = builder.tablePrefix != null ? builder.tablePrefix : metadata.getTableName();
         
-        // Create DataSource
-        this.dataSource = createDataSource(builder);
+        // Create ConnectionProvider
+        this.connectionProvider = new ConnectionProvider.Builder()
+            .host(builder.host)
+            .port(builder.port)
+            .database(builder.database)
+            .username(builder.username)
+            .password(builder.password)
+            .build();
         
         // Initialize monitoring if enabled
         if (builder.monitoringConfig != null && builder.monitoringConfig.isEnabled()) {
             RepositoryMetrics metrics = new RepositoryMetrics("MultiTable", tablePrefix, 
                     builder.monitoringConfig.getInstanceId());
-            MetricsCollector metricsCollector = new MetricsCollector(dataSource, database);
+            MetricsCollector metricsCollector = new MetricsCollector(connectionProvider, database);
             this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);
             this.monitoringService.start();
         } else {
             this.monitoringService = null;
         }
         
-        // Initialize partitions if needed
+        // Initialize tables for the retention period on startup
         if (initializePartitionsOnStart) {
             try {
-                initializePartitions();
+                initializeTablesForRetentionPeriod();
             } catch (SQLException e) {
-                throw new RuntimeException("Failed to initialize partitions", e);
+                throw new RuntimeException("Failed to initialize tables for retention period", e);
             }
         }
         
-        // Start scheduler if auto-management is enabled
+        // Initialize scheduler for maintenance tasks
         if (autoManagePartitions) {
-            startScheduler();
+            // Create scheduler for both scheduled and on-demand maintenance
+            scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(r, "MultiTableRepository-Maintenance-" + tablePrefix);
+                thread.setDaemon(true);
+                return thread;
+            });
+            
+            // Only schedule periodic runs if a specific time is configured
+            if (partitionAdjustmentTime != null) {
+                schedulePeriodicMaintenance();
+            }
         }
     }
     
     /**
      * Insert entity into appropriate daily table
+     * Note: Target table must exist (created during startup), otherwise SQLException will be thrown
      */
     @Override
     public void insert(T entity) throws SQLException {
         LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(entity);
-        
-        // Ensure table exists for the date
-        ensureTableExistsForDate(shardingKeyValue);
-        
         String tableName = getTableName(shardingKeyValue);
         String sql = String.format(metadata.getInsertSQL(), tableName);
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             metadata.setInsertParameters(stmt, entity);
@@ -147,13 +165,10 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             LocalDateTime date = entry.getKey();
             List<T> batchEntities = entry.getValue();
             
-            // Ensure table exists
-            ensureTableExistsForDate(date);
-            
             String tableName = getTableName(date);
             String sql = String.format(metadata.getInsertSQL(), tableName);
             
-            try (Connection conn = dataSource.getConnection();
+            try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 
                 for (T entity : batchEntities) {
@@ -188,7 +203,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         
         String query = QueryDSL.select()
             .column("*")
-            .from(tablePrefix)
+            .from(tablePrefix)  // QueryDSL expects just the prefix, PartitionedQueryBuilder handles full table names
             .where(w -> w.dateRange(shardingColumn, startDate, endDate))
             .buildPartitioned(database, startDate, endDate);
         
@@ -205,7 +220,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         for (String table : tables) {
             String sql = String.format(metadata.getSelectByIdSQL(), table);
             
-            try (Connection conn = dataSource.getConnection();
+            try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 
                 setIdParameter(stmt, 1, id);
@@ -264,7 +279,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             String sql = String.format("SELECT * FROM %s WHERE %s IN (%s) AND %s >= ? AND %s <= ?", 
                                      table, idColumn, placeholders, shardingColumn, shardingColumn);
             
-            try (Connection conn = dataSource.getConnection();
+            try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 
                 // Set ID parameters
@@ -312,7 +327,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             
             String sql = String.format("SELECT * FROM %s WHERE %s < ?", table, shardingColumn);
             
-            try (Connection conn = dataSource.getConnection();
+            try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 
                 stmt.setTimestamp(1, Timestamp.valueOf(beforeDate));
@@ -352,7 +367,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             
             String sql = String.format("SELECT * FROM %s WHERE %s > ?", table, shardingColumn);
             
-            try (Connection conn = dataSource.getConnection();
+            try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 
                 stmt.setTimestamp(1, Timestamp.valueOf(afterDate));
@@ -368,14 +383,6 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         return results;
     }
     
-    private void ensureTableExistsForDate(LocalDateTime date) throws SQLException {
-        String tableName = getTableName(date);
-        createTableIfNotExists(tableName);
-        
-        if (autoManagePartitions) {
-            performAutomaticMaintenance(date);
-        }
-    }
     
     private String getTableName(LocalDateTime date) {
         return database + "." + tablePrefix + "_" + date.format(DATE_FORMAT);
@@ -384,11 +391,47 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
     private void createTableIfNotExists(String tableName) throws SQLException {
         String createSQL = String.format(metadata.getCreateTableSQL(), tableName);
         
-        try (Connection conn = dataSource.getConnection();
+        // Add hourly partitioning for multi-table repositories
+        // Each daily table is internally partitioned by hour (24 partitions per day)
+        createSQL = addHourlyPartitioning(createSQL, tableName);
+        
+        try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(createSQL);
-            LOGGER.info("Ensured table exists: " + tableName);
+            LOGGER.info("Ensured table exists with hourly partitioning: " + tableName);
         }
+    }
+    
+    /**
+     * Add hourly partitioning to a daily table
+     * Each daily table gets 24 hour partitions (h00, h01, h02, ..., h23)
+     */
+    private String addHourlyPartitioning(String baseCreateSQL, String tableName) throws SQLException {
+        String idColumn = metadata.getIdField().getColumnName();
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        
+        // For multi-table repositories, MySQL requires the partitioning column to be part of PRIMARY KEY
+        // Modify PRIMARY KEY to include sharding column  
+        baseCreateSQL = baseCreateSQL.replace(idColumn + " BIGINT PRIMARY KEY AUTO_INCREMENT", 
+                                             idColumn + " BIGINT AUTO_INCREMENT");
+        
+        // Replace the ENGINE clause with partitioning definition
+        baseCreateSQL = baseCreateSQL.replace(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 
+                ", PRIMARY KEY (" + idColumn + ", " + shardingColumn + ")) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4\n" +
+                "PARTITION BY RANGE (HOUR(" + shardingColumn + ")) (");
+        
+        // Add 24 hour partitions (h00 to h23)
+        StringBuilder partitions = new StringBuilder();
+        for (int hour = 0; hour < 24; hour++) {
+            if (hour > 0) {
+                partitions.append(",\n");
+            }
+            partitions.append(String.format("  PARTITION h%02d VALUES LESS THAN (%d)", hour, hour + 1));
+        }
+        
+        baseCreateSQL += partitions.toString() + "\n)";
+        
+        return baseCreateSQL;
     }
     
     private List<String> getExistingTables() throws SQLException {
@@ -400,7 +443,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         
         List<String> tables = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, database);
@@ -422,7 +465,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         String schema = parts[0];
         String table = parts[1];
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, schema);
@@ -450,7 +493,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
                                     ResultSetMapper<R> mapper) throws SQLException {
         List<R> results = new ArrayList<>();
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             if (parameters != null) {
@@ -480,7 +523,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             monitoringService.recordMaintenanceJobStart();
         }
         
-        try {
+        // Use MaintenanceConnection to get exclusive access during maintenance
+        try (MaintenanceConnection maintenanceConn = connectionProvider.getMaintenanceConnection(
+                "Automatic partition maintenance for " + tablePrefix)) {
+            
+            LOGGER.info("Starting automatic maintenance for " + tablePrefix);
+            
             LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
             LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
             
@@ -499,6 +547,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             
             long duration = System.currentTimeMillis() - startTime;
             
+            LOGGER.info(String.format("Maintenance completed: created %d tables, deleted %d tables in %d ms", 
+                        tablesCreated, tablesDeleted, duration));
+            
             // Record success
             if (monitoringService != null) {
                 monitoringService.recordMaintenanceJobSuccess(duration, tablesCreated, tablesDeleted);
@@ -506,6 +557,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             
         } catch (SQLException e) {
             long duration = System.currentTimeMillis() - startTime;
+            LOGGER.severe("Maintenance failed: " + e.getMessage());
             if (monitoringService != null) {
                 monitoringService.recordMaintenanceJobFailure(duration, e);
             }
@@ -540,28 +592,32 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
     private void dropTable(String tableName) throws SQLException {
         String sql = "DROP TABLE IF EXISTS " + tableName;
         
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
             LOGGER.info("Dropped old table: " + tableName);
         }
     }
     
-    private void initializePartitions() throws SQLException {
+    /**
+     * Initialize all tables needed for the retention period at startup.
+     * This ensures all tables exist before any insert operations.
+     */
+    private void initializeTablesForRetentionPeriod() throws SQLException {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
         LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
         
+        LOGGER.info(String.format("Initializing tables for retention period: %s to %s (%d days)", 
+                    startDate.toLocalDate(), endDate.toLocalDate(), 
+                    partitionRetentionPeriod * 2 + 1));
+        
         createTablesForDateRange(startDate, endDate);
+        
+        LOGGER.info("Completed table initialization for retention period");
     }
     
-    private void startScheduler() {
-        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread thread = new Thread(r, "MultiTableRepository-Scheduler-" + tablePrefix);
-            thread.setDaemon(true);
-            return thread;
-        });
-        
+    private void schedulePeriodicMaintenance() {
         scheduleNextRun();
     }
     
@@ -611,9 +667,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             }
         }
         
-        // Close HikariCP connection pool
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
+        // Shutdown ConnectionProvider
+        if (connectionProvider != null) {
+            connectionProvider.shutdown();
         }
     }
     
@@ -624,45 +680,6 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         return monitoringService;
     }
     
-    private HikariDataSource createDataSource(Builder<T, K> builder) {
-        HikariConfig config = new HikariConfig();
-        
-        // Basic connection settings
-        config.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s", builder.host, builder.port, builder.database));
-        config.setUsername(builder.username);
-        config.setPassword(builder.password);
-        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        
-        // HikariCP pool settings
-        config.setMaximumPoolSize(builder.maxPoolSize);
-        config.setMinimumIdle(builder.minIdleConnections);
-        config.setConnectionTimeout(builder.connectionTimeoutMs);
-        config.setIdleTimeout(builder.idleTimeoutMs);
-        config.setMaxLifetime(builder.maxLifetimeMs);
-        config.setLeakDetectionThreshold(builder.leakDetectionThresholdMs);
-        
-        // MySQL specific settings
-        config.addDataSourceProperty("serverTimezone", "UTC");
-        config.addDataSourceProperty("useSSL", "false");
-        config.addDataSourceProperty("allowPublicKeyRetrieval", "true");
-        config.addDataSourceProperty("useUnicode", "true");
-        config.addDataSourceProperty("characterEncoding", "UTF-8");
-        config.addDataSourceProperty("autoReconnect", "true");
-        config.addDataSourceProperty("failOverReadOnly", "false");
-        config.addDataSourceProperty("maxReconnects", "3");
-        
-        // Performance settings
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        config.addDataSourceProperty("useServerPrepStmts", "true");
-        config.addDataSourceProperty("rewriteBatchedStatements", "true");
-        
-        // Pool name for monitoring
-        config.setPoolName("MultiTableRepository-" + (tablePrefix != null ? tablePrefix : "unknown"));
-        
-        return new HikariDataSource(config);
-    }
     
     /**
      * Functional interface for mapping ResultSet to entity
@@ -684,19 +701,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         private String username;
         private String password;
         private String tablePrefix;
-        private int partitionRetentionPeriod = 30;
+        private int partitionRetentionPeriod = 7;
         private boolean autoManagePartitions = true;
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);
         private boolean initializePartitionsOnStart = true;
         private MonitoringConfig monitoringConfig;
         
-        // HikariCP configuration
-        private int maxPoolSize = 20;
-        private int minIdleConnections = 5;
-        private long connectionTimeoutMs = 30000; // 30 seconds
-        private long idleTimeoutMs = 600000; // 10 minutes
-        private long maxLifetimeMs = 1800000; // 30 minutes
-        private long leakDetectionThresholdMs = 60000; // 1 minute
         
         public Builder(Class<T> entityClass, Class<K> keyClass) {
             this.entityClass = entityClass;
@@ -763,36 +773,6 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             return this;
         }
         
-        // HikariCP configuration methods
-        public Builder<T, K> maxPoolSize(int maxPoolSize) {
-            this.maxPoolSize = maxPoolSize;
-            return this;
-        }
-        
-        public Builder<T, K> minIdleConnections(int minIdleConnections) {
-            this.minIdleConnections = minIdleConnections;
-            return this;
-        }
-        
-        public Builder<T, K> connectionTimeout(long timeoutMs) {
-            this.connectionTimeoutMs = timeoutMs;
-            return this;
-        }
-        
-        public Builder<T, K> idleTimeout(long timeoutMs) {
-            this.idleTimeoutMs = timeoutMs;
-            return this;
-        }
-        
-        public Builder<T, K> maxLifetime(long lifetimeMs) {
-            this.maxLifetimeMs = lifetimeMs;
-            return this;
-        }
-        
-        public Builder<T, K> leakDetectionThreshold(long thresholdMs) {
-            this.leakDetectionThresholdMs = thresholdMs;
-            return this;
-        }
         
         public GenericMultiTableRepository<T, K> build() {
             if (database == null || username == null || password == null) {

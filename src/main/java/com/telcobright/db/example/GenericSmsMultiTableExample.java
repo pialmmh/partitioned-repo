@@ -13,6 +13,11 @@ import java.util.List;
 
 /**
  * Example demonstrating generic SMS repository with automatic SQL generation
+ * 
+ * Creates daily tables with hourly partitions:
+ * - test.student_20250807 (partitioned by hour: h00-h23)
+ * - test.student_20250808 (partitioned by hour: h00-h23)
+ * - etc.
  */
 public class GenericSmsMultiTableExample {
     
@@ -33,16 +38,9 @@ public class GenericSmsMultiTableExample {
                     .autoManagePartitions(true)
                     .partitionAdjustmentTime(4, 0)
                     .initializePartitionsOnStart(true)
-                    // HikariCP connection pool configuration
-                    .maxPoolSize(25)           // Maximum 25 connections in pool
-                    .minIdleConnections(5)     // Minimum 5 idle connections
-                    .connectionTimeout(30000)  // 30 second connection timeout
-                    .idleTimeout(600000)       // 10 minute idle timeout
-                    .maxLifetime(1800000)      // 30 minute max connection lifetime
-                    .leakDetectionThreshold(60000) // 1 minute leak detection
                     .build();
             
-            System.out.println("Repository created successfully with automatic metadata parsing and HikariCP pooling");
+            System.out.println("Repository created successfully with automatic metadata parsing");
             
             // Insert entities - SQL is automatically generated from annotations
             System.out.println("\nInserting SMS entities...");

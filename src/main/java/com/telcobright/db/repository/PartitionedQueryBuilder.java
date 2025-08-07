@@ -31,6 +31,14 @@ public class PartitionedQueryBuilder {
      * with intelligent date range splitting and aggregation handling
      */
     public static String getQuery(String originalQuery, String tableName, String database) {
+        return getQuery(originalQuery, tableName, database, "created_at");
+    }
+    
+    /**
+     * Transforms a query on logical table to UNION ALL across daily partitioned tables
+     * with intelligent date range splitting and aggregation handling
+     */
+    public static String getQuery(String originalQuery, String tableName, String database, String shardingColumn) {
         // Parse the query components
         QueryComponents components = parseQuery(originalQuery);
         if (components == null) {
@@ -38,7 +46,7 @@ public class PartitionedQueryBuilder {
         }
         
         // Extract date range from WHERE clause
-        DateRange dateRange = extractDateRange(components.whereClause);
+        DateRange dateRange = extractDateRange(components.whereClause, shardingColumn);
         if (dateRange == null) {
             return originalQuery; // No date range found
         }
@@ -53,7 +61,7 @@ public class PartitionedQueryBuilder {
         }
         
         // Build the transformed query
-        return buildTransformedQuery(components, partitions);
+        return buildTransformedQuery(components, partitions, shardingColumn);
     }
     
     /**
@@ -101,10 +109,11 @@ public class PartitionedQueryBuilder {
     /**
      * Extract date range from WHERE clause
      */
-    private static DateRange extractDateRange(String whereClause) {
+    private static DateRange extractDateRange(String whereClause, String shardingColumn) {
         try {
-            // Pattern for date comparisons
-            Pattern datePattern = Pattern.compile("created_at\\s*([><=]+)\\s*'([^']+)'", Pattern.CASE_INSENSITIVE);
+            // Pattern for date comparisons with dynamic column name
+            String patternStr = shardingColumn + "\\s*([><=]+)\\s*'([^']+)'";
+            Pattern datePattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);
             Matcher matcher = datePattern.matcher(whereClause);
             
             LocalDateTime startDate = null;
@@ -221,7 +230,7 @@ public class PartitionedQueryBuilder {
     /**
      * Build the transformed query with UNION ALL
      */
-    private static String buildTransformedQuery(QueryComponents components, List<PartitionInfo> partitions) {
+    private static String buildTransformedQuery(QueryComponents components, List<PartitionInfo> partitions, String shardingColumn) {
         StringBuilder query = new StringBuilder();
         
         // Parse and transform SELECT columns
@@ -241,8 +250,8 @@ public class PartitionedQueryBuilder {
             PartitionInfo partition = partitions.get(i);
             query.append("SELECT ").append(components.selectClause).append("\n");
             query.append("FROM ").append(partition.tableName).append("\n");
-            query.append("WHERE created_at >='").append(partition.startDate.format(SQL_DATE_FORMAT));
-            query.append("' AND created_at <='").append(partition.endDate.format(SQL_DATE_FORMAT)).append("'");
+            query.append("WHERE ").append(shardingColumn).append(" >='").append(partition.startDate.format(SQL_DATE_FORMAT));
+            query.append("' AND ").append(shardingColumn).append(" <='").append(partition.endDate.format(SQL_DATE_FORMAT)).append("'");
             
             if (!components.groupByClause.isEmpty()) {
                 query.append("\nGROUP BY ").append(components.groupByClause);

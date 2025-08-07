@@ -18,12 +18,11 @@ public class CompilationTestExample {
             System.out.println("Creating GenericMultiTableRepository...");
             GenericMultiTableRepository<SmsEntity, Long> smsRepo = 
                 GenericMultiTableRepository.<SmsEntity, Long>builder(SmsEntity.class, Long.class)
-                    .database("test_db")
-                    .username("test_user")
-                    .password("test_password")
+                    .database("test")
+                    .username("root")
+                    .password("123456")
                     .autoManagePartitions(false)  // Disable for test
                     .initializePartitionsOnStart(false) // Disable for test
-                    .maxPoolSize(5)
                     .build();
             
             System.out.println(" GenericMultiTableRepository created successfully");
@@ -32,12 +31,11 @@ public class CompilationTestExample {
             System.out.println("Creating GenericPartitionedTableRepository...");
             GenericPartitionedTableRepository<OrderEntity, Long> orderRepo = 
                 GenericPartitionedTableRepository.<OrderEntity, Long>builder(OrderEntity.class, Long.class)
-                    .database("test_db")
-                    .username("test_user")
-                    .password("test_password")
+                    .database("test")
+                    .username("root")
+                    .password("123456")
                     .autoManagePartitions(false)  // Disable for test
                     .initializePartitionsOnStart(false) // Disable for test
-                    .maxPoolSize(5)
                     .build();
             
             System.out.println(" GenericPartitionedTableRepository created successfully");

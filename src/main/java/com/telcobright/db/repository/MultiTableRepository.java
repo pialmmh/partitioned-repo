@@ -72,7 +72,7 @@ public class MultiTableRepository<T> {
         private String username;
         private String password;
         private String tablePrefix;
-        private int partitionRetentionPeriod = 30; // Default 30 days
+        private int partitionRetentionPeriod = 7; // Default 7 days
         private boolean autoManagePartitions = true; // Default enabled
         private boolean initializePartitionsOnStart = false; // Default disabled
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0); // Default 04:00
