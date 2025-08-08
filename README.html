@@ -350,6 +350,13 @@
         <nav class="sidebar">
             <h2>Table of Contents</h2>
             <ul>
+                <li><a href="#getting-started">🚀 Getting Started</a>
+                    <ul>
+                        <li><a href="#getting-started" class="level-2">Maven Repository Setup</a></li>
+                        <li><a href="#getting-started" class="level-2">Gradle Configuration</a></li>
+                        <li><a href="#getting-started" class="level-2">Minimal Example</a></li>
+                    </ul>
+                </li>
                 <li><a href="#overview">Overview</a>
                     <ul>
                         <li><a href="#multi-table-strategy" class="level-2">Multi-Table Strategy</a></li>
@@ -357,6 +364,16 @@
                     </ul>
                 </li>
                 <li><a href="#flexible-fields">Flexible Field Naming</a></li>
+                <li><a href="#sharding-entity-guide">ShardingEntity Implementation Guide</a>
+                    <ul>
+                        <li><a href="#entity-requirements" class="level-2">Entity Requirements</a></li>
+                        <li><a href="#annotation-guide" class="level-2">Annotation Guide</a></li>
+                        <li><a href="#field-types" class="level-2">Supported Field Types</a></li>
+                        <li><a href="#entity-examples" class="level-2">Complete Entity Examples</a></li>
+                        <li><a href="#common-patterns" class="level-2">Common Patterns</a></li>
+                        <li><a href="#troubleshooting" class="level-2">Troubleshooting</a></li>
+                    </ul>
+                </li>
                 <li><a href="#index-annotation">@Index Annotation</a></li>
                 <li><a href="#monitoring-system">Monitoring System</a></li>
                 <li><a href="#quick-start">Quick Start</a>
@@ -421,15 +438,170 @@
         <main class="main-content">
             <div class="header">
                 <h1>Generic Sharding-Aware Repository Framework</h1>
-                <p>Production-ready, framework-independent Java library with automatic SQL generation, HikariCP pooling, and type-safe generic repositories</p>
+                <p>Production-ready, framework-independent Java library with automatic SQL generation, plain JDBC connections, and type-safe generic repositories</p>
             </div>
+
+            <section id="getting-started" class="section">
+                <h2>🚀 Getting Started</h2>
+                
+                <div class="highlight">
+                    <h4>Maven Repository Configuration</h4>
+                    <p>Add the following repository and dependency to your <code>pom.xml</code>:</p>
+                </div>
+                
+                <h3>Step 1: Add Custom Maven Repository</h3>
+                <pre><code>&lt;repositories&gt;
+    &lt;repository&gt;
+        &lt;id&gt;telcobright-releases&lt;/id&gt;
+        &lt;name&gt;TelcoBright Maven Repository&lt;/name&gt;
+        &lt;url&gt;https://maven.telcobright.com/repository/releases&lt;/url&gt;
+        &lt;releases&gt;
+            &lt;enabled&gt;true&lt;/enabled&gt;
+        &lt;/releases&gt;
+        &lt;snapshots&gt;
+            &lt;enabled&gt;false&lt;/enabled&gt;
+        &lt;/snapshots&gt;
+    &lt;/repository&gt;
+&lt;/repositories&gt;</code></pre>
+                
+                <h3>Step 2: Add Dependency</h3>
+                <pre><code>&lt;!-- Option 1: Direct version --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.telcobright.db&lt;/groupId&gt;
+    &lt;artifactId&gt;partitioned-repo&lt;/artifactId&gt;
+    &lt;version&gt;2.1.0&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Option 2: Using properties (recommended) --&gt;
+&lt;properties&gt;
+    &lt;partitioned-repo.version&gt;2.1.0&lt;/partitioned-repo.version&gt;
+&lt;/properties&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;com.telcobright.db&lt;/groupId&gt;
+    &lt;artifactId&gt;partitioned-repo&lt;/artifactId&gt;
+    &lt;version&gt;${partitioned-repo.version}&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+                
+                <h3>Step 3: Add MySQL Connector (if not already present)</h3>
+                <pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.mysql&lt;/groupId&gt;
+    &lt;artifactId&gt;mysql-connector-j&lt;/artifactId&gt;
+    &lt;version&gt;8.0.33&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+                
+                <div class="tip">
+                    <h4>💡 Quick Setup Tips</h4>
+                    <ul>
+                        <li><strong>For Private Repositories:</strong> Configure your <code>~/.m2/settings.xml</code> with authentication credentials</li>
+                        <li><strong>For Corporate Proxies:</strong> Add proxy configuration to your Maven settings</li>
+                        <li><strong>Version Management:</strong> Use Maven properties to manage version consistently</li>
+                        <li><strong>IDE Support:</strong> Most IDEs will automatically download dependencies after pom.xml changes</li>
+                    </ul>
+                </div>
+                
+                <h3>Authentication for Private Repository (Optional)</h3>
+                <p>If the repository requires authentication, add to your <code>~/.m2/settings.xml</code>:</p>
+                <pre><code>&lt;settings&gt;
+    &lt;servers&gt;
+        &lt;server&gt;
+            &lt;id&gt;telcobright-releases&lt;/id&gt;
+            &lt;username&gt;your-username&lt;/username&gt;
+            &lt;password&gt;your-password&lt;/password&gt;
+        &lt;/server&gt;
+    &lt;/servers&gt;
+&lt;/settings&gt;</code></pre>
+                
+                <h3>Alternative: Gradle Configuration</h3>
+                <pre><code>// Add repository
+repositories {
+    maven {
+        url "https://maven.telcobright.com/repository/releases"
+    }
+    mavenCentral()
+}
+
+// Add dependency
+dependencies {
+    implementation 'com.telcobright.db:partitioned-repo:2.1.0'
+    implementation 'com.mysql:mysql-connector-j:8.0.33'
+}</code></pre>
+                
+                <h3>Minimal Working Example</h3>
+                <pre><code>import com.telcobright.db.repository.GenericMultiTableRepository;
+import com.telcobright.db.entity.ShardingEntity;
+import java.time.LocalDateTime;
+
+// 1. Define your entity
+@Table(name = "events")
+public class EventEntity implements ShardingEntity&lt;Long&gt; {
+    @Id
+    @Column(name = "id", insertable = false)
+    private Long id;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "event_data")
+    private String eventData;
+    
+    // Constructors, getters, setters...
+}
+
+// 2. Create repository
+GenericMultiTableRepository&lt;EventEntity, Long&gt; repo = 
+    GenericMultiTableRepository.&lt;EventEntity, Long&gt;builder(EventEntity.class, Long.class)
+        .host("localhost")
+        .port(3306)
+        .database("myapp")
+        .username("dbuser")
+        .password("dbpass")
+        .tablePrefix("events")
+        .build();
+
+// 3. Use the repository
+EventEntity event = new EventEntity();
+event.setCreatedAt(LocalDateTime.now());
+event.setEventData("User logged in");
+repo.insert(event);
+
+// 4. Query data
+List&lt;EventEntity&gt; todayEvents = repo.findAllByDateRange(
+    LocalDateTime.now().withHour(0).withMinute(0),
+    LocalDateTime.now()
+);</code></pre>
+                
+                <div class="warning">
+                    <h4>⚠️ Prerequisites</h4>
+                    <ul>
+                        <li><strong>Java 8+</strong> (Tested with Java 11, 17, 21)</li>
+                        <li><strong>MySQL 5.7+</strong> or <strong>MariaDB 10.3+</strong></li>
+                        <li><strong>Maven 3.6+</strong> or <strong>Gradle 6.0+</strong></li>
+                        <li>Database user with CREATE TABLE and partition management privileges</li>
+                    </ul>
+                </div>
+            </section>
 
             <section id="overview" class="section">
                 <h2>Overview</h2>
-                <p>This library provides <strong>generic, type-safe repositories</strong> with automatic SQL generation and HikariCP-based connection pooling. It supports two complementary partitioning strategies with <strong>complete CRUD operations</strong>:</p>
+                <p>This library provides <strong>generic, type-safe repositories</strong> with automatic SQL generation and plain JDBC connections with maintenance locking. It supports two complementary partitioning strategies with <strong>complete CRUD operations</strong>:</p>
                 
                 <div class="highlight">
-                    <h4>New Features</h4>
+                    <h4>Latest Features (v2.1)</h4>
+                    <ul>
+                        <li><strong>Update Operations:</strong> Added <code>updateById</code> and <code>updateByIdAndDateRange</code> methods</li>
+                        <li><strong>Maintenance Locking:</strong> CRUD operations blocked during partition maintenance with clear exceptions</li>
+                        <li><strong>Hourly Partitioning:</strong> Multi-table repositories create 24 hour partitions per daily table</li>
+                        <li><strong>7-Day Default Retention:</strong> Reduced from 30/365 days to 7 days (15 tables/partitions total)</li>
+                        <li><strong>Startup-Based Creation:</strong> All tables/partitions created at startup, not during insert</li>
+                        <li><strong>Plain JDBC:</strong> Removed HikariCP dependency, using simple JDBC connections</li>
+                        <li><strong>Dynamic Sharding Column:</strong> Query generation works with any column name, not just 'created_at'</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight">
+                    <h4>Core Features</h4>
                     <ul>
                         <li><strong>ShardingEntity Interface:</strong> Type-safe <code>Repository&lt;T extends ShardingEntity&lt;K&gt;, K&gt;</code> with compile-time guarantees</li>
                         <li><strong>Flexible Field Naming:</strong> Any field names allowed - <code>@Id</code> and <code>@ShardingKey</code> annotations determine behavior</li>
@@ -437,13 +609,12 @@
                         <li><strong>Comprehensive Monitoring:</strong> Built-in metrics with Prometheus, REST push, and formatted console output</li>
                         <li><strong>Automatic SQL Generation:</strong> INSERT, SELECT, CREATE TABLE statements with indexes inferred from annotations</li>
                         <li><strong>Zero Runtime Reflection:</strong> All metadata parsed once at startup for maximum performance</li>
-                        <li><strong>HikariCP Integration:</strong> Production-ready connection pooling with full configuration</li>
                     </ul>
                 </div>
                 
                 <div class="highlight">
-                    <h4>Simplified API (6 Core Methods)</h4>
-                    <p>The repositories now provide a clean, focused API with exactly 6 methods:</p>
+                    <h4>Complete API (8 Core Methods)</h4>
+                    <p>The repositories now provide a comprehensive API with 8 methods:</p>
                     <ul>
                         <li><code>void insert(TEntity entity)</code> - Insert single entity</li>
                         <li><code>void insertMultiple(List&lt;TEntity&gt; entities)</code> - Batch insert with optimization</li>
@@ -451,6 +622,8 @@
                         <li><code>TEntity findById(TKey id)</code> - Find by primary key</li>
                         <li><code>TEntity findByIdAndDateRange(LocalDateTime start, LocalDateTime end)</code> - First entity in range</li>
                         <li><code>List&lt;TEntity&gt; findBeforeDate(LocalDateTime before)</code> - Historical data queries</li>
+                        <li><code>void updateById(TKey id, TEntity entity)</code> - Update entity by primary key</li>
+                        <li><code>void updateByIdAndDateRange(TKey id, TEntity entity, LocalDateTime start, LocalDateTime end)</code> - Update with date constraint</li>
                     </ul>
                 </div>
 
@@ -459,7 +632,7 @@
                         <h4>Multi-Table Strategy</h4>
                         <ul>
                             <li><strong>Best for:</strong> High-volume, short-retention data (SMS, logs, events, alerts)</li>
-                            <li><strong>Approach:</strong> Creates separate physical tables per day (<code>sms_20250804</code>, <code>sms_20250805</code>, etc.)</li>
+                            <li><strong>Approach:</strong> Creates separate physical tables per day with hourly partitions (<code>sms_20250804</code> with h00-h23)</li>
                             <li><strong>Queries:</strong> Uses intelligent UNION ALL with 2-level aggregation</li>
                             <li><strong>ID Lookups:</strong> Cross-table UNION ALL searches with table existence filtering</li>
                             <li><strong>Benefits:</strong> Independent table optimization, easy archival, horizontal scaling</li>
@@ -525,6 +698,574 @@ public class OrderEntity implements ShardingEntity&lt;Long&gt; {
     @Column(name = "customer_id")
     private String customerId;
 }</code></pre>
+                </div>
+            </section>
+
+            <section id="sharding-entity-guide" class="section">
+                <h2>ShardingEntity Implementation Guide</h2>
+                <p>This comprehensive guide shows how to implement the <code>ShardingEntity&lt;K&gt;</code> interface in your consuming applications. The interface is the foundation for type-safe, generic repositories with automatic SQL generation.</p>
+
+                <div id="entity-requirements">
+                    <h3>Entity Requirements</h3>
+                    <div class="highlight">
+                        <h4>🔧 Core Requirements</h4>
+                        <ul>
+                            <li><strong>Interface Implementation:</strong> Must implement <code>ShardingEntity&lt;K&gt;</code> where <code>K</code> is your ID type</li>
+                            <li><strong>@Id Field:</strong> Exactly one field annotated with <code>@Id</code> for primary key</li>
+                            <li><strong>@ShardingKey Field:</strong> Exactly one field annotated with <code>@ShardingKey</code> for date-based partitioning</li>
+                            <li><strong>@Column Annotations:</strong> All fields must have <code>@Column</code> annotations for database mapping</li>
+                            <li><strong>Default Constructor:</strong> Must have a public no-args constructor for ResultSet mapping</li>
+                            <li><strong>Getters/Setters:</strong> Standard JavaBean patterns for all fields</li>
+                        </ul>
+                    </div>
+
+                    <h4>Basic Template</h4>
+                    <pre><code>package com.yourcompany.entities;
+
+import com.telcobright.db.entity.ShardingEntity;
+import com.telcobright.db.annotation.*;
+import java.time.LocalDateTime;
+
+@Table(name = "your_table_name")
+public class YourEntity implements ShardingEntity&lt;Long&gt; {
+    
+    @Id
+    @Column(name = "id", insertable = false, updatable = false)
+    private Long id;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "your_data_field")
+    private String yourDataField;
+    
+    // Required: Default constructor
+    public YourEntity() {}
+    
+    // Required: Constructor with main fields
+    public YourEntity(String yourDataField, LocalDateTime createdAt) {
+        this.yourDataField = yourDataField;
+        this.createdAt = createdAt;
+    }
+    
+    // Required: Standard getters and setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public String getYourDataField() { return yourDataField; }
+    public void setYourDataField(String yourDataField) { this.yourDataField = yourDataField; }
+    
+    @Override
+    public String toString() {
+        return String.format("YourEntity{id=%d, yourDataField='%s', createdAt=%s}", 
+            id, yourDataField, createdAt);
+    }
+}</code></pre>
+                </div>
+
+                <div id="annotation-guide">
+                    <h3>Annotation Reference Guide</h3>
+                    
+                    <h4>@Table Annotation</h4>
+                    <div class="api-method">
+                        <h5>@Table(name = "table_name")</h5>
+                        <p><strong>Purpose:</strong> Specifies the database table name</p>
+                        <p><strong>Optional:</strong> If omitted, uses lowercase class name without "Entity" suffix</p>
+                        <p><strong>Examples:</strong></p>
+                        <pre><code>@Table(name = "user_events")        // Creates table: user_events
+@Table(name = "sms")                // Creates table: sms  
+// No annotation on "OrderEntity"   // Creates table: order</code></pre>
+                    </div>
+
+                    <h4>@Id Annotation</h4>
+                    <div class="api-method">
+                        <h5>@Id + @Column</h5>
+                        <p><strong>Purpose:</strong> Marks the primary key field</p>
+                        <p><strong>Required:</strong> Exactly one field per entity must have @Id</p>
+                        <p><strong>Auto-generation:</strong> Enabled by default for numeric types</p>
+                        <pre><code>@Id
+@Column(name = "id", insertable = false, updatable = false)
+private Long id;
+
+@Id
+@Column(name = "uuid", insertable = false, updatable = false)
+private String uuid;  // For String-based IDs
+
+@Id  
+@Column(name = "event_id", insertable = false, updatable = false)
+private UUID eventId;  // For UUID-based IDs</code></pre>
+                    </div>
+
+                    <h4>@ShardingKey Annotation</h4>
+                    <div class="api-method">
+                        <h5>@ShardingKey + @Column</h5>
+                        <p><strong>Purpose:</strong> Marks the field used for date-based partitioning</p>
+                        <p><strong>Required:</strong> Exactly one field per entity must have @ShardingKey</p>
+                        <p><strong>Type Requirement:</strong> Must be <code>LocalDateTime</code> type</p>
+                        <pre><code>@ShardingKey
+@Column(name = "created_at", nullable = false)
+private LocalDateTime createdAt;
+
+@ShardingKey
+@Column(name = "event_timestamp", nullable = false)
+private LocalDateTime eventTimestamp;
+
+@ShardingKey
+@Column(name = "logged_at", nullable = false) 
+private LocalDateTime loggedAt;</code></pre>
+                    </div>
+
+                    <h4>@Column Annotation</h4>
+                    <div class="api-method">
+                        <h5>@Column Options</h5>
+                        <p><strong>Purpose:</strong> Maps fields to database columns with constraints</p>
+                        <pre><code>// Basic mapping
+@Column(name = "user_id")
+private String userId;
+
+// Non-nullable field
+@Column(name = "email", nullable = false)
+private String email;
+
+// Exclude from INSERT statements
+@Column(name = "id", insertable = false)
+private Long id;
+
+// Exclude from UPDATE statements  
+@Column(name = "created_at", updatable = false)
+private LocalDateTime createdAt;
+
+// Exclude from both INSERT and UPDATE
+@Column(name = "id", insertable = false, updatable = false)
+private Long id;</code></pre>
+                    </div>
+
+                    <h4>@Index Annotation</h4>
+                    <div class="api-method">
+                        <h5>@Index Options</h5>
+                        <p><strong>Purpose:</strong> Creates database indexes automatically</p>
+                        <pre><code>// Simple index
+@Index
+@Column(name = "user_id")
+private String userId;
+
+// Unique index with custom name
+@Index(name = "idx_email_unique", unique = true)
+@Column(name = "email")
+private String email;
+
+// Index with comment
+@Index(name = "idx_status_search", comment = "Fast status filtering")
+@Column(name = "status")
+private String status;</code></pre>
+                    </div>
+                </div>
+
+                <div id="field-types">
+                    <h3>Supported Field Types</h3>
+                    <p>The framework supports all common Java types with automatic SQL type mapping:</p>
+                    
+                    <table class="performance-table">
+                        <thead>
+                            <tr>
+                                <th>Java Type</th>
+                                <th>MySQL Type</th>
+                                <th>Example Usage</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>Long</code></td>
+                                <td><code>BIGINT</code></td>
+                                <td>Primary keys, counters</td>
+                                <td>Auto-increment supported</td>
+                            </tr>
+                            <tr>
+                                <td><code>Integer</code></td>
+                                <td><code>INT</code></td>
+                                <td>Numeric values, counts</td>
+                                <td>Auto-increment supported</td>
+                            </tr>
+                            <tr>
+                                <td><code>String</code></td>
+                                <td><code>VARCHAR(255)</code></td>
+                                <td>Text fields, IDs</td>
+                                <td>Default length 255</td>
+                            </tr>
+                            <tr>
+                                <td><code>LocalDateTime</code></td>
+                                <td><code>DATETIME</code></td>
+                                <td>Timestamps, dates</td>
+                                <td><strong>Required for @ShardingKey</strong></td>
+                            </tr>
+                            <tr>
+                                <td><code>BigDecimal</code></td>
+                                <td><code>DECIMAL(19,2)</code></td>
+                                <td>Money, precise numbers</td>
+                                <td>Preferred for financial data</td>
+                            </tr>
+                            <tr>
+                                <td><code>Boolean</code></td>
+                                <td><code>BOOLEAN</code></td>
+                                <td>Flags, true/false values</td>
+                                <td>MySQL TINYINT(1)</td>
+                            </tr>
+                            <tr>
+                                <td><code>Double</code></td>
+                                <td><code>DOUBLE</code></td>
+                                <td>Floating point numbers</td>
+                                <td>Use BigDecimal for precision</td>
+                            </tr>
+                            <tr>
+                                <td><code>UUID</code></td>
+                                <td><code>VARCHAR(36)</code></td>
+                                <td>Unique identifiers</td>
+                                <td>String representation stored</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="entity-examples">
+                    <h3>Complete Entity Examples</h3>
+
+                    <h4>Example 1: E-commerce Order Entity</h4>
+                    <pre><code>package com.ecommerce.entities;
+
+import com.telcobright.db.entity.ShardingEntity;
+import com.telcobright.db.annotation.*;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
+
+@Table(name = "orders")
+public class OrderEntity implements ShardingEntity&lt;Long&gt; {
+    
+    @Id
+    @Column(name = "id", insertable = false, updatable = false)
+    private Long id;
+    
+    @Index  // Automatic index for fast customer lookups
+    @Column(name = "customer_id", nullable = false)
+    private String customerId;
+    
+    @Index(name = "idx_order_number_unique", unique = true)
+    @Column(name = "order_number", nullable = false)
+    private String orderNumber;
+    
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
+    
+    @Index(name = "idx_status_search", comment = "Fast order status filtering")
+    @Column(name = "status", nullable = false)
+    private String status; // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+    
+    @Column(name = "payment_method")
+    private String paymentMethod;
+    
+    @Column(name = "shipping_address")
+    private String shippingAddress;
+    
+    @ShardingKey
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "shipped_at")
+    private LocalDateTime shippedAt;
+    
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+    
+    @Column(name = "item_count")
+    private Integer itemCount;
+    
+    // Constructors
+    public OrderEntity() {}
+    
+    public OrderEntity(String customerId, String orderNumber, BigDecimal totalAmount,
+                      String status, String paymentMethod, String shippingAddress,
+                      LocalDateTime createdAt, Integer itemCount) {
+        this.customerId = customerId;
+        this.orderNumber = orderNumber;
+        this.totalAmount = totalAmount;
+        this.status = status;
+        this.paymentMethod = paymentMethod;
+        this.shippingAddress = shippingAddress;
+        this.createdAt = createdAt;
+        this.itemCount = itemCount;
+    }
+    
+    // Standard getters and setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public String getCustomerId() { return customerId; }
+    public void setCustomerId(String customerId) { this.customerId = customerId; }
+    
+    public String getOrderNumber() { return orderNumber; }
+    public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }
+    
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    
+    public String getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getShippedAt() { return shippedAt; }
+    public void setShippedAt(LocalDateTime shippedAt) { this.shippedAt = shippedAt; }
+    
+    public LocalDateTime getDeliveredAt() { return deliveredAt; }
+    public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }
+    
+    public Integer getItemCount() { return itemCount; }
+    public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }
+    
+    @Override
+    public String toString() {
+        return String.format("OrderEntity{id=%d, customerId='%s', orderNumber='%s', " +
+                           "totalAmount=%s, status='%s', createdAt=%s}",
+            id, customerId, orderNumber, totalAmount, status, createdAt);
+    }
+}</code></pre>
+
+                    <h4>Example 2: User Activity Log Entity</h4>
+                    <pre><code>package com.analytics.entities;
+
+import com.telcobright.db.entity.ShardingEntity;
+import com.telcobright.db.annotation.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Table(name = "user_activities")
+public class UserActivityEntity implements ShardingEntity&lt;UUID&gt; {
+    
+    @Id
+    @Column(name = "activity_id", insertable = false, updatable = false)
+    private UUID activityId;
+    
+    @Index
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+    
+    @Index(name = "idx_session_token")
+    @Column(name = "session_token")
+    private String sessionToken;
+    
+    @Index(name = "idx_activity_type", comment = "Fast activity type filtering")
+    @Column(name = "activity_type", nullable = false)
+    private String activityType; // LOGIN, LOGOUT, VIEW_PAGE, CLICK, PURCHASE
+    
+    @Column(name = "page_url")
+    private String pageUrl;
+    
+    @Column(name = "ip_address")
+    private String ipAddress;
+    
+    @Column(name = "user_agent")
+    private String userAgent;
+    
+    @ShardingKey
+    @Column(name = "logged_at", nullable = false)
+    private LocalDateTime loggedAt;
+    
+    @Column(name = "duration_ms")
+    private Integer durationMs;
+    
+    // Constructors
+    public UserActivityEntity() {
+        this.activityId = UUID.randomUUID(); // Auto-generate UUID
+    }
+    
+    public UserActivityEntity(Long userId, String sessionToken, String activityType,
+                             String pageUrl, String ipAddress, LocalDateTime loggedAt) {
+        this();
+        this.userId = userId;
+        this.sessionToken = sessionToken;
+        this.activityType = activityType;
+        this.pageUrl = pageUrl;
+        this.ipAddress = ipAddress;
+        this.loggedAt = loggedAt;
+    }
+    
+    // Standard getters and setters
+    public UUID getActivityId() { return activityId; }
+    public void setActivityId(UUID activityId) { this.activityId = activityId; }
+    
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+    
+    public String getSessionToken() { return sessionToken; }
+    public void setSessionToken(String sessionToken) { this.sessionToken = sessionToken; }
+    
+    public String getActivityType() { return activityType; }
+    public void setActivityType(String activityType) { this.activityType = activityType; }
+    
+    public String getPageUrl() { return pageUrl; }
+    public void setPageUrl(String pageUrl) { this.pageUrl = pageUrl; }
+    
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    
+    public String getUserAgent() { return userAgent; }
+    public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
+    
+    public LocalDateTime getLoggedAt() { return loggedAt; }
+    public void setLoggedAt(LocalDateTime loggedAt) { this.loggedAt = loggedAt; }
+    
+    public Integer getDurationMs() { return durationMs; }
+    public void setDurationMs(Integer durationMs) { this.durationMs = durationMs; }
+    
+    @Override
+    public String toString() {
+        return String.format("UserActivityEntity{activityId=%s, userId=%d, " +
+                           "activityType='%s', pageUrl='%s', loggedAt=%s}",
+            activityId, userId, activityType, pageUrl, loggedAt);
+    }
+}</code></pre>
+                </div>
+
+                <div id="common-patterns">
+                    <h3>Common Implementation Patterns</h3>
+
+                    <h4>Pattern 1: Auto-Generated Long IDs</h4>
+                    <div class="api-method">
+                        <h5>Most Common Pattern</h5>
+                        <pre><code>@Id
+@Column(name = "id", insertable = false, updatable = false)
+private Long id;</code></pre>
+                        <p>Framework automatically generates sequential IDs via MySQL AUTO_INCREMENT</p>
+                    </div>
+
+                    <h4>Pattern 2: UUID-Based IDs</h4>
+                    <div class="api-method">
+                        <h5>For Distributed Systems</h5>
+                        <pre><code>@Id
+@Column(name = "uuid", insertable = false, updatable = false)
+private UUID uuid;
+
+// In constructor:
+public YourEntity() {
+    this.uuid = UUID.randomUUID();
+}</code></pre>
+                        <p>Generate UUIDs in entity constructor for globally unique identifiers</p>
+                    </div>
+
+                    <h4>Pattern 3: String-Based Custom IDs</h4>
+                    <div class="api-method">
+                        <h5>For Business-Logic IDs</h5>
+                        <pre><code>@Id
+@Column(name = "order_number", insertable = true, updatable = false)
+private String orderNumber;
+
+// Set manually before insert:
+order.setOrderNumber("ORD-2025-" + System.currentTimeMillis());</code></pre>
+                        <p>Use <code>insertable = true</code> when you set ID values manually</p>
+                    </div>
+
+                    <h4>Pattern 4: Flexible Sharding Key Names</h4>
+                    <div class="api-method">
+                        <h5>Any DateTime Field Name</h5>
+                        <pre><code>// Traditional naming
+@ShardingKey
+@Column(name = "created_at", nullable = false)
+private LocalDateTime createdAt;
+
+// Custom naming
+@ShardingKey  
+@Column(name = "event_timestamp", nullable = false)
+private LocalDateTime eventTimestamp;
+
+// Business-specific naming
+@ShardingKey
+@Column(name = "logged_at", nullable = false) 
+private LocalDateTime loggedAt;</code></pre>
+                        <p>The framework dynamically detects your sharding column name</p>
+                    </div>
+                </div>
+
+                <div id="troubleshooting">
+                    <h3>Troubleshooting Common Issues</h3>
+
+                    <div class="warning">
+                        <h4>Compilation Error: Missing ShardingEntity Interface</h4>
+                        <p><strong>Error:</strong> <code>class YourEntity must implement ShardingEntity&lt;K&gt;</code></p>
+                        <p><strong>Solution:</strong> Add interface implementation:</p>
+                        <pre><code>public class YourEntity implements ShardingEntity&lt;Long&gt; {</code></pre>
+                    </div>
+
+                    <div class="warning">
+                        <h4>Runtime Error: Missing @Id Annotation</h4>
+                        <p><strong>Error:</strong> <code>No @Id field found in entity</code></p>
+                        <p><strong>Solution:</strong> Add exactly one @Id field:</p>
+                        <pre><code>@Id
+@Column(name = "id", insertable = false)
+private Long id;</code></pre>
+                    </div>
+
+                    <div class="warning">
+                        <h4>Runtime Error: Missing @ShardingKey Annotation</h4>
+                        <p><strong>Error:</strong> <code>No @ShardingKey field found in entity</code></p>
+                        <p><strong>Solution:</strong> Add exactly one @ShardingKey field:</p>
+                        <pre><code>@ShardingKey
+@Column(name = "created_at", nullable = false)
+private LocalDateTime createdAt;</code></pre>
+                    </div>
+
+                    <div class="warning">
+                        <h4>Runtime Error: Missing Default Constructor</h4>
+                        <p><strong>Error:</strong> <code>Unable to instantiate entity</code></p>
+                        <p><strong>Solution:</strong> Add public no-args constructor:</p>
+                        <pre><code>public YourEntity() {}</code></pre>
+                    </div>
+
+                    <div class="warning">
+                        <h4>Runtime Error: Invalid ShardingKey Type</h4>
+                        <p><strong>Error:</strong> <code>ShardingKey field must be LocalDateTime</code></p>
+                        <p><strong>Solution:</strong> Use LocalDateTime for sharding key:</p>
+                        <pre><code>@ShardingKey
+@Column(name = "created_at", nullable = false)
+private LocalDateTime createdAt; // Not Date, not String</code></pre>
+                    </div>
+
+                    <div class="tip">
+                        <h4>💡 Best Practices</h4>
+                        <ul>
+                            <li><strong>Entity Naming:</strong> Use descriptive names like <code>OrderEntity</code>, <code>SmsEntity</code></li>
+                            <li><strong>ID Fields:</strong> Set <code>insertable = false</code> for auto-generated IDs</li>
+                            <li><strong>Timestamp Fields:</strong> Set <code>updatable = false</code> for creation timestamps</li>
+                            <li><strong>Index Usage:</strong> Add <code>@Index</code> to frequently queried fields</li>
+                            <li><strong>Null Safety:</strong> Use <code>nullable = false</code> for required fields</li>
+                            <li><strong>toString() Method:</strong> Always implement for debugging and logging</li>
+                        </ul>
+                    </div>
+
+                    <h4>Validation Checklist</h4>
+                    <div class="highlight">
+                        <p>Before using your entity, verify:</p>
+                        <ul>
+                            <li>✅ Implements <code>ShardingEntity&lt;K&gt;</code> with correct ID type</li>
+                            <li>✅ Has exactly one <code>@Id</code> field</li>
+                            <li>✅ Has exactly one <code>@ShardingKey</code> field of type <code>LocalDateTime</code></li>
+                            <li>✅ All fields have <code>@Column</code> annotations</li>
+                            <li>✅ Has public default constructor</li>
+                            <li>✅ Has standard getters/setters for all fields</li>
+                            <li>✅ Uses appropriate field types (see supported types table)</li>
+                            <li>✅ Has meaningful <code>toString()</code> method</li>
+                        </ul>
+                    </div>
                 </div>
             </section>
 
@@ -661,6 +1402,16 @@ SimpleHttpMetricsServer server = SimpleHttpMetricsServer.startFor(
 
                 <div id="multi-table-example">
                     <h3>Generic Multi-Table Repository (SMS Example)</h3>
+                    <div class="highlight">
+                        <h4>Table Structure with Hourly Partitioning</h4>
+                        <p>Each daily table is internally partitioned by hour for optimal performance:</p>
+                        <ul>
+                            <li><strong>Daily Tables:</strong> <code>sms_20250807</code>, <code>sms_20250808</code>, etc.</li>
+                            <li><strong>Hourly Partitions per Table:</strong> h00, h01, h02, ..., h23 (24 partitions)</li>
+                            <li><strong>Total Partitions:</strong> 15 tables × 24 hours = 360 partitions (7-day default)</li>
+                            <li><strong>Partitioning Function:</strong> <code>PARTITION BY RANGE (HOUR(created_at))</code></li>
+                        </ul>
+                    </div>
                     <pre><code>// 1. Entity with annotations (automatic SQL generation)
 @Table(name = "sms")
 public class SmsEntity implements ShardingEntity&lt;Long&gt; {
@@ -690,7 +1441,7 @@ MonitoringConfig smsMonitoring = new MonitoringConfig.Builder()
     .instanceId("sms-server-01")
     .build();
 
-// 3. Create generic repository with type safety, HikariCP, and monitoring
+// 3. Create generic repository with type safety and monitoring
 GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
     GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
         .host("127.0.0.1")
@@ -700,7 +1451,7 @@ GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo =
         .password("123456")           // Updated credentials
         .monitoring(smsMonitoring)    // Enable console monitoring
         .tablePrefix("sms")           // Optional: inferred from @Table
-        .partitionRetentionPeriod(30) // Keep 30 days
+        .partitionRetentionPeriod(7)  // Keep 7 days (default)
         .autoManagePartitions(true)   // Auto create/drop tables
         .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
         .build();
@@ -778,7 +1529,7 @@ public class OrderEntity {
     // ... other fields
 }
 
-// 2. Create generic repository with MySQL native partitioning and HikariCP
+// 2. Create generic repository with MySQL native partitioning
 GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
     GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
         .host("127.0.0.1")
@@ -787,7 +1538,7 @@ GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo =
         .username("root")
         .password("password")
         .tableName("orders")           // Optional: inferred from @Table
-        .partitionRetentionPeriod(365) // Keep 1 year
+        .partitionRetentionPeriod(7)   // Keep 7 days (default)
         .autoManagePartitions(true)    // Auto create/drop partitions
         .partitionAdjustmentTime(4, 0) // Daily maintenance at 04:00
         .build();
@@ -858,6 +1609,16 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                         <h5>List&lt;TEntity&gt; findBeforeDate(LocalDateTime beforeDate)</h5>
                         <p>Find all entities created before the specified date</p>
                     </div>
+                    
+                    <div class="api-method">
+                        <h5>void updateById(TKey id, TEntity entity)</h5>
+                        <p>Update entity by primary key (finds the correct table automatically)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>void updateByIdAndDateRange(TKey id, TEntity entity, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Update entity by primary key within a specific date range (optimizes table search)</p>
+                    </div>
                 </div>
 
                 <div id="partitioned-api">
@@ -902,6 +1663,16 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                         <h5>List&lt;TEntity&gt; findBeforeDate(LocalDateTime beforeDate)</h5>
                         <p>Find all entities created before the specified date</p>
                     </div>
+                    
+                    <div class="api-method">
+                        <h5>void updateById(TKey id, TEntity entity)</h5>
+                        <p>Update entity by primary key (uses MySQL partition scanning)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>void updateByIdAndDateRange(TKey id, TEntity entity, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Update entity by primary key within date range (enables partition pruning)</p>
+                    </div>
                 </div>
             </section>
 
@@ -945,7 +1716,20 @@ OrderEntity order = orderRepo.findById(67890L);
 List&lt;SmsEntity&gt; recentSms = smsRepo.findByDateRange(startDate, endDate);
 
 // Find entities before specific date
-List&lt;OrderEntity&gt; oldOrders = orderRepo.findBeforeDate(cutoffDate);</code></pre>
+List&lt;OrderEntity&gt; oldOrders = orderRepo.findBeforeDate(cutoffDate);
+
+// Update an SMS entity by ID
+SmsEntity updatedSms = new SmsEntity();
+updatedSms.setStatus("DELIVERED");
+updatedSms.setDeliveredAt(LocalDateTime.now());
+smsRepo.updateById(12345L, updatedSms);
+
+// Update an order within a specific date range
+OrderEntity updatedOrder = new OrderEntity();
+updatedOrder.setStatus("SHIPPED");
+updatedOrder.setShippedAt(LocalDateTime.now());
+orderRepo.updateByIdAndDateRange(67890L, updatedOrder, 
+    LocalDateTime.now().minusDays(7), LocalDateTime.now());</code></pre>
                 </div>
 
                 <div id="batch-operations">
@@ -1192,8 +1976,8 @@ private String message;</code></pre>
             <section id="configuration" class="section">
                 <h2>Configuration Options</h2>
                 
-                <h3>Generic Builder Configuration with HikariCP</h3>
-                <pre><code>// Multi-Table Repository with HikariCP
+                <h3>Generic Builder Configuration</h3>
+                <pre><code>// Multi-Table Repository
 GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
     GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
         .host("localhost")              // Database host
@@ -1202,13 +1986,12 @@ GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo =
         .username("dbuser")             // Database username
         .password("dbpass")             // Database password
         .tablePrefix("sms")             // Table prefix (sms_20250804)
-        .partitionRetentionPeriod(30)   // Keep 30 days of data
+        .partitionRetentionPeriod(7)    // Keep 7 days of data (default)
         .autoManagePartitions(true)     // Auto create/drop tables
         .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
-        .leakDetectionThreshold(60000)  // 1 minute leak detection
         .build();
 
-// Partitioned Table Repository with HikariCP
+// Partitioned Table Repository
 GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
     GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
         .host("localhost")              // Database host
@@ -1217,10 +2000,9 @@ GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo =
         .username("dbuser")             // Database username
         .password("dbpass")             // Database password
         .tableName("orders")            // Single table name
-        .partitionRetentionPeriod(365)  // Keep 1 year of data
+        .partitionRetentionPeriod(30)   // Override default 7 days to 30
         .autoManagePartitions(true)     // Auto create/drop partitions
         .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
-        .leakDetectionThreshold(120000) // 2 minute leak detection
         .build();</code></pre>
                     
                 <h3>Scheduler Configuration Examples</h3>
@@ -1252,9 +2034,10 @@ Runtime.getRuntime().addShutdownHook(new Thread(repo::shutdown));</code></pre>
                     <div class="feature-item">
                         <h4>Multi-Table Strategy</h4>
                         <ul>
-                            <li><strong>On Insert:</strong> Creates <code>table_YYYYMMDD</code> if it doesn't exist + immediate maintenance</li>
+                            <li><strong>On Startup:</strong> Creates all tables for retention period (default 7 days = 15 tables)</li>
+                            <li><strong>Table Structure:</strong> Each daily table has 24 hourly partitions (h00-h23)</li>
                             <li><strong>Daily Scheduler:</strong> Runs at <code>partitionAdjustmentTime</code> (default 04:00)</li>
-                            <li><strong>Maintenance Range:</strong> <code>{today - retentionDays}</code> to <code>{today + retentionDays}</code></li>
+                            <li><strong>Maintenance Range:</strong> <code>{today - 7}</code> to <code>{today + 7}</code> days (default)</li>
                             <li><strong>Table Naming:</strong> <code>{tablePrefix}_{YYYYMMDD}</code> (e.g., <code>sms_20250804</code>)</li>
                         </ul>
                     </div>
@@ -1262,10 +2045,11 @@ Runtime.getRuntime().addShutdownHook(new Thread(repo::shutdown));</code></pre>
                     <div class="feature-item">
                         <h4>Partitioned Table Strategy</h4>
                         <ul>
-                            <li><strong>On Insert:</strong> Creates partition <code>pYYYYMMDD</code> if it doesn't exist + immediate maintenance</li>
+                            <li><strong>On Startup:</strong> Creates all partitions for retention period (default 7 days = 15 partitions)</li>
                             <li><strong>Daily Scheduler:</strong> Runs at <code>partitionAdjustmentTime</code> (default 04:00)</li>
-                            <li><strong>Maintenance Range:</strong> <code>{today - retentionDays}</code> to <code>{today + retentionDays}</code></li>
+                            <li><strong>Maintenance Range:</strong> <code>{today - 7}</code> to <code>{today + 7}</code> days (default)</li>
                             <li><strong>Partition Naming:</strong> <code>p{YYYYMMDD}</code> (e.g., <code>p20250804</code>)</li>
+                            <li><strong>CRUD Blocking:</strong> All operations blocked during maintenance with clear exceptions</li>
                         </ul>
                     </div>
                 </div>
@@ -1407,6 +2191,19 @@ ORDER BY message_count DESC;</code></pre>
 
                 <div class="feature-grid">
                     <div class="feature-item">
+                        <h4>Maintenance Locking System</h4>
+                        <ul>
+                            <li><strong>CRUD Blocking:</strong> All operations blocked during partition maintenance</li>
+                            <li><strong>Clear Exceptions:</strong> MaintenanceInProgressException with descriptive messages</li>
+                            <li><strong>Thread-Safe:</strong> Uses ReadWriteLock for proper synchronization</li>
+                            <li><strong>Automatic Recovery:</strong> Operations resume immediately after maintenance</li>
+                        </ul>
+                        <pre><code>// Example exception during maintenance:
+SQLException: Database connections are blocked for maintenance: 
+Automatic partition maintenance for sms_table</code></pre>
+                    </div>
+                    
+                    <div class="feature-item">
                         <h4>SQL Injection Protection</h4>
                         <ul>
                             <li>All datetime values properly quoted and formatted</li>
@@ -1471,20 +2268,20 @@ ORDER BY message_count DESC;</code></pre>
                 <ul>
                     <li><strong>Java:</strong> 8+ (tested with Java 11, 17, 21)</li>
                     <li><strong>Database:</strong> MySQL 5.7+ / MariaDB 10.3+</li>
-                    <li><strong>Connection Pooling:</strong> HikariCP 5.0.1+ (included)</li>
+                    <li><strong>Connection:</strong> Plain JDBC with maintenance locking mechanism</li>
                     <li><strong>JDBC Driver:</strong> MySQL Connector/J 8.0+ (included)</li>
                     <li><strong>Framework Independence:</strong> Works with Spring Boot, Quarkus, or plain Java</li>
                 </ul>
                 
                 <div class="highlight">
-                    <h4>HikariCP Integration</h4>
-                    <p>All database operations are strictly HikariCP-based for optimal performance:</p>
+                    <h4>Connection Management with Maintenance Locking</h4>
+                    <p>All database operations use plain JDBC with a robust locking mechanism:</p>
                     <ul>
-                        <li><strong>High Performance:</strong> Fastest JDBC connection pool available</li>
-                        <li><strong>Production Ready:</strong> Battle-tested in high-load environments</li>
-                        <li><strong>Connection Management:</strong> Automatic lifecycle and leak detection</li>
-                        <li><strong>Monitoring:</strong> JMX metrics and named pools for observability</li>
-                        <li><strong>MySQL Optimized:</strong> Prepared statement caching, batch rewriting</li>
+                        <li><strong>Maintenance Locking:</strong> CRUD operations blocked during partition maintenance</li>
+                        <li><strong>Clear Error Messages:</strong> MaintenanceInProgressException with reason</li>
+                        <li><strong>Thread-Safe:</strong> Uses Java ReadWriteLock for proper synchronization</li>
+                        <li><strong>Automatic Recovery:</strong> Operations resume after maintenance completes</li>
+                        <li><strong>No Connection Pooling:</strong> Simple, direct JDBC connections</li>
                     </ul>
                 </div>
             </section>
@@ -1497,7 +2294,7 @@ ORDER BY message_count DESC;</code></pre>
                     <li><strong>Annotate your entities</strong> with @Table, @Id, @ShardingKey, @Column</li>
                     <li><strong>Choose your strategy</strong> (Multi-Table vs Partitioned Table)</li>
                     <li><strong>Create generic repository</strong> with entity and key types</li>
-                    <li><strong>Configure HikariCP pool</strong> for your workload</li>
+                    <li><strong>Configure connection</strong> parameters (host, port, database)</li>
                     <li><strong>Configure scheduler</strong> (optional, enabled by default)</li>
                     <li><strong>Start inserting and querying</strong> - SQL generated automatically!</li>
                 </ol>
@@ -1522,7 +2319,7 @@ public class SmsEntity {
     // ... other fields with getters/setters
 }
 
-// 2. Production-ready repository with HikariCP
+// 2. Production-ready repository
 @Configuration
 public class DataServiceConfig {
     
@@ -1537,13 +2334,13 @@ public class DataServiceConfig {
             .partitionRetentionPeriod(30)        // 30 days retention
             .autoManagePartitions(true)          // Enable scheduler
             .partitionAdjustmentTime(3, 0)       // 03:00 AM maintenance
-            .leakDetectionThreshold(0)           // Disable in production
+            // Plain JDBC - no connection pooling needed
             .build();
     }
     
     @PreDestroy
     public void cleanup() {
-        smsRepository().shutdown();  // Graceful HikariCP shutdown
+        smsRepository().shutdown();  // Graceful shutdown
     }
 }</code></pre>
 
@@ -1553,7 +2350,7 @@ public class DataServiceConfig {
                     <ul>
                         <li><strong>Generic Type Safety:</strong> Full compile-time guarantees with <code>Repository&lt;TEntity, TKey&gt;</code></li>
                         <li><strong>Zero Runtime Reflection:</strong> All metadata parsed once at startup for maximum performance</li>
-                        <li><strong>HikariCP Integration:</strong> Enterprise-grade connection pooling with full configuration control</li>
+                        <li><strong>Connection Management:</strong> Plain JDBC with maintenance locking for data consistency</li>
                         <li><strong>Automatic SQL Generation:</strong> No more hardcoded SQL - everything inferred from annotations</li>
                         <li><strong>Scheduler Automation:</strong> Enterprise-grade automatic maintenance and lifecycle management</li>
                     </ul>

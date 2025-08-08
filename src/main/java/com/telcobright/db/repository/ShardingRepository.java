@@ -60,6 +60,16 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
     List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException;
     
     /**
+     * Update entity by primary key
+     */
+    void updateById(K id, T entity) throws SQLException;
+    
+    /**
+     * Update entity by primary key within a specific date range
+     */
+    void updateByIdAndDateRange(K id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    
+    /**
      * Shutdown the repository and release resources
      */
     void shutdown();

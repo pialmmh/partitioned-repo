@@ -324,6 +324,56 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         return results;
     }
     
+    /**
+     * Update entity by primary key in partitioned table
+     */
+    @Override
+    public void updateById(K id, T entity) throws SQLException {
+        String fullTableName = database + "." + tableName;
+        String sql = String.format(metadata.getUpdateByIdSQL(), fullTableName);
+        
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            metadata.setUpdateParameters(stmt, entity, id);
+            
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("Entity with ID " + id + " not found");
+            }
+        }
+    }
+    
+    /**
+     * Update entity by primary key within a specific date range
+     */
+    @Override
+    public void updateByIdAndDateRange(K id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String fullTableName = database + "." + tableName;
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        
+        // Add date range to the WHERE clause for partition pruning
+        String sql = String.format(metadata.getUpdateByIdSQL() + " AND %s >= ? AND %s <= ?",
+                                 fullTableName, shardingColumn, shardingColumn);
+        
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            metadata.setUpdateParameters(stmt, entity, id);
+            
+            // Add date range parameters
+            int paramCount = stmt.getParameterMetaData().getParameterCount();
+            stmt.setTimestamp(paramCount - 1, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(paramCount, Timestamp.valueOf(endDate));
+            
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("Entity with ID " + id + " not found in date range " + 
+                                     startDate + " to " + endDate);
+            }
+        }
+    }
+    
     private void initializeTable() throws SQLException {
         String fullTableName = database + "." + tableName;
         String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);

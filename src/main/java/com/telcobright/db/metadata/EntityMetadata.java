@@ -22,14 +22,17 @@ public class EntityMetadata<T, K> {
     private final FieldMetadata shardingKeyField;
     private final String insertSQL;
     private final String selectByIdSQL;
+    private final String updateByIdSQL;
     private final String createTableSQL;
     private final Map<String, Integer> insertParameterIndex;
+    private final Map<String, Integer> updateParameterIndex;
 
     public EntityMetadata(Class<T> entityClass, Class<K> keyClass) {
         this.entityClass = entityClass;
         this.keyClass = keyClass;
         this.fields = new ArrayList<>();
         this.insertParameterIndex = new HashMap<>();
+        this.updateParameterIndex = new HashMap<>();
         
         // Parse class annotations
         Table tableAnnotation = entityClass.getAnnotation(Table.class);
@@ -79,6 +82,7 @@ public class EntityMetadata<T, K> {
         // Generate SQL statements
         this.insertSQL = generateInsertSQL();
         this.selectByIdSQL = generateSelectByIdSQL();
+        this.updateByIdSQL = generateUpdateByIdSQL();
         this.createTableSQL = generateCreateTableSQL();
     }
     
@@ -153,6 +157,32 @@ public class EntityMetadata<T, K> {
             columns.toString(), idField.getColumnName());
     }
     
+    private String generateUpdateByIdSQL() {
+        StringBuilder setClause = new StringBuilder();
+        boolean first = true;
+        int paramIndex = 1;
+        
+        for (FieldMetadata field : fields) {
+            // Skip ID field and non-updatable fields
+            if (field.isId() || !field.isUpdatable()) {
+                continue;
+            }
+            
+            if (!first) {
+                setClause.append(", ");
+            }
+            setClause.append(field.getColumnName()).append(" = ?");
+            updateParameterIndex.put(field.getFieldName(), paramIndex++);
+            first = false;
+        }
+        
+        // ID field is the last parameter for WHERE clause
+        updateParameterIndex.put(idField.getFieldName(), paramIndex);
+        
+        return String.format("UPDATE %%s SET %s WHERE %s = ?",
+            setClause.toString(), idField.getColumnName());
+    }
+    
     private String generateCreateTableSQL() {
         StringBuilder sql = new StringBuilder("CREATE TABLE IF NOT EXISTS %s (");
         boolean first = true;
@@ -219,6 +249,24 @@ public class EntityMetadata<T, K> {
                     setParameter(stmt, index, field.getValue(entity), field.getType());
                 }
             }
+        }
+    }
+    
+    public void setUpdateParameters(PreparedStatement stmt, T entity, K id) throws SQLException {
+        // Set all updatable field values
+        for (FieldMetadata field : fields) {
+            if (!field.isId() && field.isUpdatable()) {
+                Integer index = updateParameterIndex.get(field.getFieldName());
+                if (index != null) {
+                    setParameter(stmt, index, field.getValue(entity), field.getType());
+                }
+            }
+        }
+        
+        // Set ID value for WHERE clause (last parameter)
+        Integer idIndex = updateParameterIndex.get(idField.getFieldName());
+        if (idIndex != null) {
+            setParameter(stmt, idIndex, id, idField.getType());
         }
     }
     
@@ -291,6 +339,7 @@ public class EntityMetadata<T, K> {
     public String getTableName() { return tableName; }
     public String getInsertSQL() { return insertSQL; }
     public String getSelectByIdSQL() { return selectByIdSQL; }
+    public String getUpdateByIdSQL() { return updateByIdSQL; }
     public String getCreateTableSQL() { return createTableSQL; }
     public FieldMetadata getIdField() { return idField; }
     public FieldMetadata getShardingKeyField() { return shardingKeyField; }

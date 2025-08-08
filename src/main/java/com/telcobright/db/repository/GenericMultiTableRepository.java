@@ -383,6 +383,93 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         return results;
     }
     
+    /**
+     * Update entity by primary key across all tables
+     */
+    @Override
+    public void updateById(K id, T entity) throws SQLException {
+        // First, find which table contains this ID
+        T existingEntity = findById(id);
+        if (existingEntity == null) {
+            throw new SQLException("Entity with ID " + id + " not found in any table");
+        }
+        
+        // Get the sharding key value from the existing entity to determine the table
+        LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(existingEntity);
+        String tableName = getTableName(shardingKeyValue);
+        
+        // Generate and execute UPDATE statement
+        String sql = String.format(metadata.getUpdateByIdSQL(), tableName);
+        
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            metadata.setUpdateParameters(stmt, entity, id);
+            
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("No rows updated for ID: " + id);
+            }
+        }
+    }
+    
+    /**
+     * Update entity by primary key within a specific date range
+     */
+    @Override
+    public void updateByIdAndDateRange(K id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        
+        // Get tables that could contain data in this date range
+        List<String> tables = getTablesForDateRange(startDate, endDate);
+        
+        boolean updated = false;
+        for (String table : tables) {
+            // Try to update in each relevant table
+            String sql = String.format(metadata.getUpdateByIdSQL() + " AND %s >= ? AND %s <= ?", 
+                                     table, shardingColumn, shardingColumn);
+            
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                
+                metadata.setUpdateParameters(stmt, entity, id);
+                // Add date range parameters
+                int paramCount = stmt.getParameterMetaData().getParameterCount();
+                stmt.setTimestamp(paramCount - 1, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(paramCount, Timestamp.valueOf(endDate));
+                
+                int rowsUpdated = stmt.executeUpdate();
+                if (rowsUpdated > 0) {
+                    updated = true;
+                    break; // ID should be unique across all tables
+                }
+            } catch (SQLException e) {
+                // Table might not exist, continue to next
+                if (!e.getMessage().contains("doesn't exist")) {
+                    throw e;
+                }
+            }
+        }
+        
+        if (!updated) {
+            throw new SQLException("Entity with ID " + id + " not found in date range " + 
+                                 startDate + " to " + endDate);
+        }
+    }
+    
+    private List<String> getTablesForDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        List<String> tables = new ArrayList<>();
+        LocalDateTime current = startDate.toLocalDate().atStartOfDay();
+        
+        while (!current.isAfter(endDate)) {
+            String tableName = getTableName(current);
+            tables.add(tableName);
+            current = current.plusDays(1);
+        }
+        
+        return tables;
+    }
+    
     
     private String getTableName(LocalDateTime date) {
         return database + "." + tablePrefix + "_" + date.format(DATE_FORMAT);

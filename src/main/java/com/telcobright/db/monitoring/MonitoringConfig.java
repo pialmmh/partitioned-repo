@@ -17,12 +17,14 @@ public class MonitoringConfig {
         HTTP_ENDPOINT,    // Expose /metrics endpoint
         REST_PUSH,        // Push to REST endpoint
         KAFKA_PUSH,       // Push to Kafka (future)
-        SLF4J_LOGGING     // Log metrics via SLF4J
+        SLF4J_LOGGING,    // Log metrics via SLF4J
+        CONSOLE_ONLY      // Console output only (for examples/testing)
     }
     
     public enum MetricFormat {
         PROMETHEUS,       // Prometheus format for HTTP endpoint
-        JSON             // JSON format for REST push
+        JSON,            // JSON format for REST push
+        FORMATTED_TEXT   // Human-readable text format for console
     }
     
     private final boolean enabled;
@@ -34,6 +36,11 @@ public class MonitoringConfig {
     private final String kafkaTopicName;
     private final String serviceName;
     private final String instanceId;
+    private final boolean includeSystemMetrics;
+    private final boolean includeConnectionPoolMetrics;
+    private final boolean includeQueryMetrics;
+    private final boolean enableSlowQueryLogging;
+    private final long slowQueryThresholdMs;
     
     private MonitoringConfig(Builder builder) {
         this.enabled = builder.enabled;
@@ -45,6 +52,11 @@ public class MonitoringConfig {
         this.kafkaTopicName = builder.kafkaTopicName;
         this.serviceName = builder.serviceName;
         this.instanceId = builder.instanceId;
+        this.includeSystemMetrics = builder.includeSystemMetrics;
+        this.includeConnectionPoolMetrics = builder.includeConnectionPoolMetrics;
+        this.includeQueryMetrics = builder.includeQueryMetrics;
+        this.enableSlowQueryLogging = builder.enableSlowQueryLogging;
+        this.slowQueryThresholdMs = builder.slowQueryThresholdMs;
     }
     
     // Getters
@@ -57,6 +69,11 @@ public class MonitoringConfig {
     public String getKafkaTopicName() { return kafkaTopicName; }
     public String getServiceName() { return serviceName; }
     public String getInstanceId() { return instanceId; }
+    public boolean isIncludeSystemMetrics() { return includeSystemMetrics; }
+    public boolean isIncludeConnectionPoolMetrics() { return includeConnectionPoolMetrics; }
+    public boolean isIncludeQueryMetrics() { return includeQueryMetrics; }
+    public boolean isEnableSlowQueryLogging() { return enableSlowQueryLogging; }
+    public long getSlowQueryThresholdMs() { return slowQueryThresholdMs; }
     
     /**
      * Creates a disabled monitoring configuration
@@ -110,6 +127,11 @@ public class MonitoringConfig {
         private String kafkaTopicName = "repository-metrics";
         private String serviceName = "partitioned-repo";
         private String instanceId = getDefaultInstanceId();
+        private boolean includeSystemMetrics = false;
+        private boolean includeConnectionPoolMetrics = false;
+        private boolean includeQueryMetrics = false;
+        private boolean enableSlowQueryLogging = false;
+        private long slowQueryThresholdMs = 1000; // Default 1 second
         
         public Builder enabled(boolean enabled) {
             this.enabled = enabled;
@@ -158,6 +180,31 @@ public class MonitoringConfig {
         
         public Builder instanceId(String instanceId) {
             this.instanceId = instanceId;
+            return this;
+        }
+        
+        public Builder includeSystemMetrics(boolean include) {
+            this.includeSystemMetrics = include;
+            return this;
+        }
+        
+        public Builder includeConnectionPoolMetrics(boolean include) {
+            this.includeConnectionPoolMetrics = include;
+            return this;
+        }
+        
+        public Builder includeQueryMetrics(boolean include) {
+            this.includeQueryMetrics = include;
+            return this;
+        }
+        
+        public Builder enableSlowQueryLogging(boolean enable) {
+            this.enableSlowQueryLogging = enable;
+            return this;
+        }
+        
+        public Builder slowQueryThresholdMs(long thresholdMs) {
+            this.slowQueryThresholdMs = thresholdMs;
             return this;
         }
         
