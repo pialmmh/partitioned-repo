@@ -1,4 +1,6 @@
-package com.telcobright.db.entity;
+package com.telcobright.examples.entity;
+
+import com.telcobright.db.entity.ShardingEntity;
 
 import com.telcobright.db.annotation.*;
 import java.time.LocalDateTime;

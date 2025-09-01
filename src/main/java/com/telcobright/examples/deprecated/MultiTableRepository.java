@@ -1,7 +1,7 @@
-package com.telcobright.db.repository;
+package com.telcobright.examples.deprecated;
 
 import com.telcobright.db.query.QueryDSL;
-import com.telcobright.db.entity.SmsEntity;
+import com.telcobright.examples.entity.SmsEntity;
 
 import javax.sql.DataSource;
 import java.sql.*;

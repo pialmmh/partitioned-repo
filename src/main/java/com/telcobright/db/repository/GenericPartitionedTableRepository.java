@@ -16,7 +16,8 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import com.telcobright.db.logging.Logger;
+import com.telcobright.db.logging.ConsoleLogger;
 
 /**
  * Generic Partitioned Table Repository implementation
@@ -29,7 +30,7 @@ import java.util.logging.Logger;
  * @param <K> Primary key type
  */
 public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> implements ShardingRepository<T, K> {
-    private static final Logger LOGGER = Logger.getLogger(GenericPartitionedTableRepository.class.getName());
+    private final Logger logger;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
     private final ConnectionProvider connectionProvider;
@@ -61,6 +62,10 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         // Use provided table name or derive from entity
         this.tableName = builder.tableName != null ? builder.tableName : metadata.getTableName();
         
+        // Initialize logger
+        this.logger = builder.logger != null ? builder.logger : 
+            new ConsoleLogger("PartitionedRepo." + tableName);
+        
         // Create ConnectionProvider
         this.connectionProvider = new ConnectionProvider.Builder()
             .host(builder.host)
@@ -85,7 +90,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         // Initialize table and partitions for retention period on startup
         if (initializePartitionsOnStart) {
             try {
-                LOGGER.info("Initializing partitioned table and partitions for retention period...");
+                logger.info("Initializing partitioned table and partitions for retention period...");
                 initializeTable();
                 initializePartitionsForRetentionPeriod();
             } catch (SQLException e) {
@@ -408,10 +413,10 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
                                 " VALUES LESS THAN (" + partitionValue + ")\n)";
                     
                     // Debug: Log the SQL being executed
-                    LOGGER.info("Executing CREATE TABLE SQL: " + createSQL);
+                    logger.info("Executing CREATE TABLE SQL: " + createSQL);
                     
                     stmt.execute(createSQL);
-                    LOGGER.info("Created partitioned table: " + fullTableName);
+                    logger.info("Created partitioned table: " + fullTableName);
                 }
             }
         }
@@ -446,7 +451,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            LOGGER.info("Created partition: " + partitionName);
+            logger.info("Created partition: " + partitionName);
         }
     }
     
@@ -457,7 +462,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            LOGGER.info("Dropped partition: " + partitionName);
+            logger.info("Dropped partition: " + partitionName);
         }
     }
     
@@ -525,7 +530,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         try (MaintenanceConnection maintenanceConn = connectionProvider.getMaintenanceConnection(
                 "Automatic partition maintenance for " + tableName)) {
             
-            LOGGER.info("Starting automatic partition maintenance for " + tableName);
+            logger.info("Starting automatic partition maintenance for " + tableName);
             
             LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
             LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
@@ -535,7 +540,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
             LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);
             dropOldPartitions(cutoffDate);
             
-            LOGGER.info("Partition maintenance completed for " + tableName);
+            logger.info("Partition maintenance completed for " + tableName);
         }
     }
     
@@ -577,13 +582,13 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
         LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
         
-        LOGGER.info(String.format("Initializing partitions for retention period: %s to %s (%d days)", 
+        logger.info(String.format("Initializing partitions for retention period: %s to %s (%d days)", 
                     startDate.toLocalDate(), endDate.toLocalDate(), 
                     partitionRetentionPeriod * 2 + 1));
         
         createPartitionsForDateRange(startDate, endDate);
         
-        LOGGER.info("Completed partition initialization for retention period");
+        logger.info("Completed partition initialization for retention period");
     }
     
     private void startScheduler() {
@@ -611,7 +616,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
                 performScheduledMaintenance();
                 scheduleNextRun();
             } catch (Exception e) {
-                LOGGER.severe("Failed to perform scheduled maintenance: " + e.getMessage());
+                logger.error("Failed to perform scheduled maintenance: " + e.getMessage());
                 scheduleNextRun();
             }
         }, delay, TimeUnit.MILLISECONDS);
@@ -640,7 +645,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         // Shutdown ConnectionProvider
         if (connectionProvider != null) {
             connectionProvider.shutdown();
-            LOGGER.info("ConnectionProvider shutdown");
+            logger.info("ConnectionProvider shutdown");
         }
     }
     
@@ -670,6 +675,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);
         private boolean initializePartitionsOnStart = true;
         private MonitoringConfig monitoringConfig;
+        private Logger logger;
         
         
         public Builder(Class<T> entityClass, Class<K> keyClass) {
@@ -734,6 +740,11 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         
         public Builder<T, K> monitoring(MonitoringConfig monitoringConfig) {
             this.monitoringConfig = monitoringConfig;
+            return this;
+        }
+        
+        public Builder<T, K> logger(Logger logger) {
+            this.logger = logger;
             return this;
         }
         

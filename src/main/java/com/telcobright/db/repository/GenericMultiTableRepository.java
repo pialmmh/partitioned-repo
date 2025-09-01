@@ -16,7 +16,8 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import com.telcobright.db.logging.Logger;
+import com.telcobright.db.logging.ConsoleLogger;
 
 /**
  * Generic Multi-Table Repository implementation
@@ -35,7 +36,7 @@ import java.util.logging.Logger;
  * @param <K> Primary key type
  */
 public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> implements ShardingRepository<T, K> {
-    private static final Logger LOGGER = Logger.getLogger(GenericMultiTableRepository.class.getName());
+    private final Logger logger;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
     
     private final ConnectionProvider connectionProvider;
@@ -68,6 +69,10 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         
         // Use provided table prefix or derive from entity
         this.tablePrefix = builder.tablePrefix != null ? builder.tablePrefix : metadata.getTableName();
+        
+        // Initialize logger
+        this.logger = builder.logger != null ? builder.logger : 
+            new ConsoleLogger("MultiTableRepo." + tablePrefix);
         
         // Create ConnectionProvider
         this.connectionProvider = new ConnectionProvider.Builder()
@@ -485,7 +490,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(createSQL);
-            LOGGER.info("Ensured table exists with hourly partitioning: " + tableName);
+            logger.info("Ensured table exists with hourly partitioning: " + tableName);
         }
     }
     
@@ -614,7 +619,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         try (MaintenanceConnection maintenanceConn = connectionProvider.getMaintenanceConnection(
                 "Automatic partition maintenance for " + tablePrefix)) {
             
-            LOGGER.info("Starting automatic maintenance for " + tablePrefix);
+            logger.info("Starting automatic maintenance for " + tablePrefix);
             
             LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);
             LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);
@@ -634,7 +639,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             
             long duration = System.currentTimeMillis() - startTime;
             
-            LOGGER.info(String.format("Maintenance completed: created %d tables, deleted %d tables in %d ms", 
+            logger.info(String.format("Maintenance completed: created %d tables, deleted %d tables in %d ms", 
                         tablesCreated, tablesDeleted, duration));
             
             // Record success
@@ -644,7 +649,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
             
         } catch (SQLException e) {
             long duration = System.currentTimeMillis() - startTime;
-            LOGGER.severe("Maintenance failed: " + e.getMessage());
+            logger.error("Maintenance failed: " + e.getMessage());
             if (monitoringService != null) {
                 monitoringService.recordMaintenanceJobFailure(duration, e);
             }
@@ -682,7 +687,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
-            LOGGER.info("Dropped old table: " + tableName);
+            logger.info("Dropped old table: " + tableName);
         }
     }
     
@@ -695,13 +700,13 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
         LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
         
-        LOGGER.info(String.format("Initializing tables for retention period: %s to %s (%d days)", 
+        logger.info(String.format("Initializing tables for retention period: %s to %s (%d days)", 
                     startDate.toLocalDate(), endDate.toLocalDate(), 
                     partitionRetentionPeriod * 2 + 1));
         
         createTablesForDateRange(startDate, endDate);
         
-        LOGGER.info("Completed table initialization for retention period");
+        logger.info("Completed table initialization for retention period");
     }
     
     private void schedulePeriodicMaintenance() {
@@ -723,7 +728,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
                 performScheduledMaintenance();
                 scheduleNextRun();
             } catch (Exception e) {
-                LOGGER.severe("Failed to perform scheduled maintenance: " + e.getMessage());
+                logger.error("Failed to perform scheduled maintenance: " + e.getMessage());
                 scheduleNextRun();
             }
         }, delay, TimeUnit.MILLISECONDS);
@@ -793,6 +798,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);
         private boolean initializePartitionsOnStart = true;
         private MonitoringConfig monitoringConfig;
+        private Logger logger;
         
         
         public Builder(Class<T> entityClass, Class<K> keyClass) {
@@ -857,6 +863,11 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         
         public Builder<T, K> monitoring(MonitoringConfig monitoringConfig) {
             this.monitoringConfig = monitoringConfig;
+            return this;
+        }
+        
+        public Builder<T, K> logger(Logger logger) {
+            this.logger = logger;
             return this;
         }
         

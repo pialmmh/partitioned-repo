@@ -6,24 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CUSTOM-MAVEN-REPO.md" beforeDir="false" afterPath="$PROJECT_DIR$/CUSTOM-MAVEN-REPO.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.html" beforeDir="false" afterPath="$PROJECT_DIR$/README.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/AutoManagementSchedulerDemo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/CompilationTestExample.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/CompileTimeEnforcementTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/FlexibleFieldNamingDemo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/GenericOrderPartitionedTableExample.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/GenericSmsMultiTableExample.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/IndexAnnotationDemo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/MetricsConsoleDemo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/MonitoringDemo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/OrderPartitionedTableExample.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/ShardingEntityEnforcementDemo.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/example/SmsMultiTableExample.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/metadata/EntityMetadata.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/db/metadata/EntityMetadata.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/MonitoringConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/MonitoringConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/GenericMultiTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/GenericMultiTableRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/GenericPartitionedTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/GenericPartitionedTableRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/ShardingRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/ShardingRepository.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,26 +31,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.CompilationTestExample.executor&quot;: &quot;Debug&quot;,
-    &quot;Application.GenericOrderPartitionedTableExample.executor&quot;: &quot;Debug&quot;,
-    &quot;Application.MonitoringDemo.executor&quot;: &quot;Debug&quot;,
-    &quot;Maven.partitioned-repo [clean].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.partitioned-repo [install].executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.CompilationTestExample.executor": "Debug",
+    "Application.GenericOrderPartitionedTableExample.executor": "Debug",
+    "Application.MonitoringDemo.executor": "Debug",
+    "Maven.partitioned-repo [clean].executor": "Run",
+    "Maven.partitioned-repo [install].executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Application.GenericOrderPartitionedTableExample">
     <configuration name="CompilationTestExample" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.telcobright.db.example.CompilationTestExample" />
@@ -115,8 +104,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.27812.49" />
-        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-IU-251.27812.49" />
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.23892.409" />
+        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-IU-252.23892.409" />
       </set>
     </attachedChunks>
   </component>
@@ -129,7 +118,9 @@
       <updated>1754469779783</updated>
       <workItem from="1754469782374" duration="12769000" />
       <workItem from="1754550658952" duration="12363000" />
-      <workItem from="1754660231061" duration="6899000" />
+      <workItem from="1754660231061" duration="7621000" />
+      <workItem from="1754837263976" duration="3341000" />
+      <workItem from="1756473348697" duration="930000" />
     </task>
     <servers />
   </component>

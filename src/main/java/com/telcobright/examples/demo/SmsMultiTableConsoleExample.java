@@ -1,6 +1,6 @@
-package com.telcobright.db.example;
+package com.telcobright.examples.demo;
 
-import com.telcobright.db.entity.SmsEntity;
+import com.telcobright.examples.entity.SmsEntity;
 import com.telcobright.db.repository.GenericMultiTableRepository;
 import com.telcobright.db.monitoring.MonitoringConfig;
 

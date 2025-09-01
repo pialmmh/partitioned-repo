@@ -13,4 +13,4 @@
   </dependency>
 </dependencies>
 
-rm -rf ~/.m2/repository/com/telcobright/db/partitioned-repo/1.0.0
+]

@@ -244,6 +244,31 @@
             color: #3498db;
             margin-bottom: 10px;
         }
+        
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .feature-card h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .feature-card p {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin: 0;
+        }
 
         .api-method {
             background: #f8f9fa;
@@ -355,6 +380,12 @@
                         <li><a href="#getting-started" class="level-2">Maven Repository Setup</a></li>
                         <li><a href="#getting-started" class="level-2">Gradle Configuration</a></li>
                         <li><a href="#getting-started" class="level-2">Minimal Example</a></li>
+                    </ul>
+                </li>
+                <li><a href="#framework-agnostic">🔧 Framework-Agnostic Design</a>
+                    <ul>
+                        <li><a href="#framework-agnostic" class="level-2">Logger Integration</a></li>
+                        <li><a href="#framework-agnostic" class="level-2">Builder-Only Pattern</a></li>
                     </ul>
                 </li>
                 <li><a href="#overview">Overview</a>
@@ -549,7 +580,7 @@ public class EventEntity implements ShardingEntity&lt;Long&gt; {
     // Constructors, getters, setters...
 }
 
-// 2. Create repository
+// 2. Create repository (Builder-only instantiation)
 GenericMultiTableRepository&lt;EventEntity, Long&gt; repo = 
     GenericMultiTableRepository.&lt;EventEntity, Long&gt;builder(EventEntity.class, Long.class)
         .host("localhost")
@@ -558,6 +589,7 @@ GenericMultiTableRepository&lt;EventEntity, Long&gt; repo =
         .username("dbuser")
         .password("dbpass")
         .tablePrefix("events")
+        .logger(new ConsoleLogger("EventRepo"))  // Optional: custom logger
         .build();
 
 // 3. Use the repository
@@ -580,6 +612,75 @@ List&lt;EventEntity&gt; todayEvents = repo.findAllByDateRange(
                         <li><strong>Maven 3.6+</strong> or <strong>Gradle 6.0+</strong></li>
                         <li>Database user with CREATE TABLE and partition management privileges</li>
                     </ul>
+                </div>
+            </section>
+
+            <section id="framework-agnostic" class="section">
+                <h2>🔧 Framework-Agnostic Design</h2>
+                <p>This library is <strong>100% framework-independent</strong> and can be integrated with any Java application:</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>✅ Plain Java</h4>
+                        <p>Works with standard Java applications, no framework required</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>✅ Spring/Spring Boot</h4>
+                        <p>Integrate as beans with custom SLF4J logger</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>✅ Quarkus</h4>
+                        <p>Native compilation support with custom logger injection</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>✅ Jakarta EE</h4>
+                        <p>Use with CDI and inject custom loggers</p>
+                    </div>
+                </div>
+                
+                <h3>Custom Logger Integration</h3>
+                <pre><code>// Using default console logger
+GenericPartitionedTableRepository&lt;Order, Long&gt; repo1 = 
+    GenericPartitionedTableRepository.&lt;Order, Long&gt;builder(Order.class, Long.class)
+        .database("mydb")
+        .username("user")
+        .password("pass")
+        .build();  // Uses ConsoleLogger by default
+
+// Using SLF4J logger (Spring/Quarkus)
+import com.telcobright.db.logging.Logger;
+
+public class Slf4jLoggerAdapter implements Logger {
+    private final org.slf4j.Logger slf4jLogger;
+    
+    public Slf4jLoggerAdapter(String name) {
+        this.slf4jLogger = LoggerFactory.getLogger(name);
+    }
+    
+    @Override
+    public void log(Level level, String message) {
+        switch(level) {
+            case ERROR: slf4jLogger.error(message); break;
+            case WARN: slf4jLogger.warn(message); break;
+            case INFO: slf4jLogger.info(message); break;
+            case DEBUG: slf4jLogger.debug(message); break;
+            case TRACE: slf4jLogger.trace(message); break;
+        }
+    }
+}
+
+// Use with custom logger
+GenericPartitionedTableRepository&lt;Order, Long&gt; repo2 = 
+    GenericPartitionedTableRepository.&lt;Order, Long&gt;builder(Order.class, Long.class)
+        .database("mydb")
+        .username("user")
+        .password("pass")
+        .logger(new Slf4jLoggerAdapter("OrderRepo"))
+        .build();</code></pre>
+                
+                <div class="highlight">
+                    <h4>🔒 Builder-Only Instantiation</h4>
+                    <p>Repositories can <strong>only</strong> be created through the builder pattern. Direct instantiation is not possible, ensuring proper configuration and initialization.</p>
                 </div>
             </section>
 
@@ -1441,7 +1542,7 @@ MonitoringConfig smsMonitoring = new MonitoringConfig.Builder()
     .instanceId("sms-server-01")
     .build();
 
-// 3. Create generic repository with type safety and monitoring
+// 3. Create generic repository with type safety and monitoring (Builder-only instantiation)
 GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
     GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
         .host("127.0.0.1")
@@ -1450,6 +1551,7 @@ GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo =
         .username("root")
         .password("123456")           // Updated credentials
         .monitoring(smsMonitoring)    // Enable console monitoring
+        .logger(new ConsoleLogger("SmsRepo"))  // Optional: custom logger (default: ConsoleLogger)
         .tablePrefix("sms")           // Optional: inferred from @Table
         .partitionRetentionPeriod(7)  // Keep 7 days (default)
         .autoManagePartitions(true)   // Auto create/drop tables
@@ -1529,7 +1631,7 @@ public class OrderEntity {
     // ... other fields
 }
 
-// 2. Create generic repository with MySQL native partitioning
+// 2. Create generic repository with MySQL native partitioning (Builder-only instantiation)
 GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
     GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
         .host("127.0.0.1")
@@ -1537,6 +1639,7 @@ GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo =
         .database("ecommerce")
         .username("root")
         .password("password")
+        .logger(new ConsoleLogger("OrderRepo"))  // Optional: custom logger (default: ConsoleLogger)
         .tableName("orders")           // Optional: inferred from @Table
         .partitionRetentionPeriod(7)   // Keep 7 days (default)
         .autoManagePartitions(true)    // Auto create/drop partitions
@@ -1977,32 +2080,36 @@ private String message;</code></pre>
                 <h2>Configuration Options</h2>
                 
                 <h3>Generic Builder Configuration</h3>
-                <pre><code>// Multi-Table Repository
+                <pre><code>// Multi-Table Repository (Builder-only instantiation)
 GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
     GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
         .host("localhost")              // Database host
         .port(3306)                     // Database port  
-        .database("messaging")          // Database name
-        .username("dbuser")             // Database username
-        .password("dbpass")             // Database password
-        .tablePrefix("sms")             // Table prefix (sms_20250804)
-        .partitionRetentionPeriod(7)    // Keep 7 days of data (default)
-        .autoManagePartitions(true)     // Auto create/drop tables
-        .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
+        .database("messaging")          // Database name (required)
+        .username("dbuser")             // Database username (required)
+        .password("dbpass")             // Database password (required)
+        .logger(customLogger)           // Custom logger (optional, default: ConsoleLogger)
+        .tablePrefix("sms")             // Table prefix (optional, uses @Table name)
+        .partitionRetentionPeriod(7)    // Keep 7 days of data (default: 7)
+        .autoManagePartitions(true)     // Auto create/drop tables (default: true)
+        .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00 (default: 04:00)
+        .monitoring(monitoringConfig)   // Monitoring configuration (optional)
         .build();
 
-// Partitioned Table Repository
+// Partitioned Table Repository (Builder-only instantiation)
 GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
     GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
-        .host("localhost")              // Database host
-        .port(3306)                     // Database port
-        .database("ecommerce")          // Database name  
-        .username("dbuser")             // Database username
-        .password("dbpass")             // Database password
-        .tableName("orders")            // Single table name
+        .host("localhost")              // Database host (default: localhost)
+        .port(3306)                     // Database port (default: 3306)
+        .database("ecommerce")          // Database name (required)
+        .username("dbuser")             // Database username (required)
+        .password("dbpass")             // Database password (required)
+        .logger(customLogger)           // Custom logger (optional, default: ConsoleLogger)
+        .tableName("orders")            // Single table name (optional, uses @Table name)
         .partitionRetentionPeriod(30)   // Override default 7 days to 30
-        .autoManagePartitions(true)     // Auto create/drop partitions
-        .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00
+        .autoManagePartitions(true)     // Auto create/drop partitions (default: true)
+        .partitionAdjustmentTime(4, 0)  // Daily maintenance at 04:00 (default: 04:00)
+        .monitoring(monitoringConfig)   // Monitoring configuration (optional)
         .build();</code></pre>
                     
                 <h3>Scheduler Configuration Examples</h3>

@@ -1,6 +1,6 @@
-package com.telcobright.db.example;
+package com.telcobright.examples.demo;
 
-import com.telcobright.db.entity.OrderEntity;
+import com.telcobright.examples.entity.OrderEntity;
 import com.telcobright.db.repository.GenericPartitionedTableRepository;
 import com.telcobright.db.monitoring.MonitoringConfig;
 
