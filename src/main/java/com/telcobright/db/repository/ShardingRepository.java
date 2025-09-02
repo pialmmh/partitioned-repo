@@ -70,6 +70,17 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
     void updateByIdAndDateRange(K id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
     
     /**
+     * Find one entity with ID greater than the specified ID.
+     * For single partitioned table: Scans full table across all partitions.
+     * For multi-table: Scans all tables chronologically to find the first entity with ID > specified ID.
+     * Useful for cursor-based iteration and finding next record.
+     * 
+     * @param id The ID to search greater than
+     * @return The first entity found with ID greater than specified ID, or null if none found
+     */
+    T findOneByIdGreaterThan(K id) throws SQLException;
+    
+    /**
      * Shutdown the repository and release resources
      */
     void shutdown();

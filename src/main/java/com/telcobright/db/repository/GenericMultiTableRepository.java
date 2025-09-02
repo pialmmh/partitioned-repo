@@ -462,6 +462,46 @@ public class GenericMultiTableRepository<T extends ShardingEntity<K>, K> impleme
         }
     }
     
+    /**
+     * Find one entity with ID greater than the specified ID
+     * Scans all tables chronologically to find the first entity with ID > specified ID
+     */
+    @Override
+    public T findOneByIdGreaterThan(K id) throws SQLException {
+        // Get all existing tables and sort them chronologically (oldest first)
+        List<String> tables = getExistingTables();
+        Collections.sort(tables); // Tables are named with dates, so alphabetical sort gives chronological order
+        
+        String idColumn = metadata.getIdField().getColumnName();
+        
+        // Scan each table chronologically to find the first entity with ID > specified ID
+        for (String tableName : tables) {
+            String sql = String.format(
+                "SELECT * FROM %s WHERE %s > ? ORDER BY %s ASC LIMIT 1",
+                tableName, idColumn, idColumn
+            );
+            
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                
+                setIdParameter(stmt, 1, id);
+                
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return metadata.mapResultSet(rs);
+                    }
+                }
+            } catch (SQLException e) {
+                // Table might not exist or be accessible, continue to next
+                if (!e.getMessage().contains("doesn't exist")) {
+                    logger.warn("Error querying table " + tableName + ": " + e.getMessage());
+                }
+            }
+        }
+        
+        return null; // No entity found with ID greater than specified ID in any table
+    }
+    
     private List<String> getTablesForDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         List<String> tables = new ArrayList<>();
         LocalDateTime current = startDate.toLocalDate().atStartOfDay();

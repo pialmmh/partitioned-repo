@@ -379,6 +379,37 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<K>, K> i
         }
     }
     
+    /**
+     * Find one entity with ID greater than the specified ID
+     * Scans the full partitioned table across all partitions
+     */
+    @Override
+    public T findOneByIdGreaterThan(K id) throws SQLException {
+        String fullTableName = database + "." + tableName;
+        String idColumn = metadata.getIdField().getColumnName();
+        
+        // Build query to find one entity with ID > specified ID
+        // ORDER BY id ASC to get the smallest ID that is greater than the specified ID
+        String sql = String.format(
+            "SELECT * FROM %s WHERE %s > ? ORDER BY %s ASC LIMIT 1",
+            fullTableName, idColumn, idColumn
+        );
+        
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            setIdParameter(stmt, 1, id);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return metadata.mapResultSet(rs);
+                }
+            }
+        }
+        
+        return null; // No entity found with ID greater than specified ID
+    }
+    
     private void initializeTable() throws SQLException {
         String fullTableName = database + "." + tableName;
         String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);

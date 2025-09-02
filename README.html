@@ -1722,6 +1722,11 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                         <h5>void updateByIdAndDateRange(TKey id, TEntity entity, LocalDateTime startDate, LocalDateTime endDate)</h5>
                         <p>Update entity by primary key within a specific date range (optimizes table search)</p>
                     </div>
+                    
+                    <div class="api-method">
+                        <h5>TEntity findOneByIdGreaterThan(TKey id)</h5>
+                        <p>Find one entity with ID greater than the specified ID. Scans all tables chronologically to find the first entity with ID > specified ID. Useful for cursor-based iteration across multiple tables. Returns null if no entity found.</p>
+                    </div>
                 </div>
 
                 <div id="partitioned-api">
@@ -1775,6 +1780,11 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                     <div class="api-method">
                         <h5>void updateByIdAndDateRange(TKey id, TEntity entity, LocalDateTime startDate, LocalDateTime endDate)</h5>
                         <p>Update entity by primary key within date range (enables partition pruning)</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>TEntity findOneByIdGreaterThan(TKey id)</h5>
+                        <p>Find one entity with ID greater than the specified ID. Scans the full partitioned table across all partitions. Useful for cursor-based iteration and finding the next record. Returns null if no entity found.</p>
                     </div>
                 </div>
             </section>
@@ -1854,7 +1864,25 @@ smsRepo.insertMultiple(batchMessages);
 // Find first entity in date range
 SmsEntity firstToday = smsRepo.findByIdAndDateRange(
     LocalDateTime.now().withHour(0).withMinute(0),
-    LocalDateTime.now().withHour(23).withMinute(59));</code></pre>
+    LocalDateTime.now().withHour(23).withMinute(59));
+
+// Cursor-based iteration - find next entity after a given ID
+Long lastProcessedId = 1000L;
+OrderEntity nextOrder = orderRepo.findOneByIdGreaterThan(lastProcessedId);
+while (nextOrder != null) {
+    // Process the order
+    processOrder(nextOrder);
+    
+    // Move cursor to next entity
+    lastProcessedId = nextOrder.getId();
+    nextOrder = orderRepo.findOneByIdGreaterThan(lastProcessedId);
+}
+
+// Multi-table cursor iteration
+SmsEntity nextSms = smsRepo.findOneByIdGreaterThan(0L); // Start from beginning
+if (nextSms != null) {
+    System.out.println("Next SMS ID: " + nextSms.getId());
+}</code></pre>
                 </div>
 
                 <div id="performance-considerations">
