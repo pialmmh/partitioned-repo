@@ -1,8 +1,8 @@
 package com.telcobright.examples.demo;
 
 import com.telcobright.examples.entity.SmsEntity;
-import com.telcobright.db.repository.GenericMultiTableRepository;
-import com.telcobright.db.monitoring.MonitoringConfig;
+import com.telcobright.core.repository.GenericMultiTableRepository;
+import com.telcobright.core.monitoring.MonitoringConfig;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

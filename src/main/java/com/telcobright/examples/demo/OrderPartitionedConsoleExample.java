@@ -1,8 +1,8 @@
 package com.telcobright.examples.demo;
 
 import com.telcobright.examples.entity.OrderEntity;
-import com.telcobright.db.repository.GenericPartitionedTableRepository;
-import com.telcobright.db.monitoring.MonitoringConfig;
+import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.monitoring.MonitoringConfig;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

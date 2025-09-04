@@ -1727,6 +1727,11 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                         <h5>TEntity findOneByIdGreaterThan(TKey id)</h5>
                         <p>Find one entity with ID greater than the specified ID. Scans all tables chronologically to find the first entity with ID > specified ID. Useful for cursor-based iteration across multiple tables. Returns null if no entity found.</p>
                     </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findBatchByIdGreaterThan(TKey id, int batchSize)</h5>
+                        <p>Find batch of entities with ID greater than the specified ID. Iterates tables chronologically, accumulating results until batchSize is reached. Useful for cursor-based batch processing across multiple tables. Returns empty list if no entities found.</p>
+                    </div>
                 </div>
 
                 <div id="partitioned-api">
@@ -1785,6 +1790,11 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                     <div class="api-method">
                         <h5>TEntity findOneByIdGreaterThan(TKey id)</h5>
                         <p>Find one entity with ID greater than the specified ID. Scans the full partitioned table across all partitions. Useful for cursor-based iteration and finding the next record. Returns null if no entity found.</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findBatchByIdGreaterThan(TKey id, int batchSize)</h5>
+                        <p>Find batch of entities with ID greater than the specified ID. Executes single query with LIMIT across all partitions. Useful for efficient cursor-based batch processing. Returns empty list if no entities found.</p>
                     </div>
                 </div>
             </section>
@@ -1882,7 +1892,30 @@ while (nextOrder != null) {
 SmsEntity nextSms = smsRepo.findOneByIdGreaterThan(0L); // Start from beginning
 if (nextSms != null) {
     System.out.println("Next SMS ID: " + nextSms.getId());
-}</code></pre>
+}
+
+// Batch processing with cursor-based pagination
+Long cursor = 0L;
+int batchSize = 100;
+
+// For partitioned table - single query with LIMIT
+List&lt;OrderEntity&gt; orderBatch = orderRepo.findBatchByIdGreaterThan(cursor, batchSize);
+while (!orderBatch.isEmpty()) {
+    // Process batch
+    for (OrderEntity order : orderBatch) {
+        processOrder(order);
+    }
+    
+    // Move cursor to last processed ID
+    cursor = orderBatch.get(orderBatch.size() - 1).getId();
+    
+    // Fetch next batch
+    orderBatch = orderRepo.findBatchByIdGreaterThan(cursor, batchSize);
+}
+
+// For multi-table - iterative accumulation across tables
+List&lt;SmsEntity&gt; smsBatch = smsRepo.findBatchByIdGreaterThan(cursor, batchSize);
+System.out.println("Fetched " + smsBatch.size() + " SMS entities");</code></pre>
                 </div>
 
                 <div id="performance-considerations">

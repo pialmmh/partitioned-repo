@@ -1,6 +1,6 @@
 package com.telcobright.examples.deprecated;
 
-import com.telcobright.db.query.QueryDSL;
+import com.telcobright.core.query.QueryDSL;
 import com.telcobright.examples.entity.SmsEntity;
 
 import javax.sql.DataSource;

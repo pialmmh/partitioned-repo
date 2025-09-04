@@ -1,11 +1,11 @@
 package com.telcobright.examples.entity;
 
-import com.telcobright.db.entity.ShardingEntity;
+import com.telcobright.core.entity.ShardingEntity;
 
-import com.telcobright.db.annotation.Column;
-import com.telcobright.db.annotation.Id;
-import com.telcobright.db.annotation.ShardingKey;
-import com.telcobright.db.annotation.Table;
+import com.telcobright.core.annotation.Column;
+import com.telcobright.core.annotation.Id;
+import com.telcobright.core.annotation.ShardingKey;
+import com.telcobright.core.annotation.Table;
 
 import java.time.LocalDateTime;
 

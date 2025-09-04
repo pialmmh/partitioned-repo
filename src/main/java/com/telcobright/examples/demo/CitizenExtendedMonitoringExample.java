@@ -1,8 +1,8 @@
 package com.telcobright.examples.demo;
 
 import com.telcobright.examples.entity.CitizenEntity;
-import com.telcobright.db.repository.GenericPartitionedTableRepository;
-import com.telcobright.db.monitoring.MonitoringConfig;
+import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.monitoring.MonitoringConfig;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
