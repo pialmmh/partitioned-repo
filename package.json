@@ -1,0 +1,27 @@
+{
+  "name": "partitioned-repo",
+  "version": "1.0.0",
+  "main": "playwright-test.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pialmmh/partitioned-repo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pialmmh/partitioned-repo/issues"
+  },
+  "homepage": "https://github.com/pialmmh/partitioned-repo#readme",
+  "description": "",
+  "dependencies": {
+    "mysql2": "^3.14.5",
+    "playwright": "^1.55.0"
+  }
+}

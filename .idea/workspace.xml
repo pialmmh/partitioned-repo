@@ -7,39 +7,35 @@
     <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.html" beforeDir="false" afterPath="$PROJECT_DIR$/README.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/annotation/Column.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/annotation/Id.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/annotation/Index.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/annotation/ShardingKey.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/annotation/Table.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/connection/ConnectionProvider.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/entity/ShardingEntity.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/logging/ConsoleLogger.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/logging/Logger.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/metadata/EntityMetadata.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/metadata/FieldMetadata.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/DefaultMonitoringService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/MetricsCollector.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/MonitoringConfig.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/MonitoringService.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/RepositoryMetrics.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/monitoring/SimpleHttpMetricsServer.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/pagination/Page.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/pagination/PageRequest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/query/QueryDSL.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/GenericMultiTableRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/GenericPartitionedTableRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/PartitionedQueryBuilder.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/db/repository/ShardingRepository.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/CitizenExtendedMonitoringExample.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/CitizenExtendedMonitoringExample.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/OrderPartitionedConsoleExample.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/OrderPartitionedConsoleExample.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/SmsMultiTableConsoleExample.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/SmsMultiTableConsoleExample.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/deprecated/MultiTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/deprecated/MultiTableRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/deprecated/PartitionedTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/deprecated/PartitionedTableRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/CitizenEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/CitizenEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/OrderEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/OrderEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/SmsEntity.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/SmsEntity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/Student.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/entity/Student.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/RepositoryProxyExample.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/RepositoryProxyExample.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/application/ApplicationFeaturesTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/application/BasicApplicationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/application/EssentialFeaturesTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/connection/ConnectionProviderTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/logging/SimpleLoggingTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/maintenance/MaintenanceLockingIntegrationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/metadata/EntityMetadataTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/monitoring/MonitoringSystemIntegrationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/performance/RepositoryPerformanceTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/repository/GenericMultiTableRepositoryIntegrationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/repository/GenericPartitionedTableRepositoryIntegrationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/AutoMaintenanceStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/ConnectionPoolingStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/FullTableScanStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/MultiTableArchitectureStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/PartitioningStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/SingleTablePartitionStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/StressTestRunner.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/test/BaseIntegrationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/test/entity/SimpleTestEntity.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/test/entity/TestEntity.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/BaseRepositoryTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/ConcurrentOperationsTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/DataIntegrityTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/MultiTableRepositoryTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/PartitionedTableRepositoryTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/PerformanceStressTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/TestRunner.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,7 +69,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/mustafa/telcobright-projects/routesphere/partitioned-repo&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/mustafa/telcobright-projects/blueprint&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -152,7 +148,8 @@
       <workItem from="1754837263976" duration="3341000" />
       <workItem from="1756473348697" duration="930000" />
       <workItem from="1756904845515" duration="924000" />
-      <workItem from="1756915223809" duration="2774000" />
+      <workItem from="1756915223809" duration="8207000" />
+      <workItem from="1757328039953" duration="598000" />
     </task>
     <servers />
   </component>

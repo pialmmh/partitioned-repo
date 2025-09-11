@@ -13,11 +13,10 @@ import java.util.List;
  * This class provides a unified interface for both multi-table and partitioned table strategies.
  * 
  * @param <T> Entity type that must implement ShardingEntity
- * @param <K> Primary key type
  */
-public class RepositoryProxy<T extends ShardingEntity<K>, K> implements ShardingRepository<T, K> {
+public class RepositoryProxy<T extends ShardingEntity> implements ShardingRepository<T> {
     
-    private final ShardingRepository<T, K> delegate;
+    private final ShardingRepository<T> delegate;
     private final RepositoryType type;
     
     public enum RepositoryType {
@@ -25,7 +24,7 @@ public class RepositoryProxy<T extends ShardingEntity<K>, K> implements Sharding
         PARTITIONED_TABLE
     }
     
-    private RepositoryProxy(ShardingRepository<T, K> delegate, RepositoryType type) {
+    private RepositoryProxy(ShardingRepository<T> delegate, RepositoryType type) {
         this.delegate = delegate;
         this.type = type;
     }
@@ -33,16 +32,16 @@ public class RepositoryProxy<T extends ShardingEntity<K>, K> implements Sharding
     /**
      * Create a proxy for a multi-table repository
      */
-    public static <T extends ShardingEntity<K>, K> RepositoryProxy<T, K> forMultiTable(
-            GenericMultiTableRepository<T, K> repository) {
+    public static <T extends ShardingEntity> RepositoryProxy<T> forMultiTable(
+            GenericMultiTableRepository<T> repository) {
         return new RepositoryProxy<>(repository, RepositoryType.MULTI_TABLE);
     }
     
     /**
      * Create a proxy for a partitioned table repository
      */
-    public static <T extends ShardingEntity<K>, K> RepositoryProxy<T, K> forPartitionedTable(
-            GenericPartitionedTableRepository<T, K> repository) {
+    public static <T extends ShardingEntity> RepositoryProxy<T> forPartitionedTable(
+            GenericPartitionedTableRepository<T> repository) {
         return new RepositoryProxy<>(repository, RepositoryType.PARTITIONED_TABLE);
     }
     
@@ -69,7 +68,7 @@ public class RepositoryProxy<T extends ShardingEntity<K>, K> implements Sharding
     }
     
     @Override
-    public T findById(K id) throws SQLException {
+    public T findById(String id) throws SQLException {
         return delegate.findById(id);
     }
     
@@ -79,7 +78,7 @@ public class RepositoryProxy<T extends ShardingEntity<K>, K> implements Sharding
     }
     
     @Override
-    public List<T> findAllByIdsAndDateRange(List<K> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         return delegate.findAllByIdsAndDateRange(ids, startDate, endDate);
     }
     
@@ -94,22 +93,22 @@ public class RepositoryProxy<T extends ShardingEntity<K>, K> implements Sharding
     }
     
     @Override
-    public void updateById(K id, T entity) throws SQLException {
+    public void updateById(String id, T entity) throws SQLException {
         delegate.updateById(id, entity);
     }
     
     @Override
-    public void updateByIdAndDateRange(K id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         delegate.updateByIdAndDateRange(id, entity, startDate, endDate);
     }
     
     @Override
-    public T findOneByIdGreaterThan(K id) throws SQLException {
+    public T findOneByIdGreaterThan(String id) throws SQLException {
         return delegate.findOneByIdGreaterThan(id);
     }
     
     @Override
-    public List<T> findBatchByIdGreaterThan(K id, int batchSize) throws SQLException {
+    public List<T> findBatchByIdGreaterThan(String id, int batchSize) throws SQLException {
         return delegate.findBatchByIdGreaterThan(id, batchSize);
     }
     
@@ -123,7 +122,7 @@ public class RepositoryProxy<T extends ShardingEntity<K>, K> implements Sharding
      * Use with caution - this exposes internal implementation details
      */
     @SuppressWarnings("unchecked")
-    public <R extends ShardingRepository<T, K>> R getDelegate() {
+    public <R extends ShardingRepository<T>> R getDelegate() {
         return (R) delegate;
     }
 }

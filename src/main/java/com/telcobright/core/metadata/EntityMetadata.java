@@ -13,9 +13,8 @@ import java.util.*;
 /**
  * Metadata holder for entity class information, parsed once at startup
  */
-public class EntityMetadata<T, K> {
+public class EntityMetadata<T> {
     private final Class<T> entityClass;
-    private final Class<K> keyClass;
     private final String tableName;
     private final List<FieldMetadata> fields;
     private final FieldMetadata idField;
@@ -27,9 +26,8 @@ public class EntityMetadata<T, K> {
     private final Map<String, Integer> insertParameterIndex;
     private final Map<String, Integer> updateParameterIndex;
 
-    public EntityMetadata(Class<T> entityClass, Class<K> keyClass) {
+    public EntityMetadata(Class<T> entityClass) {
         this.entityClass = entityClass;
-        this.keyClass = keyClass;
         this.fields = new ArrayList<>();
         this.insertParameterIndex = new HashMap<>();
         this.updateParameterIndex = new HashMap<>();
@@ -213,12 +211,7 @@ public class EntityMetadata<T, K> {
                .append(" (").append(shardingKeyField.getColumnName()).append(")");
         }
         
-        // Add composite index for common query patterns (id, sharding_key)
-        if (idField != null && shardingKeyField != null) {
-            sql.append(", KEY idx_id_created_at (")
-               .append(idField.getColumnName()).append(", ")
-               .append(shardingKeyField.getColumnName()).append(")");
-        }
+        // No composite index needed - single String ID only
         
         // Add custom indexes from @Index annotations
         for (FieldMetadata field : fields) {
@@ -252,7 +245,7 @@ public class EntityMetadata<T, K> {
         }
     }
     
-    public void setUpdateParameters(PreparedStatement stmt, T entity, K id) throws SQLException {
+    public void setUpdateParameters(PreparedStatement stmt, T entity, String id) throws SQLException {
         // Set all updatable field values
         for (FieldMetadata field : fields) {
             if (!field.isId() && field.isUpdatable()) {
@@ -345,15 +338,14 @@ public class EntityMetadata<T, K> {
     public FieldMetadata getShardingKeyField() { return shardingKeyField; }
     public List<FieldMetadata> getFields() { return fields; }
     
-    @SuppressWarnings("unchecked")
-    public K getId(T entity) {
+    public String getId(T entity) {
         if (idField == null) {
             return null;
         }
-        return (K) idField.getValue(entity);
+        return (String) idField.getValue(entity);
     }
     
-    public void setId(T entity, K id) {
+    public void setId(T entity, String id) {
         if (idField != null) {
             idField.setValue(entity, id);
         }

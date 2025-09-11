@@ -39,9 +39,9 @@ public class CitizenExtendedMonitoringExample {
             .build();
         
         // Create Citizen repository with extended monitoring
-        GenericPartitionedTableRepository<CitizenEntity, Long> citizenRepo = null;
+        GenericPartitionedTableRepository<CitizenEntity> citizenRepo = null;
         try {
-            citizenRepo = GenericPartitionedTableRepository.<CitizenEntity, Long>builder(CitizenEntity.class, Long.class)
+            citizenRepo = GenericPartitionedTableRepository.<CitizenEntity>builder(CitizenEntity.class)
                 .host("127.0.0.1")
                 .port(3306)
                 .database("government")
@@ -156,7 +156,7 @@ public class CitizenExtendedMonitoringExample {
             
             // 5. Multiple ID lookups (demonstrates batch operation metrics)
             if (recentCitizens.size() >= 2) {
-                List<Long> idsToFind = Arrays.asList(
+                List<String> idsToFind = Arrays.asList(
                     recentCitizens.get(0).getId(),
                     recentCitizens.get(1).getId()
                 );

@@ -415,6 +415,7 @@
                 </li>
                 <li><a href="#api-reference">API Reference</a>
                     <ul>
+                        <li><a href="#repository-proxy" class="level-2">RepositoryProxy - Unified Interface</a></li>
                         <li><a href="#multitable-api" class="level-2">MultiTableRepository API</a></li>
                         <li><a href="#partitioned-api" class="level-2">PartitionedTableRepository API</a></li>
                     </ul>
@@ -719,10 +720,12 @@ GenericPartitionedTableRepository&lt;Order, Long&gt; repo2 =
                     <ul>
                         <li><code>void insert(TEntity entity)</code> - Insert single entity</li>
                         <li><code>void insertMultiple(List&lt;TEntity&gt; entities)</code> - Batch insert with optimization</li>
-                        <li><code>List&lt;TEntity&gt; findByDateRange(LocalDateTime start, LocalDateTime end)</code> - Date range queries</li>
+                        <li><code>List&lt;TEntity&gt; findAllByDateRange(LocalDateTime start, LocalDateTime end)</code> - Date range queries</li>
                         <li><code>TEntity findById(TKey id)</code> - Find by primary key</li>
                         <li><code>TEntity findByIdAndDateRange(LocalDateTime start, LocalDateTime end)</code> - First entity in range</li>
-                        <li><code>List&lt;TEntity&gt; findBeforeDate(LocalDateTime before)</code> - Historical data queries</li>
+                        <li><code>List&lt;TEntity&gt; findAllBeforeDate(LocalDateTime before)</code> - Historical data queries</li>
+                        <li><code>List&lt;TEntity&gt; findAllAfterDate(LocalDateTime after)</code> - Future data queries</li>
+                        <li><code>List&lt;TEntity&gt; findAllByIdsAndDateRange(List&lt;TKey&gt; ids, LocalDateTime start, LocalDateTime end)</code> - Bulk ID lookup within date range</li>
                         <li><code>void updateById(TKey id, TEntity entity)</code> - Update entity by primary key</li>
                         <li><code>void updateByIdAndDateRange(TKey id, TEntity entity, LocalDateTime start, LocalDateTime end)</code> - Update with date constraint</li>
                     </ul>
@@ -1573,7 +1576,7 @@ long totalMessages = smsRepo.countByDateRange(
 SmsEntity foundSms = smsRepo.findById(12345L);
 
 // 6. Find recent SMS messages
-List&lt;SmsEntity&gt; recentSms = smsRepo.findByDateRange(
+List&lt;SmsEntity&gt; recentSms = smsRepo.findAllByDateRange(
     LocalDateTime.now().minusDays(7), LocalDateTime.now());
 
 // 7. Console monitoring output (automatic every 5 minutes):
@@ -1653,7 +1656,7 @@ OrderEntity order = new OrderEntity("CUST001", "ORD-2025-001",
 orderRepo.insert(order);  // Auto-generates: INSERT INTO ecommerce.orders (customer_id, order_number, total_amount, status, payment_method, shipping_address, created_at, item_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 
 // 4. Type-safe queries with automatic partition pruning
-List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
+List&lt;OrderEntity&gt; recentOrders = orderRepo.findAllByDateRange(
     LocalDateTime.now().minusDays(7),
     LocalDateTime.now() 
 );
@@ -1662,13 +1665,55 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
 OrderEntity foundOrder = orderRepo.findById(67890L);
 
 // 6. Find recent orders 
-List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
+List&lt;OrderEntity&gt; recentOrders = orderRepo.findAllByDateRange(
     LocalDateTime.now().minusDays(30), LocalDateTime.now());</code></pre>
                 </div>
             </section>
 
             <section id="api-reference" class="section">
                 <h2>Public API Reference</h2>
+                
+                <div id="repository-proxy">
+                    <h3>RepositoryProxy - Unified Interface</h3>
+                    <p>The <code>RepositoryProxy</code> provides a unified way to work with both repository types through the common <code>ShardingRepository&lt;T, K&gt;</code> interface, enabling polymorphic usage and easier testing.</p>
+                    
+                    <div class="api-method">
+                        <h5>RepositoryProxy.forMultiTable(GenericMultiTableRepository&lt;T, K&gt; repository)</h5>
+                        <p>Create a proxy wrapper around a multi-table repository instance</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>RepositoryProxy.forPartitionedTable(GenericPartitionedTableRepository&lt;T, K&gt; repository)</h5>
+                        <p>Create a proxy wrapper around a partitioned table repository instance</p>
+                    </div>
+                    
+                    <div class="code-example">
+                        <pre><code>// Create repositories with different strategies
+GenericMultiTableRepository&lt;SmsEntity, Long&gt; smsRepo = 
+    GenericMultiTableRepository.&lt;SmsEntity, Long&gt;builder(SmsEntity.class, Long.class)
+        .host("127.0.0.1").port(3306).database("messaging")
+        .username("root").password("password").tablePrefix("sms").build();
+
+GenericPartitionedTableRepository&lt;OrderEntity, Long&gt; orderRepo = 
+    GenericPartitionedTableRepository.&lt;OrderEntity, Long&gt;builder(OrderEntity.class, Long.class)
+        .host("127.0.0.1").port(3306).database("ecommerce")
+        .username("root").password("password").tableName("orders").build();
+
+// Use unified interface through proxy
+ShardingRepository&lt;SmsEntity, Long&gt; smsProxy = RepositoryProxy.forMultiTable(smsRepo);
+ShardingRepository&lt;OrderEntity, Long&gt; orderProxy = RepositoryProxy.forPartitionedTable(orderRepo);
+
+// Both can now be used identically through ShardingRepository interface
+processThroughUnifiedInterface(smsProxy);
+processThroughUnifiedInterface(orderProxy);
+
+private void processThroughUnifiedInterface(ShardingRepository&lt;? extends ShardingEntity&lt;Long&gt;, Long&gt; repo) {
+    // Works with any repository type
+    var entities = repo.findAllByDateRange(LocalDateTime.now().minusDays(7), LocalDateTime.now());
+    System.out.println("Found " + entities.size() + " entities");
+}</code></pre>
+                    </div>
+                </div>
 
                 <div id="multitable-api">
                     <h3>GenericMultiTableRepository&lt;TEntity, TKey&gt; API</h3>
@@ -1694,7 +1739,7 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;TEntity&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <h5>List&lt;TEntity&gt; findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
                         <p>Find entities by date range with automatic table selection and UNION ALL queries</p>
                     </div>
                     
@@ -1709,8 +1754,18 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;TEntity&gt; findBeforeDate(LocalDateTime beforeDate)</h5>
+                        <h5>List&lt;TEntity&gt; findAllBeforeDate(LocalDateTime beforeDate)</h5>
                         <p>Find all entities created before the specified date</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findAllAfterDate(LocalDateTime afterDate)</h5>
+                        <p>Find all entities created after the specified date</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findAllByIdsAndDateRange(List&lt;TKey&gt; ids, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find all entities with specified IDs within the given date range. Combines ID filtering with date range optimization for bulk lookups.</p>
                     </div>
                     
                     <div class="api-method">
@@ -1758,7 +1813,7 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;TEntity&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <h5>List&lt;TEntity&gt; findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate)</h5>
                         <p>Find entities by date range with MySQL partition pruning</p>
                     </div>
                     
@@ -1773,8 +1828,18 @@ List&lt;OrderEntity&gt; recentOrders = orderRepo.findByDateRange(
                     </div>
                     
                     <div class="api-method">
-                        <h5>List&lt;TEntity&gt; findBeforeDate(LocalDateTime beforeDate)</h5>
+                        <h5>List&lt;TEntity&gt; findAllBeforeDate(LocalDateTime beforeDate)</h5>
                         <p>Find all entities created before the specified date</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findAllAfterDate(LocalDateTime afterDate)</h5>
+                        <p>Find all entities created after the specified date</p>
+                    </div>
+                    
+                    <div class="api-method">
+                        <h5>List&lt;TEntity&gt; findAllByIdsAndDateRange(List&lt;TKey&gt; ids, LocalDateTime startDate, LocalDateTime endDate)</h5>
+                        <p>Find all entities with specified IDs within the given date range. Combines ID filtering with date range optimization for bulk lookups.</p>
                     </div>
                     
                     <div class="api-method">
@@ -1836,10 +1901,18 @@ SmsEntity sms = smsRepo.findById(12345L);
 OrderEntity order = orderRepo.findById(67890L);
 
 // Find entities in date range
-List&lt;SmsEntity&gt; recentSms = smsRepo.findByDateRange(startDate, endDate);
+List&lt;SmsEntity&gt; recentSms = smsRepo.findAllByDateRange(startDate, endDate);
 
 // Find entities before specific date
-List&lt;OrderEntity&gt; oldOrders = orderRepo.findBeforeDate(cutoffDate);
+List&lt;OrderEntity&gt; oldOrders = orderRepo.findAllBeforeDate(cutoffDate);
+
+// Find entities after specific date
+List&lt;OrderEntity&gt; recentOrders = orderRepo.findAllAfterDate(LocalDateTime.now().minusDays(7));
+
+// Bulk ID lookup within date range
+List&lt;Long&gt; targetIds = Arrays.asList(1001L, 1002L, 1003L);
+List&lt;OrderEntity&gt; specificOrders = orderRepo.findAllByIdsAndDateRange(targetIds, 
+    LocalDateTime.now().minusDays(30), LocalDateTime.now());
 
 // Update an SMS entity by ID
 SmsEntity updatedSms = new SmsEntity();
@@ -1858,12 +1931,12 @@ orderRepo.updateByIdAndDateRange(67890L, updatedOrder,
                 <div id="batch-operations">
                     <h3>Batch Operations & Date Filtering</h3>
                     <pre><code>// Find multiple entities in date range
-List&lt;SmsEntity&gt; weeklyMessages = smsRepo.findByDateRange(
+List&lt;SmsEntity&gt; weeklyMessages = smsRepo.findAllByDateRange(
     LocalDateTime.now().minusDays(7), LocalDateTime.now());
 System.out.println("Found " + weeklyMessages.size() + " messages this week");
 
 // Find entities before specific date
-List&lt;OrderEntity&gt; archivedOrders = orderRepo.findBeforeDate(
+List&lt;OrderEntity&gt; archivedOrders = orderRepo.findAllBeforeDate(
     LocalDateTime.now().minusMonths(6));
 System.out.println("Found " + archivedOrders.size() + " archived orders");
 
@@ -1940,7 +2013,7 @@ System.out.println("Fetched " + smsBatch.size() + " SMS entities");</code></pre>
                                 <td>Full table scan across all tables/partitions</td>
                             </tr>
                             <tr>
-                                <td><code>findByDateRange(...)</code></td>
+                                <td><code>findAllByDateRange(...)</code></td>
                                 <td>FAST</td>
                                 <td>Date-range query with automatic table/partition selection</td>
                             </tr>
@@ -1956,7 +2029,7 @@ System.out.println("Fetched " + smsBatch.size() + " SMS entities");</code></pre>
                         <h4>Hybrid Approach Example</h4>
                         <pre><code>// If you know the approximate date, combine both approaches
 LocalDateTime suspectedDate = LocalDateTime.of(2025, 8, 15, 10, 30);
-List&lt;SmsEntity&gt; dateFilteredSms = smsRepo.findByDateRange(
+List&lt;SmsEntity&gt; dateFilteredSms = smsRepo.findAllByDateRange(
     suspectedDate.minusHours(12),
     suspectedDate.plusHours(12)
 );
@@ -2279,7 +2352,7 @@ MultiTableRepository&lt;Long&gt; smsRepo = MultiTableRepository.&lt;Long&gt;buil
     .build();
 
 // Track delivery rates by provider
-List&lt;SmsEntity&gt; todayMessages = smsRepo.findByDateRange(startDate, endDate);</code></pre>
+List&lt;SmsEntity&gt; todayMessages = smsRepo.findAllByDateRange(startDate, endDate);</code></pre>
                     </div>
 
                     <div class="feature-item">

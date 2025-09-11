@@ -18,8 +18,8 @@ public class RepositoryProxyExample {
     
     public static void main(String[] args) throws SQLException {
         // Example 1: Multi-Table Repository via Proxy
-        GenericMultiTableRepository<SmsEntity, Long> smsRepo = 
-            GenericMultiTableRepository.<SmsEntity, Long>builder(SmsEntity.class, Long.class)
+        GenericMultiTableRepository<SmsEntity> smsRepo = 
+            GenericMultiTableRepository.<SmsEntity>builder(SmsEntity.class)
                 .host("127.0.0.1")
                 .port(3306)
                 .database("test")
@@ -29,21 +29,21 @@ public class RepositoryProxyExample {
                 .partitionRetentionPeriod(7)
                 .build();
         
-        RepositoryProxy<SmsEntity, Long> smsProxy = RepositoryProxy.forMultiTable(smsRepo);
+        RepositoryProxy<SmsEntity> smsProxy = RepositoryProxy.forMultiTable(smsRepo);
         
         // Example 2: Partitioned Table Repository via Proxy
-        GenericPartitionedTableRepository<OrderEntity, Long> orderRepo = 
-            GenericPartitionedTableRepository.<OrderEntity, Long>builder(OrderEntity.class, Long.class)
+        GenericPartitionedTableRepository<OrderEntity> orderRepo = 
+            GenericPartitionedTableRepository.<OrderEntity>builder(OrderEntity.class)
                 .host("127.0.0.1")
                 .port(3306)
                 .database("test")
                 .username("root")
                 .password("123456")
                 .tableName("orders")
-                .partitionRetentionDays(30)
+                .partitionRetentionPeriod(30)
                 .build();
         
-        RepositoryProxy<OrderEntity, Long> orderProxy = RepositoryProxy.forPartitionedTable(orderRepo);
+        RepositoryProxy<OrderEntity> orderProxy = RepositoryProxy.forPartitionedTable(orderRepo);
         
         // Both repositories can now be used through the same ShardingRepository interface
         demonstrateCommonOperations(smsProxy, "SMS Repository");
@@ -55,7 +55,7 @@ public class RepositoryProxyExample {
         
         // Access underlying implementation if needed (use with caution)
         if (smsProxy.getType() == RepositoryProxy.RepositoryType.MULTI_TABLE) {
-            GenericMultiTableRepository<SmsEntity, Long> underlying = smsProxy.getDelegate();
+            GenericMultiTableRepository<SmsEntity> underlying = smsProxy.getDelegate();
             // Can access multi-table specific methods if needed
         }
         
@@ -67,8 +67,8 @@ public class RepositoryProxyExample {
     /**
      * Demonstrate common operations that work with any ShardingRepository
      */
-    private static <T extends com.telcobright.core.entity.ShardingEntity<K>, K> 
-            void demonstrateCommonOperations(ShardingRepository<T, K> repo, String repoName) {
+    private static <T extends com.telcobright.core.entity.ShardingEntity> 
+            void demonstrateCommonOperations(ShardingRepository<T> repo, String repoName) {
         
         try {
             System.out.println("\n=== " + repoName + " ===");
@@ -80,10 +80,10 @@ public class RepositoryProxyExample {
             System.out.println("Found " + entities.size() + " entities in last 7 days");
             
             // Cursor-based iteration
-            K cursor = null;
+            String cursor = null;
             T nextEntity = repo.findOneByIdGreaterThan(cursor);
             if (nextEntity != null) {
-                System.out.println("Found entity with ID: " + nextEntity.getId());
+                System.out.println("Found next entity using cursor-based iteration");
             }
             
             // Batch processing

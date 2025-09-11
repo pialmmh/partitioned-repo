@@ -42,9 +42,9 @@ public class SmsMultiTableConsoleExample {
             .build();
         
         // Create SMS repository with console monitoring
-        GenericMultiTableRepository<SmsEntity, Long> smsRepo = null;
+        GenericMultiTableRepository<SmsEntity> smsRepo = null;
         try {
-            smsRepo = GenericMultiTableRepository.<SmsEntity, Long>builder(SmsEntity.class, Long.class)
+            smsRepo = GenericMultiTableRepository.<SmsEntity>builder(SmsEntity.class)
                 .host("127.0.0.1")
                 .port(3306)
                 .database("messaging")

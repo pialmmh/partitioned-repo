@@ -54,9 +54,9 @@ public class OrderPartitionedConsoleExample {
             .build();
         
         // Create Order repository with console monitoring
-        GenericPartitionedTableRepository<OrderEntity, Long> orderRepo = null;
+        GenericPartitionedTableRepository<OrderEntity> orderRepo = null;
         try {
-            orderRepo = GenericPartitionedTableRepository.<OrderEntity, Long>builder(OrderEntity.class, Long.class)
+            orderRepo = GenericPartitionedTableRepository.<OrderEntity>builder(OrderEntity.class)
                 .host("127.0.0.1")
                 .port(3306)
                 .database("ecommerce")

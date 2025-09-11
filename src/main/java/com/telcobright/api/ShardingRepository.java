@@ -11,13 +11,14 @@ import java.util.List;
 /**
  * Common interface for sharding-aware repositories
  * 
- * Enforces that all entities used with this repository must implement ShardingEntity<K>,
- * which guarantees the presence of required 'id' and 'created_at' fields.
+ * Enforces that all entities used with this repository must implement ShardingEntity,
+ * which guarantees the presence of required getId/setId and getCreatedAt/setCreatedAt methods.
+ * 
+ * All IDs are String type (externally generated - NO AUTO_INCREMENT).
  * 
  * @param <T> Entity type that must implement ShardingEntity
- * @param <K> Primary key type
  */
-public interface ShardingRepository<T extends ShardingEntity<K>, K> {
+public interface ShardingRepository<T extends ShardingEntity> {
     
     /**
      * Insert a single entity
@@ -37,7 +38,7 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
     /**
      * Find entity by primary key
      */
-    T findById(K id) throws SQLException;
+    T findById(String id) throws SQLException;
     
     /**
      * Find first entity within a date range
@@ -47,7 +48,7 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
     /**
      * Find all entities with specific IDs within a date range
      */
-    List<T> findAllByIdsAndDateRange(List<K> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
     
     /**
      * Find all entities before a specific date
@@ -62,12 +63,12 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
     /**
      * Update entity by primary key
      */
-    void updateById(K id, T entity) throws SQLException;
+    void updateById(String id, T entity) throws SQLException;
     
     /**
      * Update entity by primary key within a specific date range
      */
-    void updateByIdAndDateRange(K id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
     
     /**
      * Find one entity with ID greater than the specified ID.
@@ -78,7 +79,7 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
      * @param id The ID to search greater than
      * @return The first entity found with ID greater than specified ID, or null if none found
      */
-    T findOneByIdGreaterThan(K id) throws SQLException;
+    T findOneByIdGreaterThan(String id) throws SQLException;
     
     /**
      * Find batch of entities with ID greater than the specified ID.
@@ -90,7 +91,7 @@ public interface ShardingRepository<T extends ShardingEntity<K>, K> {
      * @param batchSize Maximum number of entities to return
      * @return List of entities with ID greater than specified ID, up to batchSize
      */
-    List<T> findBatchByIdGreaterThan(K id, int batchSize) throws SQLException;
+    List<T> findBatchByIdGreaterThan(String id, int batchSize) throws SQLException;
     
     /**
      * Shutdown the repository and release resources
