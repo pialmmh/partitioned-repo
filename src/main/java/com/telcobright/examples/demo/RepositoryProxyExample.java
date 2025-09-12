@@ -2,8 +2,8 @@ package com.telcobright.examples.demo;
 
 import com.telcobright.api.RepositoryProxy;
 import com.telcobright.api.ShardingRepository;
-import com.telcobright.core.repository.GenericMultiTableRepository;
-import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.examples.entity.OrderEntity;
 import com.telcobright.examples.entity.SmsEntity;
 
@@ -17,47 +17,57 @@ import java.util.List;
 public class RepositoryProxyExample {
     
     public static void main(String[] args) throws SQLException {
-        // Example 1: Multi-Table Repository via Proxy
-        GenericMultiTableRepository<SmsEntity> smsRepo = 
-            GenericMultiTableRepository.<SmsEntity>builder(SmsEntity.class)
-                .host("127.0.0.1")
-                .port(3306)
-                .database("test")
-                .username("root")
-                .password("123456")
-                .tablePrefix("sms")
-                .partitionRetentionPeriod(7)
+        // Example 1: SMS Repository via Split-Verse Proxy
+        ShardConfig smsShardConfig = ShardConfig.builder()
+            .shardId("sms-primary")
+            .host("127.0.0.1")
+            .port(3306)
+            .database("test")
+            .username("root")
+            .password("123456")
+            .connectionPoolSize(10)
+            .enabled(true)
+            .build();
+        
+        SplitVerseRepository<SmsEntity> smsRepo = 
+            SplitVerseRepository.<SmsEntity>builder()
+                .withSingleShard(smsShardConfig)
+                .withEntityClass(SmsEntity.class)
                 .build();
         
-        RepositoryProxy<SmsEntity> smsProxy = RepositoryProxy.forMultiTable(smsRepo);
+        // SplitVerseRepository implements ShardingRepository, so can be used directly
+        ShardingRepository<SmsEntity> smsProxy = smsRepo;
         
-        // Example 2: Partitioned Table Repository via Proxy
-        GenericPartitionedTableRepository<OrderEntity> orderRepo = 
-            GenericPartitionedTableRepository.<OrderEntity>builder(OrderEntity.class)
-                .host("127.0.0.1")
-                .port(3306)
-                .database("test")
-                .username("root")
-                .password("123456")
-                .tableName("orders")
-                .partitionRetentionPeriod(30)
+        // Example 2: Order Repository via Split-Verse Proxy
+        ShardConfig orderShardConfig = ShardConfig.builder()
+            .shardId("order-primary")
+            .host("127.0.0.1")
+            .port(3306)
+            .database("test")
+            .username("root")
+            .password("123456")
+            .connectionPoolSize(10)
+            .enabled(true)
+            .build();
+        
+        SplitVerseRepository<OrderEntity> orderRepo = 
+            SplitVerseRepository.<OrderEntity>builder()
+                .withSingleShard(orderShardConfig)
+                .withEntityClass(OrderEntity.class)
                 .build();
         
-        RepositoryProxy<OrderEntity> orderProxy = RepositoryProxy.forPartitionedTable(orderRepo);
+        // SplitVerseRepository implements ShardingRepository, so can be used directly
+        ShardingRepository<OrderEntity> orderProxy = orderRepo;
         
         // Both repositories can now be used through the same ShardingRepository interface
         demonstrateCommonOperations(smsProxy, "SMS Repository");
         demonstrateCommonOperations(orderProxy, "Order Repository");
         
-        // Check repository type if needed
-        System.out.println("SMS Repo Type: " + smsProxy.getType());
-        System.out.println("Order Repo Type: " + orderProxy.getType());
+        // With Split-Verse, all repositories are sharding-aware by default
+        System.out.println("SMS Repository: Split-Verse sharding enabled");
+        System.out.println("Order Repository: Split-Verse sharding enabled");
         
-        // Access underlying implementation if needed (use with caution)
-        if (smsProxy.getType() == RepositoryProxy.RepositoryType.MULTI_TABLE) {
-            GenericMultiTableRepository<SmsEntity> underlying = smsProxy.getDelegate();
-            // Can access multi-table specific methods if needed
-        }
+        // Split-Verse handles all sharding internally - no need to access underlying implementation
         
         // Cleanup
         smsProxy.shutdown();

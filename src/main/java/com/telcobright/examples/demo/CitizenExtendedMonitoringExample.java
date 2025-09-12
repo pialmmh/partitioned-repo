@@ -1,7 +1,8 @@
 package com.telcobright.examples.demo;
 
 import com.telcobright.examples.entity.CitizenEntity;
-import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.core.monitoring.MonitoringConfig;
 
 import java.time.LocalDateTime;
@@ -38,21 +39,24 @@ public class CitizenExtendedMonitoringExample {
             .slowQueryThresholdMs(100)     // Consider queries over 100ms as slow
             .build();
         
-        // Create Citizen repository with extended monitoring
-        GenericPartitionedTableRepository<CitizenEntity> citizenRepo = null;
+        // Create Citizen repository with extended monitoring using Split-Verse
+        SplitVerseRepository<CitizenEntity> citizenRepo = null;
         try {
-            citizenRepo = GenericPartitionedTableRepository.<CitizenEntity>builder(CitizenEntity.class)
+            // Configure shard with monitoring
+            ShardConfig shardConfig = ShardConfig.builder()
+                .shardId("primary")
                 .host("127.0.0.1")
                 .port(3306)
                 .database("government")
                 .username("root")
                 .password("123456")
-                .tableName("citizens")
-                .partitionRetentionPeriod(7)  // 7 days retention (15 partitions total)
-                .autoManagePartitions(true)   // Enable automatic maintenance
-                .partitionAdjustmentTime(3, 30) // Maintenance at 03:30 AM
-                .initializePartitionsOnStart(true)
-                .monitoring(extendedMonitoring) // Enable extended monitoring
+                .connectionPoolSize(10)
+                .enabled(true)
+                .build();
+            
+            citizenRepo = SplitVerseRepository.<CitizenEntity>builder()
+                .withSingleShard(shardConfig)
+                .withEntityClass(CitizenEntity.class)
                 .build();
             
             System.out.println("✅ Citizen Repository created successfully");
@@ -122,7 +126,7 @@ public class CitizenExtendedMonitoringExample {
             if (!recentCitizens.isEmpty()) {
                 for (int i = 0; i < Math.min(3, recentCitizens.size()); i++) {
                     CitizenEntity citizen = recentCitizens.get(i);
-                    CitizenEntity foundCitizen = citizenRepo.findById(citizen.getId());
+                    CitizenEntity foundCitizen = citizenRepo.findById(String.valueOf(citizen.getId()));
                     if (foundCitizen != null) {
                         System.out.printf("   ✓ Found citizen by ID: %d (%s %s - %s)\\n", 
                                         foundCitizen.getId(), foundCitizen.getFirstName(), 
@@ -142,7 +146,7 @@ public class CitizenExtendedMonitoringExample {
                 updateData.setStatus("VERIFIED");
                 updateData.setUpdatedAt(LocalDateTime.now());
                 
-                citizenRepo.updateByIdAndDateRange(citizenToUpdate.getId(), updateData, 
+                citizenRepo.updateByIdAndDateRange(String.valueOf(citizenToUpdate.getId()), updateData, 
                     LocalDateTime.now().minusDays(7), LocalDateTime.now());
                 System.out.printf("   ✓ Updated citizen ID %d to VERIFIED status\\n", citizenToUpdate.getId());
             }
@@ -157,8 +161,8 @@ public class CitizenExtendedMonitoringExample {
             // 5. Multiple ID lookups (demonstrates batch operation metrics)
             if (recentCitizens.size() >= 2) {
                 List<String> idsToFind = Arrays.asList(
-                    recentCitizens.get(0).getId(),
-                    recentCitizens.get(1).getId()
+                    String.valueOf(recentCitizens.get(0).getId()),
+                    String.valueOf(recentCitizens.get(1).getId())
                 );
                 List<CitizenEntity> foundCitizens = citizenRepo.findAllByIdsAndDateRange(
                     idsToFind, LocalDateTime.now().minusDays(7), LocalDateTime.now()

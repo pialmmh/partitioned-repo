@@ -1,7 +1,8 @@
 package com.telcobright.examples.demo;
 
 import com.telcobright.examples.entity.SmsEntity;
-import com.telcobright.core.repository.GenericMultiTableRepository;
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.core.monitoring.MonitoringConfig;
 
 import java.math.BigDecimal;
@@ -41,21 +42,24 @@ public class SmsMultiTableConsoleExample {
             .instanceId("sms-server-01")
             .build();
         
-        // Create SMS repository with console monitoring
-        GenericMultiTableRepository<SmsEntity> smsRepo = null;
+        // Create SMS repository with console monitoring using Split-Verse
+        SplitVerseRepository<SmsEntity> smsRepo = null;
         try {
-            smsRepo = GenericMultiTableRepository.<SmsEntity>builder(SmsEntity.class)
+            // Configure shard
+            ShardConfig shardConfig = ShardConfig.builder()
+                .shardId("primary")
                 .host("127.0.0.1")
                 .port(3306)
                 .database("messaging")
                 .username("root")
                 .password("123456")
-                .tablePrefix("sms")
-                .partitionRetentionPeriod(7)  // 7 days retention (15 tables total)
-                .autoManagePartitions(true)   // Enable automatic maintenance
-                .partitionAdjustmentTime(4, 0) // Maintenance at 04:00 AM
-                .initializePartitionsOnStart(true)
-                .monitoring(consoleMonitoring) // Enable console monitoring
+                .connectionPoolSize(10)
+                .enabled(true)
+                .build();
+            
+            smsRepo = SplitVerseRepository.<SmsEntity>builder()
+                .withSingleShard(shardConfig)
+                .withEntityClass(SmsEntity.class)
                 .build();
             
             System.out.println("✅ SMS Repository created successfully");

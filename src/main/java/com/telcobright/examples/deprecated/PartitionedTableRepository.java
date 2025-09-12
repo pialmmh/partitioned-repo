@@ -186,7 +186,7 @@ public class PartitionedTableRepository<T> {
             
             try (ResultSet keys = stmt.getGeneratedKeys()) {
                 if (keys.next()) {
-                    order.setId(keys.getLong(1));
+                    order.setId(String.valueOf(keys.getLong(1)));
                 }
             }
         }
@@ -729,7 +729,7 @@ public class PartitionedTableRepository<T> {
     
     private OrderEntity mapOrderEntity(ResultSet rs) throws SQLException {
         OrderEntity order = new OrderEntity();
-        order.setId(rs.getLong("id"));
+        order.setId(String.valueOf(rs.getLong("id")));
         order.setCustomerId(rs.getString("customer_id"));
         order.setOrderNumber(rs.getString("order_number"));
         order.setTotalAmount(rs.getBigDecimal("total_amount"));

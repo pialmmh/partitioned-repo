@@ -183,7 +183,7 @@ public class MultiTableRepository<T> {
             
             try (ResultSet keys = stmt.getGeneratedKeys()) {
                 if (keys.next()) {
-                    sms.setId(keys.getLong(1));
+                    sms.setId(String.valueOf(keys.getLong(1)));
                 }
             }
         }
@@ -706,7 +706,7 @@ public class MultiTableRepository<T> {
     
     private SmsEntity mapSmsEntity(ResultSet rs) throws SQLException {
         SmsEntity sms = new SmsEntity();
-        sms.setId(rs.getLong("id"));
+        sms.setId(String.valueOf(rs.getLong("id")));
         sms.setUserId(rs.getString("user_id"));
         sms.setPhoneNumber(rs.getString("phone_number"));
         sms.setMessage(rs.getString("message"));

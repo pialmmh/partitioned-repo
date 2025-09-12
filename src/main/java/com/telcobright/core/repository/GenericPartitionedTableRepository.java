@@ -9,6 +9,9 @@ import com.telcobright.core.pagination.PageRequest;
 import com.telcobright.core.query.QueryDSL;
 import com.telcobright.core.connection.ConnectionProvider;
 import com.telcobright.core.connection.ConnectionProvider.MaintenanceConnection;
+import com.telcobright.core.partition.PartitionType;
+import com.telcobright.core.partition.PartitionStrategy;
+import com.telcobright.core.partition.PartitionStrategyFactory;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -442,10 +445,17 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
         String idColumn = metadata.getIdField().getColumnName();
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         
+        // Handle both VARCHAR and BIGINT primary keys
+        createSQL = createSQL.replace(idColumn + " VARCHAR(255) PRIMARY KEY", 
+                                     idColumn + " VARCHAR(255)");
         createSQL = createSQL.replace(idColumn + " BIGINT PRIMARY KEY AUTO_INCREMENT", 
                                      idColumn + " BIGINT AUTO_INCREMENT");
         
-        // For partitioning, we don't need composite key - just add PARTITION BY clause
+        // Add composite primary key with both ID and sharding column
+        createSQL = createSQL.replace(", KEY idx_" + shardingColumn, 
+                                     ", PRIMARY KEY (" + idColumn + ", " + shardingColumn + "), KEY idx_" + shardingColumn);
+        
+        // Add PARTITION BY clause
         createSQL = createSQL.replace(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4\nPARTITION BY RANGE (TO_DAYS(" + shardingColumn + "))");
         
@@ -708,7 +718,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     /**
      * Builder for GenericPartitionedTableRepository
      */
-    public static class Builder<T extends ShardingEntity> {
+    static class Builder<T extends ShardingEntity> {
         private final Class<T> entityClass;
         private String host = "localhost";
         private int port = 3306;
@@ -724,7 +734,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
         private Logger logger;
         
         
-        public Builder(Class<T> entityClass) {
+        Builder(Class<T> entityClass) {
             this.entityClass = entityClass;
         }
         
@@ -805,7 +815,8 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     /**
      * Create a new builder
      */
-    public static <T extends ShardingEntity> Builder<T> builder(Class<T> entityClass) {
+    // Package-private factory method - only SplitVerseRepository can use this
+    static <T extends ShardingEntity> Builder<T> builder(Class<T> entityClass) {
         return new Builder<>(entityClass);
     }
 }

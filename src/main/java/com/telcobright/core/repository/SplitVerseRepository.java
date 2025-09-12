@@ -1,8 +1,11 @@
-package com.telcobright.splitverse;
+package com.telcobright.core.repository;
 
 import com.telcobright.api.ShardingRepository;
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.partition.PartitionType;
+import com.telcobright.core.partition.PartitionStrategy;
+import com.telcobright.core.partition.PartitionStrategyFactory;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.routing.HashRouter;
 
@@ -28,10 +31,14 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     private final Class<T> entityClass;
     private final String[] shardIds;
     private final ExecutorService executorService;
+    private final PartitionType partitionType;
+    private final String partitionKeyColumn;
     
     private SplitVerseRepository(Builder<T> builder) {
         this.entityClass = builder.entityClass;
         this.shardConfigs = builder.shardConfigs;
+        this.partitionType = builder.getPartitionType();
+        this.partitionKeyColumn = builder.getPartitionKeyColumn();
         this.shardRepositories = new HashMap<>();
         this.router = new HashRouter(builder.shardConfigs.size());
         this.executorService = Executors.newFixedThreadPool(
@@ -43,7 +50,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         for (ShardConfig config : shardConfigs) {
             if (config.isEnabled()) {
                 try {
-                    ShardingRepository<T> shardRepo = createShardRepository(config);
+                    ShardingRepository<T> shardRepo = createShardRepository(config, builder);
                     shardRepositories.put(config.getShardId(), shardRepo);
                     activeShardIds.add(config.getShardId());
                     System.out.println("[SplitVerse] Initialized shard: " + config.getShardId());
@@ -64,7 +71,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             " active shard(s)");
     }
     
-    private ShardingRepository<T> createShardRepository(ShardConfig config) {
+    private ShardingRepository<T> createShardRepository(ShardConfig config, Builder<T> builder) {
         // For now, create GenericPartitionedTableRepository for each shard
         // In future, this can be configurable (partitioned vs multi-table)
         
@@ -88,6 +95,8 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             .password(config.getPassword())
             .tableName(tableName)
             .partitionRetentionPeriod(30) // Configurable in future
+            .partitionType(builder.getPartitionType())
+            .partitionKeyColumn(builder.getPartitionKeyColumn())
             .build();
     }
     
@@ -376,6 +385,8 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     public static class Builder<T extends ShardingEntity> {
         private List<ShardConfig> shardConfigs = new ArrayList<>();
         private Class<T> entityClass;
+        private PartitionType partitionType = PartitionType.DATE_BASED; // Default
+        private String partitionKeyColumn = "created_at"; // Default for date-based
         
         public Builder<T> withSingleShard(ShardConfig config) {
             this.shardConfigs = Collections.singletonList(config);
@@ -392,6 +403,39 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             return this;
         }
         
+        /**
+         * Set the partition type for tables within each shard.
+         * Default is DATE_BASED. Other types are not yet implemented.
+         * 
+         * @param partitionType Type of partitioning to use
+         * @return Builder instance
+         * @throws UnsupportedOperationException if partition type is not implemented
+         */
+        public Builder<T> withPartitionType(PartitionType partitionType) {
+            if (partitionType == null) {
+                throw new IllegalArgumentException("Partition type cannot be null");
+            }
+            // Validate that the partition type is supported
+            partitionType.validateSupported();
+            this.partitionType = partitionType;
+            return this;
+        }
+        
+        /**
+         * Set the column to use for partitioning.
+         * For DATE_BASED, this should be a LocalDateTime column (default: "created_at").
+         * 
+         * @param columnName Name of the column to partition by
+         * @return Builder instance
+         */
+        public Builder<T> withPartitionKeyColumn(String columnName) {
+            if (columnName == null || columnName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Partition key column cannot be null or empty");
+            }
+            this.partitionKeyColumn = columnName;
+            return this;
+        }
+        
         
         public SplitVerseRepository<T> build() {
             if (shardConfigs.isEmpty()) {
@@ -401,7 +445,20 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
                 throw new IllegalArgumentException("Entity class is required");
             }
             
+            // Validate partition type is supported
+            partitionType.validateSupported();
+            
+            // Log the configuration
+            System.out.println("[SplitVerse] Building repository with:");
+            System.out.println("  Partition Type: " + partitionType);
+            System.out.println("  Partition Key Column: " + partitionKeyColumn);
+            System.out.println("  Shards: " + shardConfigs.size());
+            
             return new SplitVerseRepository<>(this);
         }
+        
+        // Package-private getters for SplitVerseRepository constructor
+        PartitionType getPartitionType() { return partitionType; }
+        String getPartitionKeyColumn() { return partitionKeyColumn; }
     }
 }

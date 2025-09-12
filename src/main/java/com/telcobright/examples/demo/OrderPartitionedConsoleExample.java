@@ -1,7 +1,8 @@
 package com.telcobright.examples.demo;
 
 import com.telcobright.examples.entity.OrderEntity;
-import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.core.monitoring.MonitoringConfig;
 
 import java.math.BigDecimal;
@@ -53,21 +54,24 @@ public class OrderPartitionedConsoleExample {
             .instanceId("order-server-01")
             .build();
         
-        // Create Order repository with console monitoring
-        GenericPartitionedTableRepository<OrderEntity> orderRepo = null;
+        // Create Order repository with console monitoring using Split-Verse
+        SplitVerseRepository<OrderEntity> orderRepo = null;
         try {
-            orderRepo = GenericPartitionedTableRepository.<OrderEntity>builder(OrderEntity.class)
+            // Configure shard
+            ShardConfig shardConfig = ShardConfig.builder()
+                .shardId("primary")
                 .host("127.0.0.1")
                 .port(3306)
                 .database("ecommerce")
                 .username("root")
                 .password("123456")
-                .tableName("orders")
-                .partitionRetentionPeriod(7)  // 7 days retention (15 partitions total)
-                .autoManagePartitions(true)   // Enable automatic maintenance
-                .partitionAdjustmentTime(4, 0) // Maintenance at 04:00 AM
-                .initializePartitionsOnStart(true)
-                .monitoring(consoleMonitoring) // Enable console monitoring
+                .connectionPoolSize(10)
+                .enabled(true)
+                .build();
+            
+            orderRepo = SplitVerseRepository.<OrderEntity>builder()
+                .withSingleShard(shardConfig)
+                .withEntityClass(OrderEntity.class)
                 .build();
             
             System.out.println("✅ Order Repository created successfully");

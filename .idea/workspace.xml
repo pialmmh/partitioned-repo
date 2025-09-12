@@ -6,36 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.html" beforeDir="false" afterPath="$PROJECT_DIR$/README.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/RepositoryProxyExample.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/examples/demo/RepositoryProxyExample.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/application/ApplicationFeaturesTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/application/BasicApplicationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/application/EssentialFeaturesTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/connection/ConnectionProviderTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/logging/SimpleLoggingTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/maintenance/MaintenanceLockingIntegrationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/metadata/EntityMetadataTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/monitoring/MonitoringSystemIntegrationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/performance/RepositoryPerformanceTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/repository/GenericMultiTableRepositoryIntegrationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/repository/GenericPartitionedTableRepositoryIntegrationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/AutoMaintenanceStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/ConnectionPoolingStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/FullTableScanStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/MultiTableArchitectureStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/PartitioningStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/SingleTablePartitionStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/stress/StressTestRunner.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/test/BaseIntegrationTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/test/entity/SimpleTestEntity.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/db/test/entity/TestEntity.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/BaseRepositoryTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/ConcurrentOperationsTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/DataIntegrityTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/MultiTableRepositoryTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/PartitionedTableRepositoryTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/PerformanceStressTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/tests/TestRunner.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/SPLIT-VERSE-README.md" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -150,6 +121,7 @@
       <workItem from="1756904845515" duration="924000" />
       <workItem from="1756915223809" duration="8207000" />
       <workItem from="1757328039953" duration="598000" />
+      <workItem from="1757592093366" duration="1293000" />
     </task>
     <servers />
   </component>

@@ -1,6 +1,6 @@
 package com.telcobright.splitverse.examples;
 
-import com.telcobright.splitverse.SplitVerseRepository;
+import com.telcobright.core.repository.SplitVerseRepository;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.examples.entity.SubscriberEntity;
 

@@ -860,7 +860,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     /**
      * Builder for GenericMultiTableRepository
      */
-    public static class Builder<T extends ShardingEntity> {
+    static class Builder<T extends ShardingEntity> {
         private final Class<T> entityClass;
         private String host = "localhost";
         private int port = 3306;
@@ -876,7 +876,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
         private Logger logger;
         
         
-        public Builder(Class<T> entityClass) {
+        Builder(Class<T> entityClass) {
             this.entityClass = entityClass;
         }
         
@@ -957,7 +957,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     /**
      * Create a new builder
      */
-    public static <T extends ShardingEntity> Builder<T> builder(Class<T> entityClass) {
+    // Package-private factory method - only SplitVerseRepository can use this
+    static <T extends ShardingEntity> Builder<T> builder(Class<T> entityClass) {
         return new Builder<>(entityClass);
     }
 }
