@@ -1,6 +1,7 @@
 package com.telcobright.splitverse.tests;
 
 import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.core.partition.PartitionType;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.examples.entity.SubscriberEntity;
 import java.math.BigDecimal;
@@ -77,6 +78,8 @@ public class SplitVerseMultiShardTest {
         repository = SplitVerseRepository.<SubscriberEntity>builder()
             .withShardConfigs(shardConfigs)
             .withEntityClass(SubscriberEntity.class)
+            .withPartitionType(PartitionType.DATE_BASED)
+            .withPartitionKeyColumn("created_at")
             .build();
         
         System.out.println("✓ Split-Verse repository initialized with " + shardConfigs.size() + " shards");
@@ -468,6 +471,8 @@ public class SplitVerseMultiShardTest {
                 SplitVerseRepository.<SubscriberEntity>builder()
                     .withShardConfigs(Arrays.asList(shard1, shard2))
                     .withEntityClass(SubscriberEntity.class)
+                    .withPartitionType(PartitionType.DATE_BASED)
+                    .withPartitionKeyColumn("created_at")
                     .build();
             
             // Should work with only active shards

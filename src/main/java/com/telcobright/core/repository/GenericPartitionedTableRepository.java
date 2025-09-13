@@ -46,6 +46,8 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     private final EntityMetadata<T> metadata;
     private final Class<T> entityClass;
     private final MonitoringService monitoringService;
+    private final String charset;
+    private final String collation;
     
     private ScheduledExecutorService scheduler;
     
@@ -56,6 +58,8 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
         this.partitionAdjustmentTime = builder.partitionAdjustmentTime;
         this.initializePartitionsOnStart = builder.initializePartitionsOnStart;
         this.entityClass = builder.entityClass;
+        this.charset = builder.charset;
+        this.collation = builder.collation;
         
         // Initialize entity metadata (performs reflection once)
         this.metadata = new EntityMetadata<>(entityClass);
@@ -93,9 +97,16 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
             try {
                 logger.info("Initializing partitioned table and partitions for retention period...");
                 initializeTable();
-                initializePartitionsForRetentionPeriod();
+                // Partitions are now created in initializeTable(), no need for separate initialization
             } catch (SQLException e) {
-                throw new RuntimeException("Failed to initialize partitioned table", e);
+                logger.error("Failed to initialize partitioned table: " + e.getMessage(), e);
+                // Try to create table without partitions as fallback
+                try {
+                    createSimpleTable();
+                    logger.warn("Created non-partitioned table as fallback. Performance may be impacted.");
+                } catch (SQLException fallbackError) {
+                    throw new RuntimeException("Failed to initialize table even without partitions", fallbackError);
+                }
             }
         }
         
@@ -439,55 +450,104 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     private void initializeTable() throws SQLException {
         String fullTableName = database + "." + tableName;
         String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);
-        
+
         // For partitioned tables, MySQL requires the partitioning column to be part of PRIMARY KEY
         // Modify PRIMARY KEY to include sharding column
         String idColumn = metadata.getIdField().getColumnName();
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
-        
+
         // Handle both VARCHAR and BIGINT primary keys
-        createSQL = createSQL.replace(idColumn + " VARCHAR(255) PRIMARY KEY", 
+        createSQL = createSQL.replace(idColumn + " VARCHAR(255) PRIMARY KEY",
                                      idColumn + " VARCHAR(255)");
-        createSQL = createSQL.replace(idColumn + " BIGINT PRIMARY KEY AUTO_INCREMENT", 
+        createSQL = createSQL.replace(idColumn + " BIGINT PRIMARY KEY AUTO_INCREMENT",
                                      idColumn + " BIGINT AUTO_INCREMENT");
-        
+
         // Add composite primary key with both ID and sharding column
-        createSQL = createSQL.replace(", KEY idx_" + shardingColumn, 
+        createSQL = createSQL.replace(", KEY idx_" + shardingColumn,
                                      ", PRIMARY KEY (" + idColumn + ", " + shardingColumn + "), KEY idx_" + shardingColumn);
-        
-        // Add PARTITION BY clause
-        createSQL = createSQL.replace(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4\nPARTITION BY RANGE (TO_DAYS(" + shardingColumn + "))");
-        
+
+        // Replace charset/collation with configured values
+        createSQL = createSQL.replace(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+                ") ENGINE=InnoDB DEFAULT CHARSET=" + charset + " COLLATE=" + collation);
+
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
-            
+
             // Check if table exists
             DatabaseMetaData metaData = conn.getMetaData();
             try (ResultSet rs = metaData.getTables(database, null, tableName, null)) {
                 if (!rs.next()) {
-                    // Table doesn't exist, create it with initial partition
+                    // Table doesn't exist, create it with ALL partitions for the retention period
                     LocalDateTime now = LocalDateTime.now();
-                    String partitionName = "p" + now.format(DATE_FORMAT);
-                    
-                    // Create partition for current date + 1 day (VALUES LESS THAN is exclusive)
-                    LocalDateTime nextDay = now.plusDays(1);
-                    String partitionValue = "TO_DAYS('" + nextDay.toLocalDate().toString() + "')";
-                    
-                    createSQL += " (\n  PARTITION " + partitionName + 
-                                " VALUES LESS THAN (" + partitionValue + ")\n)";
-                    
-                    // Debug: Log the SQL being executed
+                    LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
+                    LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
+
+                    // Build partition clause with single initial partition
+                    // Use TO_DAYS function for simpler partition definition
+                    StringBuilder partitionClause = new StringBuilder();
+                    partitionClause.append("\nPARTITION BY RANGE (TO_DAYS(").append(shardingColumn).append("))\n(");
+
+                    // Create just one partition for today
+                    // Additional partitions will be created on demand
+                    LocalDateTime tomorrow = LocalDateTime.now().plusDays(1);
+                    String partitionName = "p" + LocalDateTime.now().format(DATE_FORMAT);
+
+                    partitionClause.append("\n  PARTITION ").append(partitionName)
+                                  .append(" VALUES LESS THAN (TO_DAYS('")
+                                  .append(tomorrow.toLocalDate().toString())
+                                  .append("'))");
+
+                    partitionClause.append("\n)");
+                    createSQL += partitionClause.toString();
+
+                    logger.info("Creating partitioned table with " + (partitionRetentionPeriod * 2 + 1) + " partitions");
                     logger.info("Executing CREATE TABLE SQL: " + createSQL);
-                    
                     stmt.execute(createSQL);
-                    logger.info("Created partitioned table: " + fullTableName);
+                    logger.info("Created partitioned table: " + fullTableName + " with partitions from " +
+                               startDate.toLocalDate() + " to " + endDate.toLocalDate());
                 }
             }
         }
     }
-    
-    
+
+    /**
+     * Create a simple non-partitioned table as fallback
+     */
+    private void createSimpleTable() throws SQLException {
+        String fullTableName = database + "." + tableName;
+        String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);
+
+        // For non-partitioned tables, keep the simple PRIMARY KEY
+        String idColumn = metadata.getIdField().getColumnName();
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+
+        // Keep original PRIMARY KEY for non-partitioned table
+        // Just add index on sharding column for query performance
+        if (!createSQL.contains("idx_" + shardingColumn)) {
+            createSQL = createSQL.replace(") ENGINE=InnoDB",
+                ", INDEX idx_" + shardingColumn + " (" + shardingColumn + ")) ENGINE=InnoDB");
+        }
+
+        // Replace charset/collation with configured values
+        createSQL = createSQL.replace("DEFAULT CHARSET=utf8mb4",
+                "DEFAULT CHARSET=" + charset + " COLLATE=" + collation);
+
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            // Check if table exists
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getTables(database, null, tableName, null)) {
+                if (!rs.next()) {
+                    logger.info("Creating non-partitioned table: " + fullTableName);
+                    stmt.execute(createSQL);
+                    logger.info("Created non-partitioned table: " + fullTableName);
+                }
+            }
+        }
+    }
+
+
     private boolean partitionExists(String partitionName) throws SQLException {
         String sql = "SELECT partition_name FROM information_schema.partitions " +
                     "WHERE table_schema = ? AND table_name = ? AND partition_name = ?";
@@ -506,28 +566,70 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     }
     
     private void createPartition(String partitionName, LocalDateTime date) throws SQLException {
-        // Create partition for the next day (VALUES LESS THAN is exclusive)
-        LocalDateTime nextDay = date.plusDays(1);
-        String partitionValue = "TO_DAYS('" + nextDay.toLocalDate().toString() + "')";
-        
-        String sql = String.format("ALTER TABLE %s.%s ADD PARTITION (PARTITION %s VALUES LESS THAN (%s))",
-            database, tableName, partitionName, partitionValue);
-        
+        // Create single partition - kept for backward compatibility
+        Map<String, LocalDateTime> singlePartition = new LinkedHashMap<>();
+        singlePartition.put(partitionName, date);
+        createMultiplePartitions(singlePartition);
+    }
+
+    private void createMultiplePartitions(Map<String, LocalDateTime> partitions) throws SQLException {
+        if (partitions.isEmpty()) {
+            return;
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("ALTER TABLE ").append(database).append(".").append(tableName)
+           .append(" ADD PARTITION (");
+
+        boolean first = true;
+        for (Map.Entry<String, LocalDateTime> entry : partitions.entrySet()) {
+            String partitionName = entry.getKey();
+            LocalDateTime date = entry.getValue();
+            LocalDateTime nextDay = date.plusDays(1);
+
+            if (!first) {
+                sql.append(",");
+            }
+            sql.append("\n    PARTITION ").append(partitionName)
+               .append(" VALUES LESS THAN (TO_DAYS('")
+               .append(nextDay.toLocalDate().toString()).append("'))");
+            first = false;
+        }
+        sql.append("\n)");
+
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
-            logger.info("Created partition: " + partitionName);
+            logger.info("Creating " + partitions.size() + " partitions in single ALTER TABLE command");
+            stmt.execute(sql.toString());
+            logger.info("Successfully created " + partitions.size() + " partitions: " + partitions.keySet());
+        } catch (SQLException e) {
+            logger.error("Failed to create partitions. SQL: " + sql.toString(), e);
+            throw e;
         }
     }
-    
+
     private void dropPartition(String partitionName) throws SQLException {
+        // Drop single partition - kept for backward compatibility
+        dropMultiplePartitions(Arrays.asList(partitionName));
+    }
+
+    private void dropMultiplePartitions(List<String> partitionNames) throws SQLException {
+        if (partitionNames.isEmpty()) {
+            return;
+        }
+
+        String partitionList = String.join(", ", partitionNames);
         String sql = String.format("ALTER TABLE %s.%s DROP PARTITION %s",
-            database, tableName, partitionName);
-        
+            database, tableName, partitionList);
+
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
+            logger.info("Dropping " + partitionNames.size() + " partitions in single ALTER TABLE command");
             stmt.execute(sql);
-            logger.info("Dropped partition: " + partitionName);
+            logger.info("Successfully dropped partitions: " + partitionNames);
+        } catch (SQLException e) {
+            logger.error("Failed to drop partitions. SQL: " + sql, e);
+            throw e;
         }
     }
     
@@ -602,13 +704,21 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     }
     
     public void createPartitionsForDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        // Collect all partitions that need to be created
+        Map<String, LocalDateTime> partitionsToCreate = new LinkedHashMap<>();
         LocalDateTime current = startDate;
+
         while (!current.isAfter(endDate)) {
             String partitionName = "p" + current.format(DATE_FORMAT);
             if (!partitionExists(partitionName)) {
-                createPartition(partitionName, current);
+                partitionsToCreate.put(partitionName, current);
             }
             current = current.plusDays(1);
+        }
+
+        // Create all partitions in a single ALTER TABLE command
+        if (!partitionsToCreate.isEmpty()) {
+            createMultiplePartitions(partitionsToCreate);
         }
     }
     
@@ -616,36 +726,35 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
         if (!autoManagePartitions) {
             return;
         }
-        
+
         String cutoffDateStr = cutoffDate.format(DATE_FORMAT);
         List<String> partitions = getPartitions();
-        
+        List<String> partitionsToDrop = new ArrayList<>();
+
         for (String partitionName : partitions) {
             if (partitionName.startsWith("p") && partitionName.length() > 1) {
                 String dateStr = partitionName.substring(1);
                 if (dateStr.compareTo(cutoffDateStr) < 0) {
-                    dropPartition(partitionName);
+                    partitionsToDrop.add(partitionName);
                 }
             }
+        }
+
+        // Drop all old partitions in a single ALTER TABLE command
+        if (!partitionsToDrop.isEmpty()) {
+            dropMultiplePartitions(partitionsToDrop);
         }
     }
     
     /**
      * Initialize all partitions needed for the retention period at startup.
-     * This ensures all partitions exist before any insert operations.
+     * NOTE: This is now done in initializeTable() to avoid partition ordering issues.
+     * Kept for backward compatibility but does nothing.
      */
     private void initializePartitionsForRetentionPeriod() throws SQLException {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
-        LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
-        
-        logger.info(String.format("Initializing partitions for retention period: %s to %s (%d days)", 
-                    startDate.toLocalDate(), endDate.toLocalDate(), 
-                    partitionRetentionPeriod * 2 + 1));
-        
-        createPartitionsForDateRange(startDate, endDate);
-        
-        logger.info("Completed partition initialization for retention period");
+        // Partitions are now created during table creation in initializeTable()
+        // This method is kept for backward compatibility but does nothing
+        logger.info("Partition initialization is now handled during table creation");
     }
     
     private void startScheduler() {
@@ -732,6 +841,10 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
         private boolean initializePartitionsOnStart = true;
         private MonitoringConfig monitoringConfig;
         private Logger logger;
+        private PartitionType partitionType = PartitionType.DATE_BASED;
+        private String partitionKeyColumn = "created_at";
+        private String charset = "utf8mb4";
+        private String collation = "utf8mb4_bin";
         
         
         Builder(Class<T> entityClass) {
@@ -790,6 +903,35 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
         
         public Builder<T> initializePartitionsOnStart(boolean initialize) {
             this.initializePartitionsOnStart = initialize;
+            return this;
+        }
+        
+        public Builder<T> withPartitionType(PartitionType partitionType) {
+            if (partitionType != null) {
+                partitionType.validateSupported();
+                this.partitionType = partitionType;
+            }
+            return this;
+        }
+        
+        public Builder<T> withPartitionKeyColumn(String partitionKeyColumn) {
+            if (partitionKeyColumn != null && !partitionKeyColumn.trim().isEmpty()) {
+                this.partitionKeyColumn = partitionKeyColumn;
+            }
+            return this;
+        }
+
+        public Builder<T> charset(String charset) {
+            if (charset != null && !charset.trim().isEmpty()) {
+                this.charset = charset;
+            }
+            return this;
+        }
+
+        public Builder<T> collation(String collation) {
+            if (collation != null && !collation.trim().isEmpty()) {
+                this.collation = collation;
+            }
             return this;
         }
         

@@ -38,6 +38,25 @@ import com.telcobright.core.logging.ConsoleLogger;
 public class GenericMultiTableRepository<T extends ShardingEntity> implements ShardingRepository<T> {
     private final Logger logger;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    /**
+     * Defines the granularity of table creation
+     */
+    public enum TableGranularity {
+        HOURLY("yyyy_MM_dd_HH"),  // One table per hour
+        DAILY("yyyy_MM_dd"),      // One table per day (default)
+        MONTHLY("yyyy_MM");       // One table per month
+
+        private final String pattern;
+
+        TableGranularity(String pattern) {
+            this.pattern = pattern;
+        }
+
+        public DateTimeFormatter getFormatter() {
+            return DateTimeFormatter.ofPattern(pattern);
+        }
+    }
     
     private final ConnectionProvider connectionProvider;
     private final String database;
@@ -49,7 +68,10 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     private final EntityMetadata<T> metadata;
     private final Class<T> entityClass;
     private final MonitoringService monitoringService;
-    
+    private final TableGranularity tableGranularity;
+    private final String charset;
+    private final String collation;
+
     private ScheduledExecutorService scheduler;
     private volatile long lastMaintenanceRun = 0;
     private static final long MAINTENANCE_COOLDOWN_MS = 60000; // 1 minute minimum between maintenance runs
@@ -61,6 +83,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
         this.partitionAdjustmentTime = builder.partitionAdjustmentTime;
         this.initializePartitionsOnStart = builder.initializePartitionsOnStart;
         this.entityClass = builder.entityClass;
+        this.tableGranularity = builder.tableGranularity;
+        this.charset = builder.charset;
+        this.collation = builder.collation;
         
         // Initialize entity metadata (performs reflection once)
         this.metadata = new EntityMetadata<>(entityClass);
@@ -565,48 +590,36 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     
     private void createTableIfNotExists(String tableName) throws SQLException {
         String createSQL = String.format(metadata.getCreateTableSQL(), tableName);
-        
-        // Add hourly partitioning for multi-table repositories
-        // Each daily table is internally partitioned by hour (24 partitions per day)
-        createSQL = addHourlyPartitioning(createSQL, tableName);
-        
+
+        // Apply any necessary modifications to the CREATE TABLE statement
+        createSQL = addHourlyPartitioning(createSQL, tableName); // Currently just adds charset/collation
+
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(createSQL);
-            logger.info("Ensured table exists with hourly partitioning: " + tableName);
+            logger.info("Ensured table exists: " + tableName);
         }
     }
     
     /**
      * Add hourly partitioning to a daily table
      * Each daily table gets 24 hour partitions (h00, h01, h02, ..., h23)
+     *
+     * Note: For simplicity, multi-table mode does NOT add hourly partitions within each daily table.
+     * Each day gets its own table, which provides sufficient granularity for most use cases.
+     * If hourly partitioning is needed, use HOURLY table granularity instead.
      */
     private String addHourlyPartitioning(String baseCreateSQL, String tableName) throws SQLException {
-        String idColumn = metadata.getIdField().getColumnName();
-        String shardingColumn = metadata.getShardingKeyField().getColumnName();
-        
-        // For multi-table repositories, MySQL requires the partitioning column to be part of PRIMARY KEY
-        // Modify PRIMARY KEY to include sharding column  
-        baseCreateSQL = baseCreateSQL.replace(idColumn + " BIGINT PRIMARY KEY AUTO_INCREMENT", 
-                                             idColumn + " BIGINT AUTO_INCREMENT");
-        
-        // Replace the ENGINE clause with partitioning definition
-        // No composite key needed - single String ID only
-        baseCreateSQL = baseCreateSQL.replace(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4\n" +
-                "PARTITION BY RANGE (HOUR(" + shardingColumn + ")) (");
-        
-        // Add 24 hour partitions (h00 to h23)
-        StringBuilder partitions = new StringBuilder();
-        for (int hour = 0; hour < 24; hour++) {
-            if (hour > 0) {
-                partitions.append(",\n");
-            }
-            partitions.append(String.format("  PARTITION h%02d VALUES LESS THAN (%d)", hour, hour + 1));
+        // For now, disable hourly partitioning within daily tables
+        // This was causing issues with String IDs and adds unnecessary complexity
+        // Users can use HOURLY table granularity if they need hour-level separation
+
+        // Just add charset and collation if not present
+        if (!baseCreateSQL.contains("CHARSET=")) {
+            baseCreateSQL = baseCreateSQL.replace(") ENGINE=InnoDB",
+                ") ENGINE=InnoDB DEFAULT CHARSET=" + charset + " COLLATE=" + collation);
         }
-        
-        baseCreateSQL += partitions.toString() + "\n)";
-        
+
         return baseCreateSQL;
     }
     
@@ -874,6 +887,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
         private boolean initializePartitionsOnStart = true;
         private MonitoringConfig monitoringConfig;
         private Logger logger;
+        private TableGranularity tableGranularity = TableGranularity.DAILY;
+        private String charset = "utf8mb4";
+        private String collation = "utf8mb4_bin";
         
         
         Builder(Class<T> entityClass) {
@@ -907,6 +923,40 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
         
         public Builder<T> tablePrefix(String tablePrefix) {
             this.tablePrefix = tablePrefix;
+            return this;
+        }
+
+        public Builder<T> baseTableName(String baseTableName) {
+            this.tablePrefix = baseTableName;
+            return this;
+        }
+
+        public Builder<T> tableRetentionDays(int days) {
+            this.partitionRetentionPeriod = days;
+            return this;
+        }
+
+        public Builder<T> tableGranularity(TableGranularity granularity) {
+            this.tableGranularity = granularity;
+            return this;
+        }
+
+        public Builder<T> autoCreateTables(boolean autoCreate) {
+            this.initializePartitionsOnStart = autoCreate;
+            return this;
+        }
+
+        public Builder<T> charset(String charset) {
+            if (charset != null && !charset.trim().isEmpty()) {
+                this.charset = charset;
+            }
+            return this;
+        }
+
+        public Builder<T> collation(String collation) {
+            if (collation != null && !collation.trim().isEmpty()) {
+                this.collation = collation;
+            }
             return this;
         }
         

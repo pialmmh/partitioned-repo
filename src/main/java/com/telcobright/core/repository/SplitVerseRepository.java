@@ -3,10 +3,12 @@ package com.telcobright.core.repository;
 import com.telcobright.api.ShardingRepository;
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.repository.GenericMultiTableRepository;
 import com.telcobright.core.partition.PartitionType;
 import com.telcobright.core.partition.PartitionStrategy;
 import com.telcobright.core.partition.PartitionStrategyFactory;
 import com.telcobright.splitverse.config.ShardConfig;
+import com.telcobright.splitverse.config.RepositoryMode;
 import com.telcobright.splitverse.routing.HashRouter;
 
 import java.sql.SQLException;
@@ -72,13 +74,10 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     private ShardingRepository<T> createShardRepository(ShardConfig config, Builder<T> builder) {
-        // For now, create GenericPartitionedTableRepository for each shard
-        // In future, this can be configurable (partitioned vs multi-table)
-        
         // Get table name from @Table annotation or derive from class name
         String tableName = "subscribers"; // Default for this example
         try {
-            com.telcobright.core.annotation.Table tableAnnotation = 
+            com.telcobright.core.annotation.Table tableAnnotation =
                 entityClass.getAnnotation(com.telcobright.core.annotation.Table.class);
             if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
                 tableName = tableAnnotation.name();
@@ -86,18 +85,39 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         } catch (Exception e) {
             // Use default
         }
-        
-        return GenericPartitionedTableRepository.<T>builder(entityClass)
-            .host(config.getHost())
-            .port(config.getPort())
-            .database(config.getDatabase())
-            .username(config.getUsername())
-            .password(config.getPassword())
-            .tableName(tableName)
-            .partitionRetentionPeriod(30) // Configurable in future
-            .partitionType(builder.getPartitionType())
-            .partitionKeyColumn(builder.getPartitionKeyColumn())
-            .build();
+
+        // Choose repository type based on mode
+        if (builder.getRepositoryMode() == RepositoryMode.MULTI_TABLE) {
+            // Create multi-table repository (separate table per day)
+            return GenericMultiTableRepository.<T>builder(entityClass)
+                .host(config.getHost())
+                .port(config.getPort())
+                .database(config.getDatabase())
+                .username(config.getUsername())
+                .password(config.getPassword())
+                .baseTableName(tableName)
+                .tableRetentionDays(builder.getRetentionDays())
+                .tableGranularity(builder.getTableGranularity())
+                .autoCreateTables(true)
+                .charset(builder.getCharset())
+                .collation(builder.getCollation())
+                .build();
+        } else {
+            // Create partitioned repository (single table with partitions)
+            return GenericPartitionedTableRepository.<T>builder(entityClass)
+                .host(config.getHost())
+                .port(config.getPort())
+                .database(config.getDatabase())
+                .username(config.getUsername())
+                .password(config.getPassword())
+                .tableName(tableName)
+                .partitionRetentionPeriod(builder.getRetentionDays())
+                .withPartitionType(builder.getPartitionType())
+                .withPartitionKeyColumn(builder.getPartitionKeyColumn())
+                .charset(builder.getCharset())
+                .collation(builder.getCollation())
+                .build();
+        }
     }
     
     private ShardingRepository<T> getShardForKey(String key) {
@@ -385,8 +405,14 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     public static class Builder<T extends ShardingEntity> {
         private List<ShardConfig> shardConfigs = new ArrayList<>();
         private Class<T> entityClass;
-        private PartitionType partitionType = PartitionType.DATE_BASED; // Default
+        private RepositoryMode repositoryMode = RepositoryMode.PARTITIONED; // Default
+        private PartitionType partitionType = PartitionType.DATE_BASED; // Default for partitioned mode
         private String partitionKeyColumn = "created_at"; // Default for date-based
+        private GenericMultiTableRepository.TableGranularity tableGranularity =
+            GenericMultiTableRepository.TableGranularity.DAILY; // Default for multi-table mode
+        private int retentionDays = 30; // Default retention period
+        private String charset = "utf8mb4"; // Default charset
+        private String collation = "utf8mb4_bin"; // Default collation
         
         public Builder<T> withSingleShard(ShardConfig config) {
             this.shardConfigs = Collections.singletonList(config);
@@ -435,6 +461,62 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             this.partitionKeyColumn = columnName;
             return this;
         }
+
+        /**
+         * Set the repository mode (PARTITIONED or MULTI_TABLE).
+         * Default is PARTITIONED.
+         */
+        public Builder<T> withRepositoryMode(RepositoryMode mode) {
+            if (mode == null) {
+                throw new IllegalArgumentException("Repository mode cannot be null");
+            }
+            this.repositoryMode = mode;
+            return this;
+        }
+
+        /**
+         * Set the table granularity for multi-table mode.
+         * Only applies when repository mode is MULTI_TABLE.
+         */
+        public Builder<T> withTableGranularity(GenericMultiTableRepository.TableGranularity granularity) {
+            if (granularity == null) {
+                throw new IllegalArgumentException("Table granularity cannot be null");
+            }
+            this.tableGranularity = granularity;
+            return this;
+        }
+
+        /**
+         * Set the retention period in days.
+         * Applies to both partitioned and multi-table modes.
+         */
+        public Builder<T> withRetentionDays(int days) {
+            if (days < 1) {
+                throw new IllegalArgumentException("Retention days must be at least 1");
+            }
+            this.retentionDays = days;
+            return this;
+        }
+
+        /**
+         * Set the character set for tables.
+         */
+        public Builder<T> withCharset(String charset) {
+            if (charset != null && !charset.trim().isEmpty()) {
+                this.charset = charset;
+            }
+            return this;
+        }
+
+        /**
+         * Set the collation for tables.
+         */
+        public Builder<T> withCollation(String collation) {
+            if (collation != null && !collation.trim().isEmpty()) {
+                this.collation = collation;
+            }
+            return this;
+        }
         
         
         public SplitVerseRepository<T> build() {
@@ -450,15 +532,27 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             
             // Log the configuration
             System.out.println("[SplitVerse] Building repository with:");
-            System.out.println("  Partition Type: " + partitionType);
-            System.out.println("  Partition Key Column: " + partitionKeyColumn);
+            System.out.println("  Repository Mode: " + repositoryMode);
+            if (repositoryMode == RepositoryMode.PARTITIONED) {
+                System.out.println("  Partition Type: " + partitionType);
+                System.out.println("  Partition Key Column: " + partitionKeyColumn);
+            } else {
+                System.out.println("  Table Granularity: " + tableGranularity);
+            }
+            System.out.println("  Retention Days: " + retentionDays);
+            System.out.println("  Charset: " + charset + ", Collation: " + collation);
             System.out.println("  Shards: " + shardConfigs.size());
             
             return new SplitVerseRepository<>(this);
         }
         
         // Package-private getters for SplitVerseRepository constructor
+        RepositoryMode getRepositoryMode() { return repositoryMode; }
         PartitionType getPartitionType() { return partitionType; }
         String getPartitionKeyColumn() { return partitionKeyColumn; }
+        GenericMultiTableRepository.TableGranularity getTableGranularity() { return tableGranularity; }
+        int getRetentionDays() { return retentionDays; }
+        String getCharset() { return charset; }
+        String getCollation() { return collation; }
     }
 }

@@ -2,6 +2,7 @@ package com.telcobright.splitverse.tests;
 
 import com.telcobright.core.repository.SplitVerseRepository;
 import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.partition.PartitionType;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.examples.entity.SubscriberEntity;
 
@@ -74,6 +75,8 @@ public class ShardingEntityEnforcementTest {
                 SplitVerseRepository.<ValidEntity>builder()
                     .withSingleShard(config)
                     .withEntityClass(ValidEntity.class)
+                    .withPartitionType(PartitionType.DATE_BASED)
+                    .withPartitionKeyColumn("createdAt")
                     .build();
             
             System.out.println("✓ Valid entity accepted by SplitVerseRepository");

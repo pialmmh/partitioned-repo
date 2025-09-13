@@ -1,7 +1,7 @@
 ===========================================
 SPLIT-VERSE SIMPLE LOGGED TEST REPORT
 ===========================================
-Test Started: 2025-09-12T00:39:20.445538661
+Test Started: 2025-09-13T05:22:42.033970076
 Environment: Split-Verse Framework v1.0.0
 
 
@@ -9,7 +9,7 @@ Environment: Split-Verse Framework v1.0.0
 ------------------------------
 Creating Split-Verse repository...
   Repository initialized: SUCCESS
-Inserting entity with ID: test_1757615960553
+Inserting entity with ID: test_1757719362140
   MSISDN: +8801711111111
   Balance: 100.00
   Status: ACTIVE
@@ -17,7 +17,7 @@ Inserting entity with ID: test_1757615960553
 Retrieving entity by ID...
   Found: YES
   Data integrity: VERIFIED
-Duration: 193ms
+Duration: 192ms
 Result: PASSED ✓
 
 [SCENARIO 2] Data Integrity
@@ -35,7 +35,7 @@ Testing data integrity checks...
     Optional fields: NULL
     Required fields: NOT NULL
     Null handling: CORRECT
-Duration: 1ms
+Duration: 0ms
 Result: PASSED ✓
 
 [SCENARIO 3] Error Handling
@@ -53,7 +53,7 @@ Testing error handling...
     Simulated network error
     Error caught: YES
     Recovery: SUCCESSFUL
-Duration: 1ms
+Duration: 0ms
 Result: PASSED ✓
 
 [SCENARIO 4] Performance Metrics
@@ -72,7 +72,7 @@ Testing performance metrics...
     Shard 2: 333 entities (33.3%)
     Shard 3: 333 entities (33.3%)
     Balance: OPTIMAL
-Duration: 202ms
+Duration: 201ms
 Result: PASSED ✓
 
 ===========================================
@@ -97,5 +97,5 @@ Recommendations:
 - Consider connection pool tuning for high load
 - Implement circuit breaker for shard failures
 
-Test Completed: 2025-09-12T00:39:20.88655105
+Test Completed: 2025-09-13T05:22:42.470755653
 ===========================================

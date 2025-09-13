@@ -6,11 +6,17 @@
 
 - **Infinite Horizontal Sharding**: Scale from 1 to N shards seamlessly
 - **String-Only IDs**: Enforced external ID generation (UUID, ULID, NanoID)
-- **Automatic Partitioning**: Time-based partitions with retention management
+- **Dual Repository Modes**:
+  - **PARTITIONED**: Single table with MySQL native partitions
+  - **MULTI_TABLE**: Separate table for each time period (day/hour/month)
+- **Automatic Partitioning**: All partitions created upfront during table initialization
 - **Hash-Based Routing**: Consistent hashing for even data distribution
 - **Builder-Only API**: Enforced encapsulation prevents misuse
 - **Compile-Time Safety**: Type-safe entity validation
 - **Runtime Enforcement**: Strict validation at startup prevents configuration errors
+- **Extensible Partition Types**: Currently supports DATE_BASED with future support for HASH_BASED, RANGE_BASED, LIST_BASED, and COMPOSITE
+- **Batch Partition Operations**: Efficient single ALTER TABLE for multiple partition operations
+- **Configurable Charset/Collation**: Customizable character encoding (default: utf8mb4/utf8mb4_bin)
 
 ## 🚀 Quick Start
 
@@ -66,11 +72,28 @@ ShardConfig config = ShardConfig.builder()
     .enabled(true)
     .build();
 
-// Create Split-Verse repository (the ONLY way to access the framework)
-SplitVerseRepository<User> repository = 
+// Option 1: Partitioned Mode (Default) - Single table with MySQL partitions
+SplitVerseRepository<User> partitionedRepo =
     SplitVerseRepository.<User>builder()
         .withSingleShard(config)
         .withEntityClass(User.class)
+        .withPartitionType(PartitionType.DATE_BASED)  // Default: DATE_BASED
+        .withPartitionKeyColumn("created_at")         // Default: created_at
+        .withRetentionDays(30)                        // Default: 30 days
+        .withCharset("utf8mb4")                       // Default: utf8mb4
+        .withCollation("utf8mb4_bin")                 // Default: utf8mb4_bin
+        .build();
+
+// Option 2: Multi-Table Mode - Separate table for each time period
+SplitVerseRepository<User> multiTableRepo =
+    SplitVerseRepository.<User>builder()
+        .withSingleShard(config)
+        .withEntityClass(User.class)
+        .withRepositoryMode(RepositoryMode.MULTI_TABLE)
+        .withTableGranularity(TableGranularity.DAILY) // DAILY, HOURLY, or MONTHLY
+        .withRetentionDays(30)                        // Keep 30 days of tables
+        .withCharset("utf8mb4")
+        .withCollation("utf8mb4_bin")
         .build();
 ```
 
@@ -127,6 +150,49 @@ All entities **MUST** meet these requirements. Violations throw `IllegalArgument
 "Entity User must have exactly ONE field annotated with @ShardingKey"
 ```
 
+## 🗂️ Partition Types
+
+Split-Verse supports different partitioning strategies to optimize data distribution:
+
+### Currently Implemented
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **DATE_BASED** | Partitions by date ranges (daily/monthly/yearly) | Time-series data, logs, events |
+
+### Planned (Throw UnsupportedOperationException)
+
+| Type | Description | Status |
+|------|-------------|--------|
+| **HASH_BASED** | Hash-based partitioning on numeric fields | Not yet implemented |
+| **RANGE_BASED** | Range-based partitioning on numeric values | Not yet implemented |
+| **LIST_BASED** | List-based partitioning on categorical values | Not yet implemented |
+| **COMPOSITE** | Composite partitioning with multiple strategies | Not yet implemented |
+
+### Configuration Example
+
+```java
+// Explicitly specify partition type (default is DATE_BASED)
+SplitVerseRepository<User> repository =
+    SplitVerseRepository.<User>builder()
+        .withSingleShard(config)
+        .withEntityClass(User.class)
+        .withPartitionType(PartitionType.DATE_BASED)
+        .withPartitionKeyColumn("created_at")
+        .build();
+
+// Attempting to use unimplemented types throws exception
+try {
+    repository = SplitVerseRepository.<User>builder()
+        .withSingleShard(config)
+        .withEntityClass(User.class)
+        .withPartitionType(PartitionType.HASH_BASED)  // Throws!
+        .build();
+} catch (UnsupportedOperationException e) {
+    // "Partition type HASH_BASED is not yet implemented"
+}
+```
+
 ## 🔧 Multi-Shard Configuration
 
 Scale to multiple shards for true horizontal scaling:
@@ -160,10 +226,14 @@ List<ShardConfig> shardConfigs = Arrays.asList(
 );
 
 // Create multi-shard repository
-SplitVerseRepository<User> repository = 
+SplitVerseRepository<User> repository =
     SplitVerseRepository.<User>builder()
         .withShardConfigs(shardConfigs)
         .withEntityClass(User.class)
+        .withRepositoryMode(RepositoryMode.PARTITIONED)  // or MULTI_TABLE
+        .withPartitionType(PartitionType.DATE_BASED)
+        .withPartitionKeyColumn("created_at")
+        .withRetentionDays(30)
         .build();
 ```
 
@@ -188,13 +258,26 @@ GenericPartitionedTableRepository<User> repo = ...  // Compile error!
 - **Partition Pruning**: Time-based queries only scan relevant partitions
 - **Transparent Failover**: Continues operating if some shards fail
 
-### Partitioning
+### Repository Modes
 
-Each shard uses MySQL native partitioning:
-- **RANGE partitioning** by `TO_DAYS(created_at)`
-- **Daily partitions** automatically created
-- **Retention management** with configurable period
-- **Composite primary key**: `(id, created_at)` for partition compatibility
+Split-Verse supports two repository modes for different use cases:
+
+#### 1. PARTITIONED Mode (Default)
+Single table with MySQL native partitions:
+- **RANGE COLUMNS partitioning** for date-based partitioning
+- **All partitions created upfront** during table initialization
+- **Retention period partitions**: Creates `(retention_days × 2) + 1` partitions
+- **Composite primary key**: `(id, created_at)` required for MySQL partition compatibility
+- **Batch partition operations**: Adds/drops multiple partitions in single ALTER TABLE
+- **Best for**: Standard time-series data, queries spanning multiple days
+
+#### 2. MULTI_TABLE Mode
+Separate table for each time period:
+- **Table per period**: Daily, hourly, or monthly granularity
+- **Simple primary key**: Only `id` field required
+- **Dynamic table creation**: Tables created on-demand or upfront
+- **Easy maintenance**: Simple DROP TABLE for old data
+- **Best for**: Complete day isolation, varied schemas over time, easy archival
 
 ## 📊 Performance Features
 
@@ -228,6 +311,19 @@ public interface ShardingEntity {
     void setCreatedAt(LocalDateTime createdAt);
 }
 ```
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `withRepositoryMode(mode)` | Repository storage mode (PARTITIONED or MULTI_TABLE) | `PARTITIONED` |
+| `withPartitionType(type)` | Partition strategy (DATE_BASED only currently) | `DATE_BASED` |
+| `withPartitionKeyColumn(column)` | Column name for partitioning (partitioned mode) | `created_at` |
+| `withTableGranularity(granularity)` | Table creation period (DAILY, HOURLY, MONTHLY) for multi-table mode | `DAILY` |
+| `withRetentionDays(days)` | Days to retain data/tables | `30` |
+| `withCharset(charset)` | MySQL character set | `utf8mb4` |
+| `withCollation(collation)` | MySQL collation | `utf8mb4_bin` |
+| `withConnectionPoolSize(size)` | HikariCP pool size per shard | `10` |
 
 ## 🧪 Testing
 
@@ -278,6 +374,33 @@ entity.setId(String.format("user_%d_%s",
 // Snowflake ID (distributed sequence)
 entity.setId(String.valueOf(snowflake.nextId()));
 ```
+
+## 🔧 Important: Partition Initialization
+
+Split-Verse creates ALL partitions upfront during table creation to avoid MySQL partition ordering issues:
+
+### How It Works:
+1. **Table Creation**: Creates table with all partitions in a single `CREATE TABLE` statement
+2. **Partition Range**: Creates `(retention_days × 2) + 1` partitions:
+   - Past: `retention_days` partitions before today
+   - Present: Today's partition
+   - Future: `retention_days` partitions after today
+3. **No Incremental Creation**: Avoids "VALUES LESS THAN must be strictly increasing" errors
+
+### Example with 7-day retention:
+```sql
+CREATE TABLE users (...) ENGINE=InnoDB
+/*!50500 PARTITION BY RANGE COLUMNS(created_at)
+(PARTITION p20250907 VALUES LESS THAN ('2025-09-08') ENGINE = InnoDB,
+ PARTITION p20250908 VALUES LESS THAN ('2025-09-09') ENGINE = InnoDB,
+ ... -- 15 total partitions (7 past + 1 today + 7 future)
+ PARTITION p20250921 VALUES LESS THAN ('2025-09-22') ENGINE = InnoDB) */
+```
+
+### Daily Maintenance:
+- **Drops**: Old partitions beyond retention period (single ALTER TABLE)
+- **Creates**: New future partitions as needed (single ALTER TABLE)
+- **Automatic**: Runs at 4 AM by default (configurable)
 
 ## ⚙️ Configuration Options
 

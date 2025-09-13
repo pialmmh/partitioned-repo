@@ -1,6 +1,7 @@
 package com.telcobright.splitverse.tests;
 
 import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.core.partition.PartitionType;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.examples.entity.SubscriberEntity;
 import java.math.BigDecimal;
@@ -72,6 +73,8 @@ public class SplitVerseBasicOperationsTest {
         repository = SplitVerseRepository.<SubscriberEntity>builder()
             .withSingleShard(config)
             .withEntityClass(SubscriberEntity.class)
+            .withPartitionType(PartitionType.DATE_BASED)
+            .withPartitionKeyColumn("created_at")
             .build();
         
         System.out.println("✓ Split-Verse repository initialized");
@@ -469,6 +472,8 @@ public class SplitVerseBasicOperationsTest {
                 SplitVerseRepository.<SubscriberEntity>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
+                    .withPartitionType(PartitionType.DATE_BASED)
+                    .withPartitionKeyColumn("created_at")
                     .build();
                     
             System.out.println("✓ Split-Verse builder works as expected");
