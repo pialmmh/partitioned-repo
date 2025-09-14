@@ -5,45 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/PlaywrightEntityTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RunTests.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SimpleEntityTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SimpleLoggedTest_report.log" beforeDir="false" afterPath="$PROJECT_DIR$/SimpleLoggedTest_report.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SplitVerseBasicOperationsTest_report.log" beforeDir="false" afterPath="$PROJECT_DIR$/SplitVerseBasicOperationsTest_report.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericMultiTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericMultiTableRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericPartitionedTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericPartitionedTableRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SplitVerseRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SplitVerseRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ShardingEntityEnforcementTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ShardingEntityEnforcementTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/SplitVerseBasicOperationsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/SplitVerseBasicOperationsTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/SplitVerseMultiShardTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/SplitVerseMultiShardTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/jacoco.exec" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/branchfc.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/branchnc.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/branchpc.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/bundle.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/class.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/down.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/greenbar.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/group.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/method.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/package.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/prettify.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/prettify.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/redbar.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/report.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/report.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/session.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/sort.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/sort.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/source.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-resources/up.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
