@@ -7,6 +7,10 @@ import com.telcobright.core.repository.GenericMultiTableRepository;
 import com.telcobright.core.partition.PartitionType;
 import com.telcobright.core.partition.PartitionStrategy;
 import com.telcobright.core.partition.PartitionStrategyFactory;
+import com.telcobright.core.enums.ShardingStrategy;
+import com.telcobright.core.enums.PartitionColumnType;
+import com.telcobright.core.enums.PartitionRange;
+import com.telcobright.core.config.DataSourceConfig;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.config.RepositoryMode;
 import com.telcobright.splitverse.routing.HashRouter;
@@ -74,16 +78,22 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     private ShardingRepository<T> createShardRepository(ShardConfig config, Builder<T> builder) {
-        // Get table name from @Table annotation or derive from class name
-        String tableName = "subscribers"; // Default for this example
-        try {
-            com.telcobright.core.annotation.Table tableAnnotation =
-                entityClass.getAnnotation(com.telcobright.core.annotation.Table.class);
-            if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
-                tableName = tableAnnotation.name();
+        // Use table name from builder or annotation
+        String tableName = builder.tableName;
+        if (tableName == null || tableName.isEmpty()) {
+            // Try to get from annotation
+            try {
+                com.telcobright.core.annotation.Table tableAnnotation =
+                    entityClass.getAnnotation(com.telcobright.core.annotation.Table.class);
+                if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
+                    tableName = tableAnnotation.name();
+                } else {
+                    // Default from class name
+                    tableName = entityClass.getSimpleName().toLowerCase() + "s";
+                }
+            } catch (Exception e) {
+                tableName = entityClass.getSimpleName().toLowerCase() + "s";
             }
-        } catch (Exception e) {
-            // Use default
         }
 
         // Choose repository type based on mode
@@ -405,7 +415,16 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     public static class Builder<T extends ShardingEntity> {
         private List<ShardConfig> shardConfigs = new ArrayList<>();
         private Class<T> entityClass;
-        private RepositoryMode repositoryMode = RepositoryMode.PARTITIONED; // Default
+        private String tableName;
+        private RepositoryMode repositoryMode = RepositoryMode.MULTI_TABLE; // Default to multi-table
+
+        // New design fields
+        private ShardingStrategy shardingStrategy = ShardingStrategy.SINGLE_KEY_HASH; // Default
+        private String partitionColumn;
+        private PartitionColumnType partitionColumnType;
+        private PartitionRange partitionRange;
+
+        // Legacy fields for backward compatibility
         private PartitionType partitionType = PartitionType.DATE_BASED; // Default for partitioned mode
         private String partitionKeyColumn = "created_at"; // Default for date-based
         private GenericMultiTableRepository.TableGranularity tableGranularity =
@@ -413,6 +432,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         private int retentionDays = 30; // Default retention period
         private String charset = "utf8mb4"; // Default charset
         private String collation = "utf8mb4_bin"; // Default collation
+        private int idSize = 22; // Default ID size
         
         public Builder<T> withSingleShard(ShardConfig config) {
             this.shardConfigs = Collections.singletonList(config);
@@ -517,32 +537,159 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             }
             return this;
         }
-        
-        
+
+        // New API methods
+
+        /**
+         * Set the table name for the entities.
+         */
+        public Builder<T> withTableName(String tableName) {
+            if (tableName == null || tableName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Table name cannot be null or empty");
+            }
+            this.tableName = tableName;
+            return this;
+        }
+
+        /**
+         * Set the sharding strategy.
+         */
+        public Builder<T> withShardingStrategy(ShardingStrategy strategy) {
+            if (strategy == null) {
+                throw new IllegalArgumentException("Sharding strategy cannot be null");
+            }
+            this.shardingStrategy = strategy;
+            return this;
+        }
+
+        /**
+         * Set the partition column name and type.
+         * Required for DUAL_KEY strategies.
+         */
+        public Builder<T> withPartitionColumn(String columnName, PartitionColumnType columnType) {
+            if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {
+                if (columnName == null || columnName.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Partition column name required for DUAL_KEY strategies");
+                }
+                if (columnType == null) {
+                    throw new IllegalArgumentException("Partition column type required for DUAL_KEY strategies");
+                }
+            }
+            this.partitionColumn = columnName;
+            this.partitionColumnType = columnType;
+
+            // Set legacy fields for compatibility
+            this.partitionKeyColumn = columnName;
+            return this;
+        }
+
+        /**
+         * Set the partition range.
+         */
+        public Builder<T> withPartitionRange(PartitionRange range) {
+            if (range == null) {
+                throw new IllegalArgumentException("Partition range cannot be null");
+            }
+            this.partitionRange = range;
+
+            // Map to legacy table granularity for compatibility
+            if (range == PartitionRange.HOURLY) {
+                this.tableGranularity = GenericMultiTableRepository.TableGranularity.HOURLY;
+            } else if (range == PartitionRange.DAILY) {
+                this.tableGranularity = GenericMultiTableRepository.TableGranularity.DAILY;
+            } else if (range == PartitionRange.MONTHLY) {
+                this.tableGranularity = GenericMultiTableRepository.TableGranularity.MONTHLY;
+            }
+            return this;
+        }
+
+        /**
+         * Set the ID field size (8-22 bytes).
+         */
+        public Builder<T> withIdSize(int size) {
+            if (size < 8 || size > 22) {
+                throw new IllegalArgumentException("ID size must be between 8 and 22 bytes");
+            }
+            this.idSize = size;
+            return this;
+        }
+
+        /**
+         * Configure data sources for sharding.
+         */
+        public Builder<T> withDataSources(List<DataSourceConfig> dataSources) {
+            if (dataSources == null || dataSources.isEmpty()) {
+                throw new IllegalArgumentException("At least one data source is required");
+            }
+
+            // Convert DataSourceConfig to ShardConfig
+            this.shardConfigs = new ArrayList<>();
+            for (int i = 0; i < dataSources.size(); i++) {
+                DataSourceConfig ds = dataSources.get(i);
+                ShardConfig shardConfig = ShardConfig.builder()
+                    .shardId("shard-" + i)
+                    .host(ds.getHost())
+                    .port(ds.getPort())
+                    .database(ds.getDatabase())
+                    .username(ds.getUsername())
+                    .password(ds.getPassword())
+                    .enabled(true)
+                    .build();
+                this.shardConfigs.add(shardConfig);
+            }
+            return this;
+        }
+
+
         public SplitVerseRepository<T> build() {
+            // Validate required fields
             if (shardConfigs.isEmpty()) {
                 throw new IllegalArgumentException("At least one shard configuration is required");
             }
             if (entityClass == null) {
                 throw new IllegalArgumentException("Entity class is required");
             }
-            
-            // Validate partition type is supported
+
+            // Validate sharding strategy requirements
+            if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {
+                if (partitionColumn == null || partitionColumn.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Partition column required for " + shardingStrategy);
+                }
+                if (partitionColumnType == null) {
+                    throw new IllegalArgumentException("Partition column type required for " + shardingStrategy);
+                }
+                if (partitionRange == null) {
+                    throw new IllegalArgumentException("Partition range required for " + shardingStrategy);
+                }
+            }
+
+            // Validate partition type is supported (legacy)
             partitionType.validateSupported();
-            
+
             // Log the configuration
             System.out.println("[SplitVerse] Building repository with:");
+            System.out.println("  Entity: " + entityClass.getSimpleName());
+            System.out.println("  Table: " + (tableName != null ? tableName : "auto-detect"));
+            System.out.println("  Sharding Strategy: " + shardingStrategy);
             System.out.println("  Repository Mode: " + repositoryMode);
+
+            if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {
+                System.out.println("  Partition Column: " + partitionColumn + " (" + partitionColumnType + ")");
+                System.out.println("  Partition Range: " + partitionRange);
+            }
+
             if (repositoryMode == RepositoryMode.PARTITIONED) {
                 System.out.println("  Partition Type: " + partitionType);
                 System.out.println("  Partition Key Column: " + partitionKeyColumn);
             } else {
                 System.out.println("  Table Granularity: " + tableGranularity);
             }
+
             System.out.println("  Retention Days: " + retentionDays);
+            System.out.println("  ID Size: " + idSize + " bytes");
             System.out.println("  Charset: " + charset + ", Collation: " + collation);
             System.out.println("  Shards: " + shardConfigs.size());
-            
+
             return new SplitVerseRepository<>(this);
         }
         
