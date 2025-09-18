@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split-Verse API Reference</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="api-container">
+        <h1>API Reference</h1>
+
+        <section class="api-section">
+            <h2>Builder API</h2>
+
+            <div class="api-method">
+                <h3>SplitVerseRepository.builder()</h3>
+                <p>Creates a new builder for configuring a sharding repository.</p>
+
+                <h4>Required Methods</h4>
+                <table class="api-table">
+                    <tr>
+                        <th>Method</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>withEntityClass(Class&lt;T&gt;)</code></td>
+                        <td>Class</td>
+                        <td>Entity class implementing ShardingEntity</td>
+                    </tr>
+                    <tr>
+                        <td><code>withTableName(String)</code></td>
+                        <td>String</td>
+                        <td>Base table name (without suffixes)</td>
+                    </tr>
+                    <tr>
+                        <td><code>withShardingStrategy(ShardingStrategy)</code></td>
+                        <td>Enum</td>
+                        <td>SINGLE_KEY_HASH, DUAL_KEY_HASH_RANGE, or DUAL_KEY_HASH_HASH</td>
+                    </tr>
+                    <tr>
+                        <td><code>withDataSources(List&lt;DataSourceConfig&gt;)</code></td>
+                        <td>List</td>
+                        <td>Database connection configurations</td>
+                    </tr>
+                </table>
+
+                <h4>Optional Methods</h4>
+                <table class="api-table">
+                    <tr>
+                        <th>Method</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td><code>withPartitionColumn(String, PartitionColumnType)</code></td>
+                        <td>String, Enum</td>
+                        <td>Column name and type for partitioning</td>
+                    </tr>
+                    <tr>
+                        <td><code>withPartitionRange(PartitionRange)</code></td>
+                        <td>Enum</td>
+                        <td>HOURLY, DAILY, MONTHLY, YEARLY, HASH_N, VALUE_RANGE</td>
+                    </tr>
+                    <tr>
+                        <td><code>withRepositoryMode(RepositoryMode)</code></td>
+                        <td>Enum</td>
+                        <td>PARTITIONED or MULTI_TABLE</td>
+                    </tr>
+                    <tr>
+                        <td><code>withRetentionDays(int)</code></td>
+                        <td>Integer</td>
+                        <td>Days to retain data (auto-deletion)</td>
+                    </tr>
+                    <tr>
+                        <td><code>withIdSize(int)</code></td>
+                        <td>Integer</td>
+                        <td>ID field size (8-22 bytes)</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <section class="api-section">
+            <h2>CRUD Operations</h2>
+
+            <div class="api-method">
+                <h3>Insert Operations</h3>
+
+                <h4>insert(T entity)</h4>
+                <pre><code>void insert(T entity) throws SQLException;</code></pre>
+                <p>Inserts a single entity into the appropriate shard and partition.</p>
+
+                <h4>insertMultiple(List&lt;T&gt; entities)</h4>
+                <pre><code>void insertMultiple(List&lt;T&gt; entities) throws SQLException;</code></pre>
+                <p>Batch inserts multiple entities with optimized performance.</p>
+            </div>
+
+            <div class="api-method">
+                <h3>Read Operations</h3>
+
+                <h4>findById(String id)</h4>
+                <pre><code>T findById(String id) throws SQLException;</code></pre>
+                <p>Finds entity by primary key. Scans all partitions if partition value not provided.</p>
+
+                <h4>findByIdAndDateRange(String id, LocalDateTime start, LocalDateTime end)</h4>
+                <pre><code>T findByIdAndDateRange(String id, LocalDateTime start, LocalDateTime end) throws SQLException;</code></pre>
+                <p>Finds entity within specific date range. Optimized with partition pruning.</p>
+
+                <h4>findAllByDateRange(LocalDateTime start, LocalDateTime end)</h4>
+                <pre><code>List&lt;T&gt; findAllByDateRange(LocalDateTime start, LocalDateTime end) throws SQLException;</code></pre>
+                <p>Finds all entities within date range across all shards.</p>
+            </div>
+
+            <div class="api-method">
+                <h3>Update Operations</h3>
+
+                <h4>updateById(String id, T entity)</h4>
+                <pre><code>void updateById(String id, T entity) throws SQLException;</code></pre>
+                <p>Updates entity by primary key.</p>
+
+                <h4>updateByIdAndDateRange(String id, T entity, LocalDateTime start, LocalDateTime end)</h4>
+                <pre><code>void updateByIdAndDateRange(String id, T entity, LocalDateTime start, LocalDateTime end) throws SQLException;</code></pre>
+                <p>Updates entity within specific partition range.</p>
+            </div>
+
+            <div class="api-method">
+                <h3>Delete Operations</h3>
+
+                <h4>deleteById(String id)</h4>
+                <pre><code>void deleteById(String id) throws SQLException;</code></pre>
+                <p>Deletes entity by primary key.</p>
+
+                <h4>deleteByDateRange(LocalDateTime start, LocalDateTime end)</h4>
+                <pre><code>void deleteByDateRange(LocalDateTime start, LocalDateTime end) throws SQLException;</code></pre>
+                <p>Deletes all entities within date range.</p>
+            </div>
+        </section>
+
+        <section class="api-section">
+            <h2>Batch and Cursor Operations</h2>
+
+            <div class="api-method">
+                <h3>Cursor-Based Pagination</h3>
+
+                <h4>findOneByIdGreaterThan(String id)</h4>
+                <pre><code>T findOneByIdGreaterThan(String id) throws SQLException;</code></pre>
+                <p>Finds the first entity with ID greater than specified value. Useful for cursor-based iteration.</p>
+
+                <h4>findBatchByIdGreaterThan(String id, int batchSize)</h4>
+                <pre><code>List&lt;T&gt; findBatchByIdGreaterThan(String id, int batchSize) throws SQLException;</code></pre>
+                <p>Retrieves batch of entities for efficient processing.</p>
+
+                <h4>Example: Batch Processing</h4>
+                <pre><code>String lastId = "";
+int batchSize = 1000;
+
+while (true) {
+    List&lt;Order&gt; batch = repository.findBatchByIdGreaterThan(lastId, batchSize);
+    if (batch.isEmpty()) break;
+
+    // Process batch
+    processBatch(batch);
+
+    // Update cursor
+    lastId = batch.get(batch.size() - 1).getId();
+}</code></pre>
+            </div>
+        </section>
+
+        <section class="api-section">
+            <h2>Entity Requirements</h2>
+
+            <div class="api-method">
+                <h3>ShardingEntity Interface</h3>
+                <pre><code>public interface ShardingEntity {
+    String getId();
+    void setId(String id);
+    LocalDateTime getCreatedAt();
+    void setCreatedAt(LocalDateTime createdAt);
+}</code></pre>
+
+                <h4>Implementation Example</h4>
+                <pre><code>@Entity
+@Table(name = "orders")
+public class Order implements ShardingEntity {
+    @Id
+    @Column(name = "id", length = 22)
+    private String id;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "customer_id")
+    private String customerId;
+
+    @Column(name = "amount")
+    private BigDecimal amount;
+
+    // Required ShardingEntity methods
+    @Override
+    public String getId() { return id; }
+
+    @Override
+    public void setId(String id) { this.id = id; }
+
+    @Override
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    @Override
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    // Other getters/setters...
+}</code></pre>
+            </div>
+        </section>
+
+        <section class="api-section">
+            <h2>Configuration Classes</h2>
+
+            <div class="api-method">
+                <h3>DataSourceConfig</h3>
+                <pre><code>public class DataSourceConfig {
+    public static DataSourceConfig create(
+        String host,
+        int port,
+        String database
+    );
+
+    public static DataSourceConfig create(
+        String host,
+        int port,
+        String database,
+        String username,
+        String password
+    );
+}</code></pre>
+
+                <h3>ShardingStrategy Enum</h3>
+                <pre><code>public enum ShardingStrategy {
+    SINGLE_KEY_HASH,       // ID only
+    DUAL_KEY_HASH_RANGE,   // ID + range partition
+    DUAL_KEY_HASH_HASH     // ID + hash partition
+}</code></pre>
+
+                <h3>PartitionColumnType Enum</h3>
+                <pre><code>public enum PartitionColumnType {
+    LOCAL_DATE_TIME,  // Timestamp columns
+    LONG,            // Numeric ID columns
+    INTEGER,         // Category columns
+    DOUBLE,          // Measurement columns
+    STRING           // Text columns
+}</code></pre>
+
+                <h3>PartitionRange Enum</h3>
+                <pre><code>public enum PartitionRange {
+    HOURLY,           // New table every hour
+    DAILY,            // New table every day
+    MONTHLY,          // New table every month
+    YEARLY,           // New table every year
+    HASH_4,           // 4 hash buckets
+    HASH_8,           // 8 hash buckets
+    HASH_16,          // 16 hash buckets
+    HASH_32,          // 32 hash buckets
+    VALUE_RANGE_1K,   // Every 1,000 values
+    VALUE_RANGE_10K,  // Every 10,000 values
+    VALUE_RANGE_100K, // Every 100,000 values
+    VALUE_RANGE_1M    // Every 1,000,000 values
+}</code></pre>
+
+                <h3>RepositoryMode Enum</h3>
+                <pre><code>public enum RepositoryMode {
+    PARTITIONED,  // Single table with MySQL native partitions
+    MULTI_TABLE   // Multiple separate tables (recommended)
+}</code></pre>
+            </div>
+        </section>
+    </div>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #667eea;
+            margin-top: 30px;
+        }
+
+        h4 {
+            color: #555;
+            margin-top: 20px;
+        }
+
+        .api-section {
+            margin-bottom: 60px;
+        }
+
+        .api-method {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .api-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .api-table th,
+        .api-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .api-table th {
+            background: #667eea;
+            color: white;
+        }
+
+        .api-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+    </style>
+</body>
+</html>
