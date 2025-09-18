@@ -794,12 +794,59 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
     }
     
     @Override
+    public void deleteById(String id) throws SQLException {
+        String idColumn = metadata.getIdField().getColumnName();
+        String fullTableName = database + "." + tableName;
+        String sql = "DELETE FROM " + fullTableName + " WHERE " + idColumn + " = ?";
+
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            setIdParameter(stmt, 1, id);
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String idColumn = metadata.getIdField().getColumnName();
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        String fullTableName = database + "." + tableName;
+        String sql = "DELETE FROM " + fullTableName + " WHERE " + idColumn + " = ? AND " +
+                     shardingColumn + " BETWEEN ? AND ?";
+
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            setIdParameter(stmt, 1, id);
+            stmt.setTimestamp(2, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(3, Timestamp.valueOf(endDate));
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+        String fullTableName = database + "." + tableName;
+        String sql = "DELETE FROM " + fullTableName + " WHERE " +
+                     shardingColumn + " BETWEEN ? AND ?";
+
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+            stmt.setTimestamp(2, Timestamp.valueOf(endDate));
+            stmt.executeUpdate();
+        }
+    }
+
+    @Override
     public void shutdown() {
-        // Shutdown scheduler first
+        // Shutdown scheduler immediately
         if (scheduler != null && !scheduler.isShutdown()) {
-            scheduler.shutdown();
+            scheduler.shutdownNow(); // Use shutdownNow() for immediate termination
             try {
-                if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
+                // Wait only 2 seconds for termination
+                if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {
+                    // Force shutdown if still not terminated
                     scheduler.shutdownNow();
                 }
             } catch (InterruptedException e) {
@@ -807,7 +854,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity> impleme
                 Thread.currentThread().interrupt();
             }
         }
-        
+
         // Shutdown ConnectionProvider
         if (connectionProvider != null) {
             connectionProvider.shutdown();

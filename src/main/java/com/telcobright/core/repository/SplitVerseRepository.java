@@ -340,6 +340,34 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     @Override
+    public void deleteById(String id) throws SQLException {
+        if (id == null) {
+            throw new IllegalArgumentException("ID cannot be null");
+        }
+
+        ShardingRepository<T> targetShard = getShardForKey(id);
+        targetShard.deleteById(id);
+    }
+
+    @Override
+    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        if (id == null) {
+            throw new IllegalArgumentException("ID cannot be null");
+        }
+
+        ShardingRepository<T> targetShard = getShardForKey(id);
+        targetShard.deleteByIdAndDateRange(id, startDate, endDate);
+    }
+
+    @Override
+    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        // Fan-out delete to all shards
+        for (ShardingRepository<T> shard : shardRepositories.values()) {
+            shard.deleteAllByDateRange(startDate, endDate);
+        }
+    }
+
+    @Override
     public void shutdown() {
         System.out.println("[SplitVerse] Shutting down...");
         
@@ -354,14 +382,16 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             }
         }
         
-        // Shutdown executor service
-        executorService.shutdown();
+        // Shutdown executor service immediately
+        executorService.shutdownNow();
         try {
-            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+            // Wait only 1 second for termination
+            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
                 executorService.shutdownNow();
             }
         } catch (InterruptedException e) {
             executorService.shutdownNow();
+            Thread.currentThread().interrupt();
         }
         
         System.out.println("[SplitVerse] Shutdown complete");

@@ -829,17 +829,68 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     }
     
     @Override
+    public void deleteById(String id) throws SQLException {
+        // Need to delete from all tables as we don't know which one contains the record
+        String idColumn = metadata.getIdField().getColumnName();
+        List<String> tables = getExistingTables();
+
+        for (String table : tables) {
+            String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ?";
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, id);
+                stmt.executeUpdate();
+            }
+        }
+    }
+
+    @Override
+    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String idColumn = metadata.getIdField().getColumnName();
+        List<String> tables = getTablesForDateRange(startDate, endDate);
+
+        for (String table : tables) {
+            String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ? AND " +
+                         "created_at BETWEEN ? AND ?";
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, id);
+                stmt.setTimestamp(2, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(3, Timestamp.valueOf(endDate));
+                stmt.executeUpdate();
+            }
+        }
+    }
+
+    @Override
+    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        List<String> tables = getTablesForDateRange(startDate, endDate);
+
+        for (String table : tables) {
+            String sql = "DELETE FROM " + table + " WHERE created_at BETWEEN ? AND ?";
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setTimestamp(1, Timestamp.valueOf(startDate));
+                stmt.setTimestamp(2, Timestamp.valueOf(endDate));
+                stmt.executeUpdate();
+            }
+        }
+    }
+
+    @Override
     public void shutdown() {
         // Stop monitoring
         if (monitoringService != null) {
             monitoringService.stop();
         }
-        
-        // Shutdown scheduler first
+
+        // Shutdown scheduler immediately
         if (scheduler != null && !scheduler.isShutdown()) {
-            scheduler.shutdown();
+            scheduler.shutdownNow(); // Use shutdownNow() for immediate termination
             try {
-                if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
+                // Wait only 2 seconds for termination
+                if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {
+                    // Force shutdown if still not terminated
                     scheduler.shutdownNow();
                 }
             } catch (InterruptedException e) {
@@ -847,7 +898,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
                 Thread.currentThread().interrupt();
             }
         }
-        
+
         // Shutdown ConnectionProvider
         if (connectionProvider != null) {
             connectionProvider.shutdown();

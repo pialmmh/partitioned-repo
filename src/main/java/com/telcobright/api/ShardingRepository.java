@@ -86,13 +86,28 @@ public interface ShardingRepository<T extends ShardingEntity> {
      * For single partitioned table: Executes single query with LIMIT across all partitions.
      * For multi-table: Iterates tables chronologically, accumulating results until batchSize is reached.
      * Useful for cursor-based pagination and batch processing.
-     * 
+     *
      * @param id The ID to search greater than
      * @param batchSize Maximum number of entities to return
      * @return List of entities with ID greater than specified ID, up to batchSize
      */
     List<T> findBatchByIdGreaterThan(String id, int batchSize) throws SQLException;
-    
+
+    /**
+     * Delete entity by primary key
+     */
+    void deleteById(String id) throws SQLException;
+
+    /**
+     * Delete entity by primary key within a specific date range
+     */
+    void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+
+    /**
+     * Delete all entities within a date range
+     */
+    void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+
     /**
      * Shutdown the repository and release resources
      */

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.MultiShardTest" time="12.046" tests="1" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="21"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="user.timezone" value="Asia/Dhaka"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="21"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/home/mustafa/.sdkman/candidates/java/21-tem/lib"/>
+    <property name="sun.java.command" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250919032226528_3.jar /home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire 2025-09-19T03-22-26_445-jvmRun1 surefire-20250919032226528_1tmp surefire_0-20250919032226528_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="test" value="MultiShardTest#testDataDistributionAcrossShards"/>
+    <property name="surefire.test.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/mustafa"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2023-09-19"/>
+    <property name="java.home" value="/home/mustafa/.sdkman/candidates/java/21-tem"/>
+    <property name="jacoco.skip" value="true"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250919032226528_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="21+35-LTS"/>
+    <property name="user.name" value="mustafa"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.14.0-29-generic"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Temurin-21+35"/>
+    <property name="localRepository" value="/home/mustafa/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="21"/>
+    <property name="user.dir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="21+35-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="65.0"/>
+  </properties>
+  <testcase name="testDataDistributionAcrossShards" classname="com.telcobright.splitverse.tests.MultiShardTest" time="1.184">
+    <system-out><![CDATA[Created test database: split_verse_test_shard_0
+Created test database: split_verse_test_shard_1
+Created test database: split_verse_test_shard_2
+[SplitVerse] Building repository with:
+  Entity: OrderEntity
+  Table: orders
+  Sharding Strategy: DUAL_KEY_HASH_RANGE
+  Repository Mode: MULTI_TABLE
+  Partition Column: created_at (LOCAL_DATE_TIME)
+  Partition Range: DAILY
+  Table Granularity: DAILY
+  Retention Days: 30
+  ID Size: 22 bytes
+  Charset: utf8mb4, Collation: utf8mb4_bin
+  Shards: 3
+[2025-09-19 03:22:29.656] INFO  [MultiTableRepo.orders] Initializing tables for retention period: 2025-08-20 to 2025-10-19 (61 days)
+[2025-09-19 03:22:29.691] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250820
+[2025-09-19 03:22:29.720] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250821
+[2025-09-19 03:22:29.753] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250822
+[2025-09-19 03:22:29.783] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250823
+[2025-09-19 03:22:29.825] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250824
+[2025-09-19 03:22:29.859] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250825
+[2025-09-19 03:22:29.889] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250826
+[2025-09-19 03:22:29.926] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250827
+[2025-09-19 03:22:29.956] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250828
+[2025-09-19 03:22:29.982] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250829
+[2025-09-19 03:22:30.013] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250830
+[2025-09-19 03:22:30.046] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250831
+[2025-09-19 03:22:30.077] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250901
+[2025-09-19 03:22:30.106] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250902
+[2025-09-19 03:22:30.138] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250903
+[2025-09-19 03:22:30.168] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250904
+[2025-09-19 03:22:30.201] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250905
+[2025-09-19 03:22:30.227] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250906
+[2025-09-19 03:22:30.259] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250907
+[2025-09-19 03:22:30.308] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250908
+[2025-09-19 03:22:30.349] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250909
+[2025-09-19 03:22:30.382] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250910
+[2025-09-19 03:22:30.413] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250911
+[2025-09-19 03:22:30.447] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250912
+[2025-09-19 03:22:30.484] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250913
+[2025-09-19 03:22:30.531] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250914
+[2025-09-19 03:22:30.562] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250915
+[2025-09-19 03:22:30.594] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250916
+[2025-09-19 03:22:30.623] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250917
+[2025-09-19 03:22:30.653] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250918
+[2025-09-19 03:22:30.686] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250919
+[2025-09-19 03:22:30.714] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250920
+[2025-09-19 03:22:30.746] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250921
+[2025-09-19 03:22:30.772] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250922
+[2025-09-19 03:22:30.809] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250923
+[2025-09-19 03:22:30.840] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250924
+[2025-09-19 03:22:30.868] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250925
+[2025-09-19 03:22:30.901] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250926
+[2025-09-19 03:22:30.933] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250927
+[2025-09-19 03:22:30.963] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250928
+[2025-09-19 03:22:30.991] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250929
+[2025-09-19 03:22:31.017] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20250930
+[2025-09-19 03:22:31.043] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251001
+[2025-09-19 03:22:31.074] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251002
+[2025-09-19 03:22:31.106] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251003
+[2025-09-19 03:22:31.137] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251004
+[2025-09-19 03:22:31.169] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251005
+[2025-09-19 03:22:31.198] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251006
+[2025-09-19 03:22:31.233] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251007
+[2025-09-19 03:22:31.264] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251008
+[2025-09-19 03:22:31.291] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251009
+[2025-09-19 03:22:31.321] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251010
+[2025-09-19 03:22:31.352] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251011
+[2025-09-19 03:22:31.379] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251012
+[2025-09-19 03:22:31.405] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251013
+[2025-09-19 03:22:31.431] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251014
+[2025-09-19 03:22:31.456] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251015
+[2025-09-19 03:22:31.483] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251016
+[2025-09-19 03:22:31.509] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251017
+[2025-09-19 03:22:31.536] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251018
+[2025-09-19 03:22:31.563] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_0.orders_20251019
+[2025-09-19 03:22:31.563] INFO  [MultiTableRepo.orders] Completed table initialization for retention period
+[SplitVerse] Initialized shard: shard-0
+[2025-09-19 03:22:31.565] INFO  [MultiTableRepo.orders] Initializing tables for retention period: 2025-08-20 to 2025-10-19 (61 days)
+[2025-09-19 03:22:31.595] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250820
+[2025-09-19 03:22:31.626] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250821
+[2025-09-19 03:22:31.658] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250822
+[2025-09-19 03:22:31.692] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250823
+[2025-09-19 03:22:31.722] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250824
+[2025-09-19 03:22:31.754] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250825
+[2025-09-19 03:22:31.787] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250826
+[2025-09-19 03:22:31.815] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250827
+[2025-09-19 03:22:31.845] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250828
+[2025-09-19 03:22:31.882] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250829
+[2025-09-19 03:22:31.915] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250830
+[2025-09-19 03:22:31.945] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250831
+[2025-09-19 03:22:31.978] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250901
+[2025-09-19 03:22:32.009] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250902
+[2025-09-19 03:22:32.038] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250903
+[2025-09-19 03:22:32.065] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250904
+[2025-09-19 03:22:32.092] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250905
+[2025-09-19 03:22:32.123] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250906
+[2025-09-19 03:22:32.154] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250907
+[2025-09-19 03:22:32.181] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250908
+[2025-09-19 03:22:32.209] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250909
+[2025-09-19 03:22:32.236] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250910
+[2025-09-19 03:22:32.265] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250911
+[2025-09-19 03:22:32.294] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250912
+[2025-09-19 03:22:32.326] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250913
+[2025-09-19 03:22:32.359] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250914
+[2025-09-19 03:22:32.389] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250915
+[2025-09-19 03:22:32.422] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250916
+[2025-09-19 03:22:32.451] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250917
+[2025-09-19 03:22:32.478] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250918
+[2025-09-19 03:22:32.507] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250919
+[2025-09-19 03:22:32.539] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250920
+[2025-09-19 03:22:32.570] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250921
+[2025-09-19 03:22:32.612] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250922
+[2025-09-19 03:22:32.642] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250923
+[2025-09-19 03:22:32.678] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250924
+[2025-09-19 03:22:32.709] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250925
+[2025-09-19 03:22:32.737] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250926
+[2025-09-19 03:22:32.768] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250927
+[2025-09-19 03:22:32.795] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250928
+[2025-09-19 03:22:32.825] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250929
+[2025-09-19 03:22:32.854] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20250930
+[2025-09-19 03:22:32.883] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251001
+[2025-09-19 03:22:32.914] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251002
+[2025-09-19 03:22:32.943] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251003
+[2025-09-19 03:22:32.974] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251004
+[2025-09-19 03:22:33.001] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251005
+[2025-09-19 03:22:33.031] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251006
+[2025-09-19 03:22:33.059] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251007
+[2025-09-19 03:22:33.092] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251008
+[2025-09-19 03:22:33.124] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251009
+[2025-09-19 03:22:33.153] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251010
+[2025-09-19 03:22:33.186] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251011
+[2025-09-19 03:22:33.215] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251012
+[2025-09-19 03:22:33.243] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251013
+[2025-09-19 03:22:33.271] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251014
+[2025-09-19 03:22:33.304] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251015
+[2025-09-19 03:22:33.345] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251016
+[2025-09-19 03:22:33.372] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251017
+[2025-09-19 03:22:33.400] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251018
+[2025-09-19 03:22:33.435] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_1.orders_20251019
+[2025-09-19 03:22:33.437] INFO  [MultiTableRepo.orders] Completed table initialization for retention period
+[SplitVerse] Initialized shard: shard-1
+[2025-09-19 03:22:33.440] INFO  [MultiTableRepo.orders] Initializing tables for retention period: 2025-08-20 to 2025-10-19 (61 days)
+[2025-09-19 03:22:33.472] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250820
+[2025-09-19 03:22:33.511] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250821
+[2025-09-19 03:22:33.547] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250822
+[2025-09-19 03:22:33.580] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250823
+[2025-09-19 03:22:33.621] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250824
+[2025-09-19 03:22:33.655] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250825
+[2025-09-19 03:22:33.708] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250826
+[2025-09-19 03:22:33.741] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250827
+[2025-09-19 03:22:33.784] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250828
+[2025-09-19 03:22:33.814] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250829
+[2025-09-19 03:22:33.843] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250830
+[2025-09-19 03:22:33.870] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250831
+[2025-09-19 03:22:33.900] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250901
+[2025-09-19 03:22:33.929] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250902
+[2025-09-19 03:22:33.956] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250903
+[2025-09-19 03:22:33.982] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250904
+[2025-09-19 03:22:34.009] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250905
+[2025-09-19 03:22:34.036] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250906
+[2025-09-19 03:22:34.062] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250907
+[2025-09-19 03:22:34.088] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250908
+[2025-09-19 03:22:34.115] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250909
+[2025-09-19 03:22:34.145] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250910
+[2025-09-19 03:22:34.170] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250911
+[2025-09-19 03:22:34.198] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250912
+[2025-09-19 03:22:34.224] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250913
+[2025-09-19 03:22:34.254] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250914
+[2025-09-19 03:22:34.281] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250915
+[2025-09-19 03:22:34.307] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250916
+[2025-09-19 03:22:34.334] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250917
+[2025-09-19 03:22:34.360] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250918
+[2025-09-19 03:22:34.387] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250919
+[2025-09-19 03:22:34.412] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250920
+[2025-09-19 03:22:34.440] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250921
+[2025-09-19 03:22:34.468] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250922
+[2025-09-19 03:22:34.497] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250923
+[2025-09-19 03:22:34.524] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250924
+[2025-09-19 03:22:34.551] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250925
+[2025-09-19 03:22:34.580] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250926
+[2025-09-19 03:22:34.617] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250927
+[2025-09-19 03:22:34.643] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250928
+[2025-09-19 03:22:34.674] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250929
+[2025-09-19 03:22:34.700] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20250930
+[2025-09-19 03:22:34.727] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251001
+[2025-09-19 03:22:34.761] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251002
+[2025-09-19 03:22:34.793] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251003
+[2025-09-19 03:22:34.824] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251004
+[2025-09-19 03:22:34.855] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251005
+[2025-09-19 03:22:34.885] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251006
+[2025-09-19 03:22:34.919] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251007
+[2025-09-19 03:22:34.948] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251008
+[2025-09-19 03:22:34.975] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251009
+[2025-09-19 03:22:35.003] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251010
+[2025-09-19 03:22:35.035] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251011
+[2025-09-19 03:22:35.065] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251012
+[2025-09-19 03:22:35.100] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251013
+[2025-09-19 03:22:35.131] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251014
+[2025-09-19 03:22:35.167] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251015
+[2025-09-19 03:22:35.193] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251016
+[2025-09-19 03:22:35.221] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251017
+[2025-09-19 03:22:35.250] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251018
+[2025-09-19 03:22:35.279] INFO  [MultiTableRepo.orders] Ensured table exists: split_verse_test_shard_2.orders_20251019
+[2025-09-19 03:22:35.279] INFO  [MultiTableRepo.orders] Completed table initialization for retention period
+[SplitVerse] Initialized shard: shard-2
+[SplitVerse] Initialized with 3 active shard(s)
+Created multi-shard repository with 3 shards
+✓ Data distribution test passed. Distribution: {0=93, 1=105, 2=102}
+]]></system-out>
+    <system-err><![CDATA[Sep 19, 2025 3:22:29 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/split_verse_test_shard_0?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 19, 2025 3:22:31 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/split_verse_test_shard_1?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 19, 2025 3:22:33 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/split_verse_test_shard_2?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+]]></system-err>
+  </testcase>
+</testsuite>

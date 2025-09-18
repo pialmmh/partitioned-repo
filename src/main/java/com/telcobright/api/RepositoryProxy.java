@@ -113,6 +113,21 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
     }
     
     @Override
+    public void deleteById(String id) throws SQLException {
+        delegate.deleteById(id);
+    }
+
+    @Override
+    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        delegate.deleteByIdAndDateRange(id, startDate, endDate);
+    }
+
+    @Override
+    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        delegate.deleteAllByDateRange(startDate, endDate);
+    }
+
+    @Override
     public void shutdown() {
         delegate.shutdown();
     }
