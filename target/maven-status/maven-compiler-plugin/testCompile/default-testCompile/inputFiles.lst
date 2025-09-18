@@ -7,6 +7,7 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PerformanceTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/ShardingStrategyTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/TestDatabaseSetup.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/ThreeShardNestedPartitioningTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/deprecated/AnnotationEnforcementTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/deprecated/PartitionTypeValidationTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/deprecated/RepositoryModeTest.java

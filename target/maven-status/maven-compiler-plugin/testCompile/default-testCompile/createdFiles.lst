@@ -1,5 +1,6 @@
 com/telcobright/splitverse/tests/ShardingEntityEnforcementTest$ValidEntity.class
 com/telcobright/splitverse/tests/PartitionTypeValidationTest.class
+com/telcobright/splitverse/tests/ThreeShardNestedPartitioningTest.class
 com/telcobright/splitverse/tests/AnnotationEnforcementTest$NoIdEntity.class
 com/telcobright/splitverse/tests/ShardingEntityEnforcementTest$InvalidEntity.class
 com/telcobright/splitverse/tests/AnnotationEnforcementTest.class
@@ -33,3 +34,4 @@ com/telcobright/splitverse/tests/SplitVerseMultiShardTest.class
 com/telcobright/splitverse/tests/ApiValidationTest.class
 com/telcobright/splitverse/tests/PartitionRangeTest.class
 com/telcobright/splitverse/tests/PerformanceTest.class
+com/telcobright/splitverse/tests/ThreeShardNestedPartitioningTest$Transaction.class
