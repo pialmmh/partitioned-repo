@@ -1,0 +1,7 @@
+#surefire_0
+#Fri Sep 19 04:01:23 BDT 2025
+basedir=/home/mustafa/telcobright-projects/routesphere/split-verse
+failIfNoTests=false
+jacoco.skip=true
+localRepository=/home/mustafa/.m2/repository
+test=PerformanceTest
