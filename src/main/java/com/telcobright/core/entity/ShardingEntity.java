@@ -38,7 +38,7 @@ import java.time.LocalDateTime;
  *
  * @param <T> The type of the partition column value (must be Comparable)
  */
-public interface ShardingEntity<T extends Comparable<T>> {
+public interface ShardingEntity<T extends Comparable<? super T>> {
     /**
      * Get the entity's unique identifier.
      * Must be externally generated (UUID, NanoID, ULID, etc.)

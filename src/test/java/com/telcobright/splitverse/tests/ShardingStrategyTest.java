@@ -45,6 +45,16 @@ public class ShardingStrategyTest {
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    @Override
+    public LocalDateTime getPartitionColValue() {
+        return createdAt;
+    }
+
+    @Override
+    public void setPartitionColValue(LocalDateTime value) {
+        this.createdAt = value;
+    }
+
         public String getCustomerId() { return customerId; }
         public void setCustomerId(String customerId) { this.customerId = customerId; }
         public Long getSequenceNumber() { return sequenceNumber; }

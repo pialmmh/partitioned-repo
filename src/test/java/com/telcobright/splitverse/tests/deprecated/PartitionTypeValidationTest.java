@@ -4,6 +4,7 @@ import com.telcobright.core.repository.SplitVerseRepository;
 import com.telcobright.core.partition.PartitionType;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.examples.entity.SubscriberEntity;
+import java.time.LocalDateTime;
 
 /**
  * Test to verify that unsupported partition types throw exceptions

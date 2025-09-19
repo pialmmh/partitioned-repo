@@ -82,6 +82,16 @@ public class SqlPregenerationTest {
             this.createdAt = createdAt;
         }
 
+        @Override
+        public LocalDateTime getPartitionColValue() {
+            return createdAt;
+        }
+
+        @Override
+        public void setPartitionColValue(LocalDateTime value) {
+            this.createdAt = value;
+        }
+
         public Long getSequenceNumber() {
             return sequenceNumber;
         }

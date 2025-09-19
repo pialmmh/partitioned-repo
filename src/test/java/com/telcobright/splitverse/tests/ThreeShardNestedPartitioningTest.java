@@ -74,6 +74,16 @@ public class ThreeShardNestedPartitioningTest {
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    @Override
+    public LocalDateTime getPartitionColValue() {
+        return createdAt;
+    }
+
+    @Override
+    public void setPartitionColValue(LocalDateTime value) {
+        this.createdAt = value;
+    }
+
         public String getAccountId() { return accountId; }
         public void setAccountId(String accountId) { this.accountId = accountId; }
         public Double getAmount() { return amount; }

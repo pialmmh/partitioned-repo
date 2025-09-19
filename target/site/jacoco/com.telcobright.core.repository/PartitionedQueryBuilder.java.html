@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PartitionedQueryBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.repository</a> &gt; <span class="el_source">PartitionedQueryBuilder.java</span></div><h1>PartitionedQueryBuilder.java</h1><pre class="source lang-java linenums">package com.telcobright.core.repository;
+
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Advanced query builder that transforms queries for partitioned tables with intelligent aggregation
+ * Handles different aggregate functions with proper outer/inner aggregation mapping
+ */
+<span class="nc" id="L15">public class PartitionedQueryBuilder {</span>
+    
+<span class="nc" id="L17">    private static final DateTimeFormatter TABLE_DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
+<span class="nc" id="L18">    private static final DateTimeFormatter SQL_DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+    
+    // Aggregation mapping: inner function -&gt; outer function
+<span class="nc" id="L21">    private static final Map&lt;String, String&gt; AGGREGATION_MAPPING = Map.of(</span>
+        &quot;COUNT&quot;, &quot;SUM&quot;,
+        &quot;SUM&quot;, &quot;SUM&quot;,
+        &quot;MAX&quot;, &quot;MAX&quot;,
+        &quot;MIN&quot;, &quot;MIN&quot;,
+        &quot;AVG&quot;, &quot;AVG&quot;  // Note: AVG requires special handling for accuracy
+    );
+    
+    /**
+     * Transforms a query on logical table to UNION ALL across daily partitioned tables
+     * with intelligent date range splitting and aggregation handling
+     */
+    public static String getQuery(String originalQuery, String tableName, String database) {
+<span class="nc" id="L34">        return getQuery(originalQuery, tableName, database, &quot;created_at&quot;);</span>
+    }
+    
+    /**
+     * Transforms a query on logical table to UNION ALL across daily partitioned tables
+     * with intelligent date range splitting and aggregation handling
+     */
+    public static String getQuery(String originalQuery, String tableName, String database, String shardingColumn) {
+        // Parse the query components
+<span class="nc" id="L43">        QueryComponents components = parseQuery(originalQuery);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (components == null) {</span>
+<span class="nc" id="L45">            return originalQuery; // Return original if parsing fails</span>
+        }
+        
+        // Extract date range from WHERE clause
+<span class="nc" id="L49">        DateRange dateRange = extractDateRange(components.whereClause, shardingColumn);</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (dateRange == null) {</span>
+<span class="nc" id="L51">            return originalQuery; // No date range found</span>
+        }
+        
+        // Generate daily partitions with adjusted date ranges
+<span class="nc" id="L55">        List&lt;PartitionInfo&gt; partitions = generatePartitions(dateRange, tableName, database);</span>
+        
+        // Filter to only existing tables - if no tables exist, return empty result
+<span class="nc" id="L58">        partitions = filterExistingTables(partitions);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (partitions.isEmpty()) {</span>
+<span class="nc" id="L60">            return &quot;SELECT &quot; + components.selectClause + &quot; FROM (SELECT NULL WHERE FALSE) empty LIMIT 0&quot;;</span>
+        }
+        
+        // Build the transformed query
+<span class="nc" id="L64">        return buildTransformedQuery(components, partitions, shardingColumn);</span>
+    }
+    
+    /**
+     * Parse SQL query into components
+     */
+    private static QueryComponents parseQuery(String query) {
+        try {
+            // Normalize query
+<span class="nc" id="L73">            String normalized = query.replaceAll(&quot;\\s+&quot;, &quot; &quot;).trim();</span>
+            
+            // Extract SELECT clause
+<span class="nc" id="L76">            Pattern selectPattern = Pattern.compile(&quot;SELECT\\s+(.+?)\\s+FROM&quot;, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);</span>
+<span class="nc" id="L77">            Matcher selectMatcher = selectPattern.matcher(normalized);</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            if (!selectMatcher.find()) return null;</span>
+<span class="nc" id="L79">            String selectClause = selectMatcher.group(1).trim();</span>
+            
+            // Extract FROM table
+<span class="nc" id="L82">            Pattern fromPattern = Pattern.compile(&quot;FROM\\s+(\\S+)&quot;, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L83">            Matcher fromMatcher = fromPattern.matcher(normalized);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">            if (!fromMatcher.find()) return null;</span>
+<span class="nc" id="L85">            String fromTable = fromMatcher.group(1).trim();</span>
+            
+            // Extract WHERE clause
+<span class="nc" id="L88">            Pattern wherePattern = Pattern.compile(&quot;WHERE\\s+(.+?)(?:GROUP\\s+BY|ORDER\\s+BY|$)&quot;, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L89">            Matcher whereMatcher = wherePattern.matcher(normalized);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">            String whereClause = whereMatcher.find() ? whereMatcher.group(1).trim() : &quot;&quot;;</span>
+            
+            // Extract GROUP BY
+<span class="nc" id="L93">            Pattern groupByPattern = Pattern.compile(&quot;GROUP\\s+BY\\s+(.+?)(?:ORDER\\s+BY|$)&quot;, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L94">            Matcher groupByMatcher = groupByPattern.matcher(normalized);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            String groupByClause = groupByMatcher.find() ? groupByMatcher.group(1).trim() : &quot;&quot;;</span>
+            
+            // Extract ORDER BY
+<span class="nc" id="L98">            Pattern orderByPattern = Pattern.compile(&quot;ORDER\\s+BY\\s+(.+?)(?:;|$)&quot;, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L99">            Matcher orderByMatcher = orderByPattern.matcher(normalized);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            String orderByClause = orderByMatcher.find() ? orderByMatcher.group(1).trim().replaceAll(&quot;;$&quot;, &quot;&quot;) : &quot;&quot;;</span>
+            
+<span class="nc" id="L102">            return new QueryComponents(selectClause, fromTable, whereClause, groupByClause, orderByClause);</span>
+<span class="nc" id="L103">        } catch (Exception e) {</span>
+<span class="nc" id="L104">            System.err.println(&quot;Error parsing query: &quot; + e.getMessage());</span>
+<span class="nc" id="L105">            return null;</span>
+        }
+    }
+    
+    /**
+     * Extract date range from WHERE clause
+     */
+    private static DateRange extractDateRange(String whereClause, String shardingColumn) {
+        try {
+            // Pattern for date comparisons with dynamic column name
+<span class="nc" id="L115">            String patternStr = shardingColumn + &quot;\\s*([&gt;&lt;=]+)\\s*'([^']+)'&quot;;</span>
+<span class="nc" id="L116">            Pattern datePattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L117">            Matcher matcher = datePattern.matcher(whereClause);</span>
+            
+<span class="nc" id="L119">            LocalDateTime startDate = null;</span>
+<span class="nc" id="L120">            LocalDateTime endDate = null;</span>
+            
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            while (matcher.find()) {</span>
+<span class="nc" id="L123">                String operator = matcher.group(1);</span>
+<span class="nc" id="L124">                String dateStr = matcher.group(2);</span>
+<span class="nc" id="L125">                LocalDateTime date = LocalDateTime.parse(dateStr, SQL_DATE_FORMAT);</span>
+                
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                if (operator.contains(&quot;&gt;&quot;)) {</span>
+<span class="nc" id="L128">                    startDate = date;</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                } else if (operator.contains(&quot;&lt;&quot;)) {</span>
+<span class="nc" id="L130">                    endDate = date;</span>
+                }
+<span class="nc" id="L132">            }</span>
+            
+<span class="nc bnc" id="L134" title="All 4 branches missed.">            return (startDate != null &amp;&amp; endDate != null) ? new DateRange(startDate, endDate) : null;</span>
+<span class="nc" id="L135">        } catch (Exception e) {</span>
+<span class="nc" id="L136">            System.err.println(&quot;Error extracting date range: &quot; + e.getMessage());</span>
+<span class="nc" id="L137">            return null;</span>
+        }
+    }
+    
+    /**
+     * Generate partition information with adjusted date ranges
+     */
+    private static List&lt;PartitionInfo&gt; generatePartitions(DateRange range, String tableName, String database) {
+<span class="nc" id="L145">        List&lt;PartitionInfo&gt; partitions = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc" id="L147">        LocalDate currentDate = range.start.toLocalDate();</span>
+<span class="nc" id="L148">        LocalDate endDate = range.end.toLocalDate();</span>
+        
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        while (!currentDate.isAfter(endDate)) {</span>
+            // Calculate partition-specific date range
+<span class="nc" id="L152">            LocalDateTime partitionStart = LocalDateTime.of(currentDate, java.time.LocalTime.MIN);</span>
+<span class="nc" id="L153">            LocalDateTime partitionEnd = LocalDateTime.of(currentDate.plusDays(1), java.time.LocalTime.MIN);</span>
+            
+            // Adjust for actual query range
+<span class="nc bnc" id="L156" title="All 2 branches missed.">            if (partitionStart.isBefore(range.start)) {</span>
+<span class="nc" id="L157">                partitionStart = range.start;</span>
+            }
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            if (partitionEnd.isAfter(range.end)) {</span>
+<span class="nc" id="L160">                partitionEnd = range.end;</span>
+            }
+            
+<span class="nc" id="L163">            String partitionTable = String.format(&quot;%s.%s_%s&quot;, </span>
+<span class="nc" id="L164">                database, tableName, currentDate.format(TABLE_DATE_FORMAT));</span>
+            
+<span class="nc" id="L166">            partitions.add(new PartitionInfo(partitionTable, partitionStart, partitionEnd));</span>
+<span class="nc" id="L167">            currentDate = currentDate.plusDays(1);</span>
+<span class="nc" id="L168">        }</span>
+        
+<span class="nc" id="L170">        return partitions;</span>
+    }
+    
+    /**
+     * Filter partitions to only include tables that actually exist
+     */
+    private static List&lt;PartitionInfo&gt; filterExistingTables(List&lt;PartitionInfo&gt; partitions) {
+<span class="nc" id="L177">        List&lt;PartitionInfo&gt; existingPartitions = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        for (PartitionInfo partition : partitions) {</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (tableExists(partition.tableName)) {</span>
+<span class="nc" id="L181">                existingPartitions.add(partition);</span>
+            }
+<span class="nc" id="L183">        }</span>
+        
+<span class="nc" id="L185">        return existingPartitions;</span>
+    }
+    
+    /**
+     * Check if a table exists
+     */
+    private static boolean tableExists(String fullTableName) {
+        // Parse database.table format
+<span class="nc" id="L193">        String[] parts = fullTableName.split(&quot;\\.&quot;);</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        if (parts.length != 2) return false;</span>
+        
+<span class="nc" id="L196">        String database = parts[0];</span>
+<span class="nc" id="L197">        String tableName = parts[1];</span>
+        
+<span class="nc" id="L199">        try (Connection conn = createConnection(database)) {</span>
+<span class="nc" id="L200">            String query = &quot;SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ?&quot;;</span>
+<span class="nc" id="L201">            try (PreparedStatement stmt = conn.prepareStatement(query)) {</span>
+<span class="nc" id="L202">                stmt.setString(1, database);</span>
+<span class="nc" id="L203">                stmt.setString(2, tableName);</span>
+<span class="nc" id="L204">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc" id="L205">                    return rs.next();</span>
+                }
+            }
+<span class="nc" id="L208">        } catch (SQLException e) {</span>
+<span class="nc" id="L209">            System.err.println(&quot;Error checking table existence for &quot; + fullTableName + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L210">            return false;</span>
+        }
+    }
+    
+    /**
+     * Create database connection - reuses same logic as repositories
+     */
+    private static Connection createConnection(String database) throws SQLException {
+        // Try MariaDB URL first, then MySQL - same as repository logic
+<span class="nc" id="L219">        String mariadbUrl = String.format(&quot;jdbc:mariadb://127.0.0.1:3306/%s?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&quot;, database);</span>
+<span class="nc" id="L220">        String mysqlUrl = String.format(&quot;jdbc:mysql://127.0.0.1:3306/%s?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&quot;, database);</span>
+        
+        try {
+<span class="nc" id="L223">            return DriverManager.getConnection(mariadbUrl, &quot;root&quot;, &quot;123456&quot;);</span>
+<span class="nc" id="L224">        } catch (SQLException e) {</span>
+            // Fallback to MySQL URL
+<span class="nc" id="L226">            return DriverManager.getConnection(mysqlUrl, &quot;root&quot;, &quot;123456&quot;);</span>
+        }
+    }
+    
+    /**
+     * Build the transformed query with UNION ALL
+     */
+    private static String buildTransformedQuery(QueryComponents components, List&lt;PartitionInfo&gt; partitions, String shardingColumn) {
+<span class="nc" id="L234">        StringBuilder query = new StringBuilder();</span>
+        
+        // Parse and transform SELECT columns
+<span class="nc" id="L237">        List&lt;SelectColumn&gt; columns = parseSelectColumns(components.selectClause);</span>
+        
+        // Build outer SELECT with transformed aggregations
+<span class="nc" id="L240">        query.append(&quot;SELECT &quot;);</span>
+<span class="nc" id="L241">        query.append(buildOuterSelect(columns));</span>
+<span class="nc" id="L242">        query.append(&quot;\nFROM\n(\n&quot;);</span>
+        
+        // Build UNION ALL subqueries
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        for (int i = 0; i &lt; partitions.size(); i++) {</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">            if (i &gt; 0) {</span>
+<span class="nc" id="L247">                query.append(&quot;\nUNION ALL \n&quot;);</span>
+            }
+            
+<span class="nc" id="L250">            PartitionInfo partition = partitions.get(i);</span>
+<span class="nc" id="L251">            query.append(&quot;SELECT &quot;).append(components.selectClause).append(&quot;\n&quot;);</span>
+<span class="nc" id="L252">            query.append(&quot;FROM &quot;).append(partition.tableName).append(&quot;\n&quot;);</span>
+<span class="nc" id="L253">            query.append(&quot;WHERE &quot;).append(shardingColumn).append(&quot; &gt;='&quot;).append(partition.startDate.format(SQL_DATE_FORMAT));</span>
+<span class="nc" id="L254">            query.append(&quot;' AND &quot;).append(shardingColumn).append(&quot; &lt;='&quot;).append(partition.endDate.format(SQL_DATE_FORMAT)).append(&quot;'&quot;);</span>
+            
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            if (!components.groupByClause.isEmpty()) {</span>
+<span class="nc" id="L257">                query.append(&quot;\nGROUP BY &quot;).append(components.groupByClause);</span>
+            }
+        }
+        
+<span class="nc" id="L261">        query.append(&quot;\n) unioned&quot;);</span>
+        
+        // Add outer GROUP BY - transform to use aliases
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (!components.groupByClause.isEmpty()) {</span>
+<span class="nc" id="L265">            String outerGroupBy = transformGroupByForOuter(components.groupByClause, columns);</span>
+<span class="nc" id="L266">            query.append(&quot;\nGROUP BY &quot;).append(outerGroupBy);</span>
+        }
+        
+        // Add ORDER BY if present
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (!components.orderByClause.isEmpty()) {</span>
+<span class="nc" id="L271">            query.append(&quot;\nORDER BY &quot;).append(components.orderByClause);</span>
+        }
+        
+<span class="nc" id="L274">        query.append(&quot;;&quot;);</span>
+        
+<span class="nc" id="L276">        return query.toString();</span>
+    }
+    
+    /**
+     * Parse SELECT columns to identify aggregations
+     */
+    private static List&lt;SelectColumn&gt; parseSelectColumns(String selectClause) {
+<span class="nc" id="L283">        List&lt;SelectColumn&gt; columns = new ArrayList&lt;&gt;();</span>
+        
+        // Split by comma but respect parentheses
+<span class="nc" id="L286">        String[] parts = selectClause.split(&quot;,(?![^(]*\\))&quot;);</span>
+        
+<span class="nc bnc" id="L288" title="All 2 branches missed.">        for (String part : parts) {</span>
+<span class="nc" id="L289">            part = part.trim();</span>
+            
+            // Check for aggregate functions - handle nested parentheses
+<span class="nc" id="L292">            Pattern aggPattern = Pattern.compile(&quot;^(COUNT|SUM|MAX|MIN|AVG)\\s*\\(&quot;, </span>
+                Pattern.CASE_INSENSITIVE);
+<span class="nc" id="L294">            Matcher aggMatcher = aggPattern.matcher(part);</span>
+            
+<span class="nc bnc" id="L296" title="All 2 branches missed.">            if (aggMatcher.find()) {</span>
+<span class="nc" id="L297">                String function = aggMatcher.group(1).toUpperCase();</span>
+                
+                // Find matching closing parenthesis
+<span class="nc" id="L300">                int openParen = part.indexOf('(', aggMatcher.end() - 1);</span>
+<span class="nc" id="L301">                int closeParen = findMatchingParen(part, openParen);</span>
+                
+<span class="nc bnc" id="L303" title="All 2 branches missed.">                if (closeParen == -1) {</span>
+<span class="nc" id="L304">                    continue;</span>
+                }
+                
+<span class="nc" id="L307">                String expression = part.substring(openParen + 1, closeParen);</span>
+                
+                // Extract alias if present
+<span class="nc" id="L310">                String remaining = part.substring(closeParen + 1).trim();</span>
+<span class="nc" id="L311">                String alias = null;</span>
+<span class="nc" id="L312">                Pattern aliasPattern = Pattern.compile(&quot;^\\s*AS\\s+(\\w+)&quot;, Pattern.CASE_INSENSITIVE);</span>
+<span class="nc" id="L313">                Matcher aliasMatcher = aliasPattern.matcher(remaining);</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">                if (aliasMatcher.find()) {</span>
+<span class="nc" id="L315">                    alias = aliasMatcher.group(1);</span>
+                }
+                
+                // If no alias, generate one
+<span class="nc bnc" id="L319" title="All 4 branches missed.">                if (alias == null || alias.trim().isEmpty()) {</span>
+<span class="nc" id="L320">                    alias = function.toLowerCase() + &quot;_&quot; + expression.replaceAll(&quot;[^\\w]&quot;, &quot;_&quot;).replaceAll(&quot;_{2,}&quot;, &quot;_&quot;).replaceAll(&quot;^_|_$&quot;, &quot;&quot;);</span>
+                }
+                
+<span class="nc" id="L323">                columns.add(new SelectColumn(part, function, alias, true));</span>
+<span class="nc" id="L324">            } else {</span>
+                // Non-aggregate column
+<span class="nc" id="L326">                String alias = part;</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">                if (part.contains(&quot; AS &quot;)) {</span>
+<span class="nc" id="L328">                    String[] aliasParts = part.split(&quot;\\s+AS\\s+&quot;, 2);</span>
+<span class="nc" id="L329">                    alias = aliasParts[1].trim();</span>
+                }
+<span class="nc" id="L331">                columns.add(new SelectColumn(part, null, alias, false));</span>
+            }
+        }
+        
+<span class="nc" id="L335">        return columns;</span>
+    }
+    
+    /**
+     * Build outer SELECT with transformed aggregations
+     */
+    private static String buildOuterSelect(List&lt;SelectColumn&gt; columns) {
+<span class="nc" id="L342">        StringJoiner joiner = new StringJoiner(&quot;, &quot;);</span>
+        
+<span class="nc bnc" id="L344" title="All 2 branches missed.">        for (SelectColumn col : columns) {</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">            if (col.isAggregate) {</span>
+                // Transform aggregation based on mapping
+<span class="nc" id="L347">                String outerFunction = AGGREGATION_MAPPING.getOrDefault(col.aggregateFunction, col.aggregateFunction);</span>
+                
+<span class="nc bnc" id="L349" title="All 2 branches missed.">                if (&quot;COUNT&quot;.equals(col.aggregateFunction)) {</span>
+                    // COUNT -&gt; SUM
+<span class="nc" id="L351">                    joiner.add(String.format(&quot;SUM(%s) AS %s&quot;, col.alias, col.alias));</span>
+                } else {
+                    // Others maintain same function
+<span class="nc" id="L354">                    joiner.add(String.format(&quot;%s(%s) AS %s&quot;, outerFunction, col.alias, col.alias));</span>
+                }
+<span class="nc" id="L356">            } else {</span>
+                // Non-aggregate columns stay the same
+<span class="nc" id="L358">                joiner.add(col.alias);</span>
+            }
+<span class="nc" id="L360">        }</span>
+        
+<span class="nc" id="L362">        return joiner.toString();</span>
+    }
+    
+    /**
+     * Transform GROUP BY clause for outer query to use aliases instead of original expressions
+     */
+    private static String transformGroupByForOuter(String groupByClause, List&lt;SelectColumn&gt; columns) {
+<span class="nc" id="L369">        String transformed = groupByClause;</span>
+        
+        // Find non-aggregate columns that might be used in GROUP BY
+<span class="nc bnc" id="L372" title="All 2 branches missed.">        for (SelectColumn col : columns) {</span>
+<span class="nc bnc" id="L373" title="All 4 branches missed.">            if (!col.isAggregate &amp;&amp; col.alias != null) {</span>
+                // Replace the original expression with the alias
+                // This handles cases like &quot;DATE_FORMAT(created_at, '%Y-%m-%d %H:00')&quot; -&gt; &quot;hour&quot;
+<span class="nc" id="L376">                String originalExpr = col.original;</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                if (originalExpr.contains(&quot; AS &quot;)) {</span>
+<span class="nc" id="L378">                    String expr = originalExpr.substring(0, originalExpr.indexOf(&quot; AS &quot;)).trim();</span>
+<span class="nc" id="L379">                    transformed = transformed.replace(expr, col.alias);</span>
+                }
+            }
+<span class="nc" id="L382">        }</span>
+        
+<span class="nc" id="L384">        return transformed;</span>
+    }
+    
+    /**
+     * Find matching closing parenthesis, handling nested parentheses
+     */
+    private static int findMatchingParen(String str, int openPos) {
+<span class="nc" id="L391">        int count = 1;</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        for (int i = openPos + 1; i &lt; str.length(); i++) {</span>
+<span class="nc" id="L393">            char c = str.charAt(i);</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">            if (c == '(') {</span>
+<span class="nc" id="L395">                count++;</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">            } else if (c == ')') {</span>
+<span class="nc" id="L397">                count--;</span>
+<span class="nc bnc" id="L398" title="All 2 branches missed.">                if (count == 0) {</span>
+<span class="nc" id="L399">                    return i;</span>
+                }
+            }
+        }
+<span class="nc" id="L403">        return -1; // No matching closing parenthesis found</span>
+    }
+    
+    // Helper classes
+    private static class QueryComponents {
+        final String selectClause;
+        final String fromTable;
+        final String whereClause;
+        final String groupByClause;
+        final String orderByClause;
+        
+        QueryComponents(String selectClause, String fromTable, String whereClause, 
+<span class="nc" id="L415">                       String groupByClause, String orderByClause) {</span>
+<span class="nc" id="L416">            this.selectClause = selectClause;</span>
+<span class="nc" id="L417">            this.fromTable = fromTable;</span>
+<span class="nc" id="L418">            this.whereClause = whereClause;</span>
+<span class="nc" id="L419">            this.groupByClause = groupByClause;</span>
+<span class="nc" id="L420">            this.orderByClause = orderByClause;</span>
+<span class="nc" id="L421">        }</span>
+    }
+    
+    private static class DateRange {
+        final LocalDateTime start;
+        final LocalDateTime end;
+        
+<span class="nc" id="L428">        DateRange(LocalDateTime start, LocalDateTime end) {</span>
+<span class="nc" id="L429">            this.start = start;</span>
+<span class="nc" id="L430">            this.end = end;</span>
+<span class="nc" id="L431">        }</span>
+    }
+    
+    private static class PartitionInfo {
+        final String tableName;
+        final LocalDateTime startDate;
+        final LocalDateTime endDate;
+        
+<span class="nc" id="L439">        PartitionInfo(String tableName, LocalDateTime startDate, LocalDateTime endDate) {</span>
+<span class="nc" id="L440">            this.tableName = tableName;</span>
+<span class="nc" id="L441">            this.startDate = startDate;</span>
+<span class="nc" id="L442">            this.endDate = endDate;</span>
+<span class="nc" id="L443">        }</span>
+    }
+    
+    private static class SelectColumn {
+        final String original;
+        final String aggregateFunction;
+        final String alias;
+        final boolean isAggregate;
+        
+<span class="nc" id="L452">        SelectColumn(String original, String aggregateFunction, String alias, boolean isAggregate) {</span>
+<span class="nc" id="L453">            this.original = original;</span>
+<span class="nc" id="L454">            this.aggregateFunction = aggregateFunction;</span>
+<span class="nc" id="L455">            this.alias = alias;</span>
+<span class="nc" id="L456">            this.isAggregate = isAggregate;</span>
+<span class="nc" id="L457">        }</span>
+    }
+    
+    /**
+     * Test the query builder
+     */
+    public static void main(String[] args) {
+<span class="nc" id="L464">        String originalQuery = &quot;&quot;&quot;</span>
+            select user_id, count(*) as count, max(created_at) as max_created_at, min(created_at) as min_created_at
+            from sms
+            where created_at &gt;='2025-07-27 06:00:00' and created_at &lt;='2025-07-29 13:00:00'
+            group by user_id;
+            &quot;&quot;&quot;;
+        
+<span class="nc" id="L471">        System.out.println(&quot;Original Query:&quot;);</span>
+<span class="nc" id="L472">        System.out.println(originalQuery);</span>
+<span class="nc" id="L473">        System.out.println(&quot;\nTransformed Query:&quot;);</span>
+<span class="nc" id="L474">        System.out.println(getQuery(originalQuery, &quot;sms&quot;, &quot;test&quot;));</span>
+<span class="nc" id="L475">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

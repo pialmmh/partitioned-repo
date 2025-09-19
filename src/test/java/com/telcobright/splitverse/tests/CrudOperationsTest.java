@@ -54,6 +54,16 @@ public class CrudOperationsTest {
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    @Override
+    public LocalDateTime getPartitionColValue() {
+        return createdAt;
+    }
+
+    @Override
+    public void setPartitionColValue(LocalDateTime value) {
+        this.createdAt = value;
+    }
+
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
         public String getEmail() { return email; }

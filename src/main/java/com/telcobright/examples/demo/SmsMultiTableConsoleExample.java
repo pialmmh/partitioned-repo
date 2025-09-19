@@ -57,7 +57,7 @@ public class SmsMultiTableConsoleExample {
                 .enabled(true)
                 .build();
             
-            smsRepo = SplitVerseRepository.<SmsEntity>builder()
+            smsRepo = SplitVerseRepository.<SmsEntity, LocalDateTime>builder()
                 .withSingleShard(shardConfig)
                 .withEntityClass(SmsEntity.class)
                 .build();

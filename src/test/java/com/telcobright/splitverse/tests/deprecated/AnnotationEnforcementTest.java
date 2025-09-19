@@ -33,6 +33,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     // Invalid - Multiple @Id annotations
@@ -55,6 +59,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     // Invalid - Multiple @ShardingKey annotations
@@ -77,6 +85,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     // Invalid - Wrong ID type (Long instead of String)
@@ -96,6 +108,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     // Invalid - Wrong ShardingKey type (String instead of LocalDateTime)
@@ -112,9 +128,13 @@ public class AnnotationEnforcementTest {
         @Override
         public void setId(String id) { this.id = id; }
         @Override
-        public LocalDateTime getCreatedAt() { return LocalDateTime.parse(createdAt); }
+        public LocalDateTime getCreatedAt() { return createdAt != null ? LocalDateTime.parse(createdAt) : null; }
         @Override
-        public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt.toString(); }
+        public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt != null ? createdAt.toString() : null; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return getCreatedAt(); }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { setCreatedAt(value); }
     }
     
     // Invalid - Auto-generated ID
@@ -134,6 +154,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     // Invalid - Missing @Id
@@ -152,6 +176,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     // Invalid - Missing @ShardingKey
@@ -170,6 +198,10 @@ public class AnnotationEnforcementTest {
         public LocalDateTime getCreatedAt() { return createdAt; }
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+        @Override
+        public LocalDateTime getPartitionColValue() { return createdAt; }
+        @Override
+        public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
     }
     
     public static void main(String[] args) {

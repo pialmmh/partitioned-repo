@@ -54,7 +54,7 @@ public class CitizenExtendedMonitoringExample {
                 .enabled(true)
                 .build();
             
-            citizenRepo = SplitVerseRepository.builder()
+            citizenRepo = SplitVerseRepository.<CitizenEntity, LocalDateTime>builder()
                 .withSingleShard(shardConfig)
                 .withEntityClass(CitizenEntity.class)
                 .build();

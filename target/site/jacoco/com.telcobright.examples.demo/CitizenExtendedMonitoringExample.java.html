@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitizenExtendedMonitoringExample.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.examples.demo</a> &gt; <span class="el_source">CitizenExtendedMonitoringExample.java</span></div><h1>CitizenExtendedMonitoringExample.java</h1><pre class="source lang-java linenums">package com.telcobright.examples.demo;
+
+import com.telcobright.examples.entity.CitizenEntity;
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
+import com.telcobright.core.monitoring.MonitoringConfig;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Example demonstrating Citizen entity with extended monitoring capabilities
+ * 
+ * Features shown:
+ * - Single partitioned table for government citizen records
+ * - Extended monitoring with custom metrics and alerts
+ * - JSON metric format for structured logging
+ * - Advanced monitoring scenarios including error tracking
+ * - Comprehensive metric collection and reporting
+ * - Custom instance identification for multi-server environments
+ */
+<span class="nc" id="L23">public class CitizenExtendedMonitoringExample {</span>
+    
+    public static void main(String[] args) {
+<span class="nc" id="L26">        System.out.println(&quot;=== Citizen Entity with Extended Monitoring Example ===\n&quot;);</span>
+        
+        // Configure extended monitoring with JSON format and comprehensive metrics
+<span class="nc" id="L29">        MonitoringConfig extendedMonitoring = new MonitoringConfig.Builder()</span>
+<span class="nc" id="L30">            .deliveryMethod(MonitoringConfig.DeliveryMethod.CONSOLE_ONLY)</span>
+<span class="nc" id="L31">            .metricFormat(MonitoringConfig.MetricFormat.JSON)  // JSON format for structured logs</span>
+<span class="nc" id="L32">            .reportingIntervalSeconds(45)  // More frequent reporting for demo</span>
+<span class="nc" id="L33">            .serviceName(&quot;gov-citizen-service&quot;)</span>
+<span class="nc" id="L34">            .instanceId(&quot;citizen-db-node-primary&quot;)</span>
+<span class="nc" id="L35">            .includeSystemMetrics(true)    // Include JVM and system metrics</span>
+<span class="nc" id="L36">            .includeConnectionPoolMetrics(true)  // Include database connection metrics</span>
+<span class="nc" id="L37">            .includeQueryMetrics(true)     // Include detailed query performance metrics</span>
+<span class="nc" id="L38">            .enableSlowQueryLogging(true)  // Log slow queries for optimization</span>
+<span class="nc" id="L39">            .slowQueryThresholdMs(100)     // Consider queries over 100ms as slow</span>
+<span class="nc" id="L40">            .build();</span>
+        
+        // Create Citizen repository with extended monitoring using Split-Verse
+<span class="nc" id="L43">        SplitVerseRepository&lt;CitizenEntity, LocalDateTime&gt; citizenRepo = null;</span>
+        try {
+            // Configure shard with monitoring
+<span class="nc" id="L46">            ShardConfig shardConfig = ShardConfig.builder()</span>
+<span class="nc" id="L47">                .shardId(&quot;primary&quot;)</span>
+<span class="nc" id="L48">                .host(&quot;127.0.0.1&quot;)</span>
+<span class="nc" id="L49">                .port(3306)</span>
+<span class="nc" id="L50">                .database(&quot;government&quot;)</span>
+<span class="nc" id="L51">                .username(&quot;root&quot;)</span>
+<span class="nc" id="L52">                .password(&quot;123456&quot;)</span>
+<span class="nc" id="L53">                .connectionPoolSize(10)</span>
+<span class="nc" id="L54">                .enabled(true)</span>
+<span class="nc" id="L55">                .build();</span>
+            
+<span class="nc" id="L57">            citizenRepo = SplitVerseRepository.&lt;CitizenEntity, LocalDateTime&gt;builder()</span>
+<span class="nc" id="L58">                .withSingleShard(shardConfig)</span>
+<span class="nc" id="L59">                .withEntityClass(CitizenEntity.class)</span>
+<span class="nc" id="L60">                .build();</span>
+            
+<span class="nc" id="L62">            System.out.println(&quot;✅ Citizen Repository created successfully&quot;);</span>
+<span class="nc" id="L63">            System.out.println(&quot;   - Table Structure: Single table with MySQL native partitioning&quot;);</span>
+<span class="nc" id="L64">            System.out.println(&quot;   - Total Partitions: 15 daily partitions (p20250731 to p20250814)&quot;);</span>
+<span class="nc" id="L65">            System.out.println(&quot;   - Partitioning: RANGE partitioning by TO_DAYS(created_at)&quot;);</span>
+<span class="nc" id="L66">            System.out.println(&quot;   - Monitoring: Extended JSON monitoring every 45 seconds&quot;);</span>
+<span class="nc" id="L67">            System.out.println(&quot;   - Metrics: System, Connection Pool, Query Performance, Slow Query Logging\n&quot;);</span>
+            
+            // Insert sample citizen records
+<span class="nc" id="L70">            System.out.println(&quot;👥 Inserting citizen records...&quot;);</span>
+            
+<span class="nc" id="L72">            List&lt;CitizenEntity&gt; sampleCitizens = Arrays.asList(</span>
+                new CitizenEntity(&quot;John&quot;, &quot;Doe&quot;, &quot;1985-03-15&quot;, &quot;123-45-6789&quot;, 
+                                 &quot;john.doe@email.com&quot;, &quot;+1-555-0101&quot;, &quot;123 Main St, Springfield&quot;, 
+<span class="nc" id="L75">                                 &quot;ACTIVE&quot;, LocalDateTime.now()),</span>
+                new CitizenEntity(&quot;Jane&quot;, &quot;Smith&quot;, &quot;1990-07-22&quot;, &quot;987-65-4321&quot;, 
+                                 &quot;jane.smith@email.com&quot;, &quot;+1-555-0102&quot;, &quot;456 Oak Ave, Springfield&quot;, 
+<span class="nc" id="L78">                                 &quot;ACTIVE&quot;, LocalDateTime.now().minusHours(2)),</span>
+                new CitizenEntity(&quot;Robert&quot;, &quot;Johnson&quot;, &quot;1978-11-08&quot;, &quot;456-78-9012&quot;, 
+                                 &quot;robert.j@email.com&quot;, &quot;+1-555-0103&quot;, &quot;789 Pine Rd, Springfield&quot;, 
+<span class="nc" id="L81">                                 &quot;SUSPENDED&quot;, LocalDateTime.now().minusHours(8)),</span>
+                new CitizenEntity(&quot;Maria&quot;, &quot;Garcia&quot;, &quot;1982-05-14&quot;, &quot;789-01-2345&quot;, 
+                                 &quot;maria.garcia@email.com&quot;, &quot;+1-555-0104&quot;, &quot;321 Elm St, Springfield&quot;, 
+<span class="nc" id="L84">                                 &quot;ACTIVE&quot;, LocalDateTime.now().minusDays(1)),</span>
+                new CitizenEntity(&quot;David&quot;, &quot;Brown&quot;, &quot;1975-09-30&quot;, &quot;234-56-7890&quot;, 
+                                 &quot;david.brown@email.com&quot;, &quot;+1-555-0105&quot;, &quot;654 Birch Ln, Springfield&quot;, 
+<span class="nc" id="L87">                                 &quot;INACTIVE&quot;, LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(2).plusHours(1))</span>
+            );
+            
+            // Insert citizens individually to generate individual metrics
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            for (int i = 0; i &lt; sampleCitizens.size(); i++) {</span>
+<span class="nc" id="L92">                citizenRepo.insert(sampleCitizens.get(i));</span>
+<span class="nc" id="L93">                System.out.printf(&quot;   ✓ Inserted Citizen %d with auto-generated ID\\n&quot;, i + 1);</span>
+                
+                // Add small delay to spread operations across time for better metrics
+<span class="nc" id="L96">                Thread.sleep(200);</span>
+            }
+            
+            // Insert batch of additional citizens from different time periods
+<span class="nc" id="L100">            List&lt;CitizenEntity&gt; batchCitizens = Arrays.asList(</span>
+                new CitizenEntity(&quot;Sarah&quot;, &quot;Wilson&quot;, &quot;1988-12-03&quot;, &quot;567-89-0123&quot;, 
+                                 &quot;sarah.wilson@email.com&quot;, &quot;+1-555-0106&quot;, &quot;987 Cedar Ave, Springfield&quot;, 
+<span class="nc" id="L103">                                 &quot;ACTIVE&quot;, LocalDateTime.now().minusDays(3)),</span>
+                new CitizenEntity(&quot;Michael&quot;, &quot;Davis&quot;, &quot;1983-04-17&quot;, &quot;678-90-1234&quot;, 
+                                 &quot;michael.davis@email.com&quot;, &quot;+1-555-0107&quot;, &quot;147 Maple St, Springfield&quot;, 
+<span class="nc" id="L106">                                 &quot;PENDING&quot;, LocalDateTime.now().minusDays(1).minusHours(6)),</span>
+                new CitizenEntity(&quot;Lisa&quot;, &quot;Anderson&quot;, &quot;1992-08-25&quot;, &quot;890-12-3456&quot;, 
+                                 &quot;lisa.anderson@email.com&quot;, &quot;+1-555-0108&quot;, &quot;258 Willow Rd, Springfield&quot;, 
+<span class="nc" id="L109">                                 &quot;ACTIVE&quot;, LocalDateTime.now().minusHours(4))</span>
+            );
+            
+<span class="nc" id="L112">            citizenRepo.insertMultiple(batchCitizens);</span>
+<span class="nc" id="L113">            System.out.println(&quot;   ✓ Inserted batch of 3 citizens\\n&quot;);</span>
+            
+            // Perform various query operations to generate comprehensive metrics
+<span class="nc" id="L116">            System.out.println(&quot;🔍 Performing extended query operations for monitoring...&quot;);</span>
+            
+            // 1. Date range queries (demonstrates partition pruning metrics)
+<span class="nc" id="L119">            List&lt;CitizenEntity&gt; recentCitizens = citizenRepo.findAllByDateRange(</span>
+<span class="nc" id="L120">                LocalDateTime.now().minusDays(2), </span>
+<span class="nc" id="L121">                LocalDateTime.now()</span>
+            );
+<span class="nc" id="L123">            System.out.printf(&quot;   Found %d citizens in last 48 hours\\n&quot;, recentCitizens.size());</span>
+            
+            // 2. Individual ID lookups (demonstrates query performance metrics)
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            if (!recentCitizens.isEmpty()) {</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                for (int i = 0; i &lt; Math.min(3, recentCitizens.size()); i++) {</span>
+<span class="nc" id="L128">                    CitizenEntity citizen = recentCitizens.get(i);</span>
+<span class="nc" id="L129">                    CitizenEntity foundCitizen = citizenRepo.findById(String.valueOf(citizen.getId()));</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                    if (foundCitizen != null) {</span>
+<span class="nc" id="L131">                        System.out.printf(&quot;   ✓ Found citizen by ID: %d (%s %s - %s)\\n&quot;, </span>
+<span class="nc" id="L132">                                        foundCitizen.getId(), foundCitizen.getFirstName(), </span>
+<span class="nc" id="L133">                                        foundCitizen.getLastName(), foundCitizen.getStatus());</span>
+                    }
+<span class="nc" id="L135">                    Thread.sleep(150); // Spread queries for better metrics</span>
+                }
+            }
+            
+            // 3. Update operations (demonstrates update performance metrics)
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            if (!recentCitizens.isEmpty()) {</span>
+<span class="nc" id="L141">                CitizenEntity citizenToUpdate = recentCitizens.stream()</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">                    .filter(c -&gt; &quot;PENDING&quot;.equals(c.getStatus()) || &quot;ACTIVE&quot;.equals(c.getStatus()))</span>
+<span class="nc" id="L143">                    .findFirst().orElse(recentCitizens.get(0));</span>
+                
+<span class="nc" id="L145">                CitizenEntity updateData = new CitizenEntity();</span>
+<span class="nc" id="L146">                updateData.setStatus(&quot;VERIFIED&quot;);</span>
+<span class="nc" id="L147">                updateData.setUpdatedAt(LocalDateTime.now());</span>
+                
+<span class="nc" id="L149">                citizenRepo.updateByIdAndDateRange(String.valueOf(citizenToUpdate.getId()), updateData, </span>
+<span class="nc" id="L150">                    LocalDateTime.now().minusDays(7), LocalDateTime.now());</span>
+<span class="nc" id="L151">                System.out.printf(&quot;   ✓ Updated citizen ID %d to VERIFIED status\\n&quot;, citizenToUpdate.getId());</span>
+            }
+            
+            // 4. Historical data queries (demonstrates slow query scenarios)
+<span class="nc" id="L155">            System.out.println(&quot;   Executing historical data query (may trigger slow query logging)...&quot;);</span>
+<span class="nc" id="L156">            List&lt;CitizenEntity&gt; historicalCitizens = citizenRepo.findAllBeforeDate(</span>
+<span class="nc" id="L157">                LocalDateTime.now().minusDays(1)</span>
+            );
+<span class="nc" id="L159">            System.out.printf(&quot;   Found %d historical citizen records\\n&quot;, historicalCitizens.size());</span>
+            
+            // 5. Multiple ID lookups (demonstrates batch operation metrics)
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            if (recentCitizens.size() &gt;= 2) {</span>
+<span class="nc" id="L163">                List&lt;String&gt; idsToFind = Arrays.asList(</span>
+<span class="nc" id="L164">                    String.valueOf(recentCitizens.get(0).getId()),</span>
+<span class="nc" id="L165">                    String.valueOf(recentCitizens.get(1).getId())</span>
+                );
+<span class="nc" id="L167">                List&lt;CitizenEntity&gt; foundCitizens = citizenRepo.findAllByIdsAndDateRange(</span>
+<span class="nc" id="L168">                    idsToFind, LocalDateTime.now().minusDays(7), LocalDateTime.now()</span>
+                );
+<span class="nc" id="L170">                System.out.printf(&quot;   Found %d citizens by ID list lookup\\n&quot;, foundCitizens.size());</span>
+            }
+            
+            // 6. Recent data query (demonstrates current partition access)
+<span class="nc" id="L174">            List&lt;CitizenEntity&gt; todaysCitizens = citizenRepo.findAllAfterDate(</span>
+<span class="nc" id="L175">                LocalDateTime.now().minusHours(12)</span>
+            );
+<span class="nc" id="L177">            System.out.printf(&quot;   Found %d citizens registered in last 12 hours\\n&quot;, todaysCitizens.size());</span>
+            
+<span class="nc" id="L179">            System.out.println(&quot;\\n⏱️  Extended monitoring data collection in progress...&quot;);</span>
+<span class="nc" id="L180">            System.out.println(&quot;    Monitoring features active:&quot;);</span>
+<span class="nc" id="L181">            System.out.println(&quot;    - JSON formatted metrics every 45 seconds&quot;);</span>
+<span class="nc" id="L182">            System.out.println(&quot;    - System resource monitoring (CPU, Memory, Disk)&quot;);</span>
+<span class="nc" id="L183">            System.out.println(&quot;    - Database connection pool metrics&quot;);</span>
+<span class="nc" id="L184">            System.out.println(&quot;    - Query performance tracking&quot;);</span>
+<span class="nc" id="L185">            System.out.println(&quot;    - Slow query logging (threshold: 100ms)&quot;);</span>
+<span class="nc" id="L186">            System.out.println(&quot;    - Partition-specific metrics&quot;);</span>
+<span class="nc" id="L187">            System.out.println(&quot;    - Maintenance operation tracking&quot;);</span>
+<span class="nc" id="L188">            System.out.println(&quot;\\n    Watch console for structured JSON monitoring output...&quot;);</span>
+            
+            // Keep the application running longer to collect comprehensive metrics
+<span class="nc" id="L191">            Thread.sleep(95000); // 95 seconds to see at least 2 monitoring reports</span>
+            
+<span class="nc" id="L193">        } catch (Exception e) {</span>
+<span class="nc" id="L194">            System.err.println(&quot;❌ Error: &quot; + e.getMessage());</span>
+<span class="nc" id="L195">            e.printStackTrace();</span>
+            
+            // Demonstrate error tracking in monitoring
+<span class="nc" id="L198">            System.out.println(&quot;\\n📊 Error captured in monitoring system&quot;);</span>
+<span class="nc" id="L199">            System.out.println(&quot;    Extended monitoring will include error metrics and stack traces&quot;);</span>
+            
+        } finally {
+<span class="nc bnc" id="L202" title="All 2 branches missed.">            if (citizenRepo != null) {</span>
+<span class="nc" id="L203">                System.out.println(&quot;\\n🛑 Shutting down Citizen repository...&quot;);</span>
+<span class="nc" id="L204">                citizenRepo.shutdown();</span>
+<span class="nc" id="L205">                System.out.println(&quot;   ✓ Repository shut down gracefully&quot;);</span>
+<span class="nc" id="L206">                System.out.println(&quot;   ✓ All monitoring services stopped&quot;);</span>
+<span class="nc" id="L207">                System.out.println(&quot;   ✓ Connection pool closed&quot;);</span>
+<span class="nc" id="L208">                System.out.println(&quot;   ✓ Scheduled tasks terminated&quot;);</span>
+            }
+        }
+        
+<span class="nc" id="L212">        System.out.println(&quot;\\n=== Citizen Extended Monitoring Example Complete ===&quot;);</span>
+<span class="nc" id="L213">        System.out.println(&quot;Extended monitoring features demonstrated:&quot;);</span>
+<span class="nc" id="L214">        System.out.println(&quot;- JSON structured logging for integration with log aggregation systems&quot;);</span>
+<span class="nc" id="L215">        System.out.println(&quot;- Comprehensive system and application metrics&quot;);</span>
+<span class="nc" id="L216">        System.out.println(&quot;- Performance monitoring with slow query detection&quot;);</span>
+<span class="nc" id="L217">        System.out.println(&quot;- Error tracking and alerting capabilities&quot;);</span>
+<span class="nc" id="L218">        System.out.println(&quot;- Multi-dimensional metrics for government data compliance&quot;);</span>
+<span class="nc" id="L219">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

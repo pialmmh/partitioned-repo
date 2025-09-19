@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersistenceProviderFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.persistence</a> &gt; <span class="el_source">PersistenceProviderFactory.java</span></div><h1>PersistenceProviderFactory.java</h1><pre class="source lang-java linenums">package com.telcobright.core.persistence;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
+/**
+ * Factory for creating and managing PersistenceProvider instances.
+ * Uses singleton pattern to ensure single instance per database type.
+ *
+ * @author Split-Verse Framework
+ */
+public class PersistenceProviderFactory {
+
+<span class="nc" id="L14">    private static final Map&lt;PersistenceProvider.DatabaseType, PersistenceProvider&gt; providers</span>
+        = new ConcurrentHashMap&lt;&gt;();
+
+    /**
+     * Private constructor to prevent instantiation
+     */
+    private PersistenceProviderFactory() {
+    }
+
+    /**
+     * Get persistence provider for the specified database type.
+     * Uses singleton pattern - only one instance per database type.
+     *
+     * @param databaseType Type of database
+     * @return PersistenceProvider instance
+     * @throws UnsupportedOperationException if database type is not supported
+     */
+    public static PersistenceProvider getProvider(PersistenceProvider.DatabaseType databaseType) {
+<span class="nc" id="L32">        return providers.computeIfAbsent(databaseType, type -&gt; {</span>
+<span class="nc bnc" id="L33" title="All 5 branches missed.">            switch (type) {</span>
+                case MYSQL:
+                case MARIADB:  // MariaDB is MySQL-compatible
+                case TIDB:     // TiDB is MySQL-compatible
+<span class="nc" id="L37">                    return new MySQLPersistenceProvider();</span>
+
+                case POSTGRESQL:
+                case COCKROACHDB:  // CockroachDB is PostgreSQL-compatible
+<span class="nc" id="L41">                    return new PostgreSQLPersistenceProvider();</span>
+
+                case ORACLE:
+<span class="nc" id="L44">                    return new OraclePersistenceProvider();</span>
+
+                case SQLSERVER:
+<span class="nc" id="L47">                    return new SQLServerPersistenceProvider();</span>
+
+                default:
+<span class="nc" id="L50">                    throw new UnsupportedOperationException(</span>
+                        &quot;Database type &quot; + type + &quot; is not supported yet&quot;
+                    );
+            }
+        });
+    }
+
+    /**
+     * Get persistence provider based on JDBC URL.
+     * Detects database type from the connection URL.
+     *
+     * @param jdbcUrl JDBC connection URL
+     * @return PersistenceProvider instance
+     * @throws IllegalArgumentException if URL format is invalid
+     * @throws UnsupportedOperationException if database type is not supported
+     */
+    public static PersistenceProvider getProviderFromUrl(String jdbcUrl) {
+<span class="nc bnc" id="L67" title="All 4 branches missed.">        if (jdbcUrl == null || !jdbcUrl.startsWith(&quot;jdbc:&quot;)) {</span>
+<span class="nc" id="L68">            throw new IllegalArgumentException(&quot;Invalid JDBC URL: &quot; + jdbcUrl);</span>
+        }
+
+<span class="nc" id="L71">        String lowerUrl = jdbcUrl.toLowerCase();</span>
+
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (lowerUrl.startsWith(&quot;jdbc:mysql:&quot;)) {</span>
+<span class="nc" id="L74">            return getProvider(PersistenceProvider.DatabaseType.MYSQL);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        } else if (lowerUrl.startsWith(&quot;jdbc:mariadb:&quot;)) {</span>
+<span class="nc" id="L76">            return getProvider(PersistenceProvider.DatabaseType.MARIADB);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        } else if (lowerUrl.startsWith(&quot;jdbc:postgresql:&quot;)) {</span>
+<span class="nc" id="L78">            return getProvider(PersistenceProvider.DatabaseType.POSTGRESQL);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        } else if (lowerUrl.startsWith(&quot;jdbc:cockroachdb:&quot;)) {</span>
+<span class="nc" id="L80">            return getProvider(PersistenceProvider.DatabaseType.COCKROACHDB);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        } else if (lowerUrl.startsWith(&quot;jdbc:oracle:&quot;)) {</span>
+<span class="nc" id="L82">            return getProvider(PersistenceProvider.DatabaseType.ORACLE);</span>
+<span class="nc bnc" id="L83" title="All 4 branches missed.">        } else if (lowerUrl.startsWith(&quot;jdbc:sqlserver:&quot;) || lowerUrl.startsWith(&quot;jdbc:microsoft:sqlserver:&quot;)) {</span>
+<span class="nc" id="L84">            return getProvider(PersistenceProvider.DatabaseType.SQLSERVER);</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        } else if (lowerUrl.contains(&quot;tidb&quot;)) {</span>
+<span class="nc" id="L86">            return getProvider(PersistenceProvider.DatabaseType.TIDB);</span>
+        } else {
+<span class="nc" id="L88">            throw new UnsupportedOperationException(</span>
+                &quot;Cannot determine database type from URL: &quot; + jdbcUrl
+            );
+        }
+    }
+
+    /**
+     * Check if a database type is currently supported with full implementation.
+     *
+     * @param databaseType Type of database
+     * @return true if fully supported, false if only stub implementation exists
+     */
+    public static boolean isFullySupported(PersistenceProvider.DatabaseType databaseType) {
+<span class="nc bnc" id="L101" title="All 3 branches missed.">        switch (databaseType) {</span>
+            case MYSQL:
+            case MARIADB:
+            case TIDB:
+<span class="nc" id="L105">                return true;  // Full MySQL implementation available</span>
+
+            case POSTGRESQL:
+            case COCKROACHDB:
+            case ORACLE:
+            case SQLSERVER:
+<span class="nc" id="L111">                return false; // Only stub implementations</span>
+
+            default:
+<span class="nc" id="L114">                return false;</span>
+        }
+    }
+
+    /**
+     * Get default database type (MySQL)
+     */
+    public static PersistenceProvider.DatabaseType getDefaultDatabaseType() {
+<span class="nc" id="L122">        return PersistenceProvider.DatabaseType.MYSQL;</span>
+    }
+
+    /**
+     * Clear cached providers (useful for testing)
+     */
+    public static void clearCache() {
+<span class="nc" id="L129">        providers.clear();</span>
+<span class="nc" id="L130">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

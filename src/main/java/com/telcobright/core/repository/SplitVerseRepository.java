@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  * @param <T> Entity type implementing ShardingEntity
  * @param <P> Partition column value type (must be Comparable)
  */
-public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Comparable<P>> implements ShardingRepository<T, P> {
+public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Comparable<? super P>> implements ShardingRepository<T, P> {
     
     private final Map<String, ShardingRepository<T, P>> shardRepositories;
     private final HashRouter router;
@@ -452,16 +452,16 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     
     // Functional interface for shard queries
     @FunctionalInterface
-    private interface ShardQueryFunction<T extends ShardingEntity<P>, P extends Comparable<P>> {
+    private interface ShardQueryFunction<T extends ShardingEntity<P>, P extends Comparable<? super P>> {
         List<T> query(ShardingRepository<T, P> shard) throws SQLException;
     }
     
     // Builder
-    public static <T extends ShardingEntity<P>, P extends Comparable<P>> Builder<T, P> builder() {
+    public static <T extends ShardingEntity<P>, P extends Comparable<? super P>> Builder<T, P> builder() {
         return new Builder<T, P>();
     }
     
-    public static class Builder<T extends ShardingEntity<P>, P extends Comparable<P>> {
+    public static class Builder<T extends ShardingEntity<P>, P extends Comparable<? super P>> {
         private List<ShardConfig> shardConfigs = new ArrayList<>();
         private Class<T> entityClass;
         private String tableName;

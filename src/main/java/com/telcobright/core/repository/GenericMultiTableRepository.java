@@ -41,7 +41,7 @@ import com.telcobright.core.persistence.PersistenceProviderFactory;
  * @param <T> Entity type that implements ShardingEntity
  * @param <P> Partition column value type (must be Comparable)
  */
-public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends Comparable<P>> implements ShardingRepository<T, P> {
+public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends Comparable<? super P>> implements ShardingRepository<T, P> {
     private final Logger logger;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
@@ -1247,7 +1247,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     /**
      * Builder for GenericMultiTableRepository
      */
-    static class Builder<T extends ShardingEntity<P>, P extends Comparable<P>> {
+    static class Builder<T extends ShardingEntity<P>, P extends Comparable<? super P>> {
         private final Class<T> entityClass;
         private String host = "localhost";
         private int port = 3306;
@@ -1405,7 +1405,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
      * Create a new builder
      */
     // Package-private factory method - only SplitVerseRepository can use this
-    static <T extends ShardingEntity<P>, P extends Comparable<P>> Builder<T, P> builder(Class<T> entityClass) {
+    static <T extends ShardingEntity<P>, P extends Comparable<? super P>> Builder<T, P> builder(Class<T> entityClass) {
         return new Builder<T, P>(entityClass);
     }
 }

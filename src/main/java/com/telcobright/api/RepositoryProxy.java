@@ -15,7 +15,7 @@ import java.util.List;
  * @param <T> Entity type that must implement ShardingEntity
  * @param <P> Partition column value type (must be Comparable)
  */
-public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<P>> implements ShardingRepository<T, P> {
+public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<? super P>> implements ShardingRepository<T, P> {
     
     private final ShardingRepository<T, P> delegate;
     private final RepositoryType type;

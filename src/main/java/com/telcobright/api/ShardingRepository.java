@@ -20,7 +20,7 @@ import java.util.List;
  * @param <T> Entity type that must implement ShardingEntity
  * @param <P> Partition column value type (must be Comparable)
  */
-public interface ShardingRepository<T extends ShardingEntity<P>, P extends Comparable<P>> {
+public interface ShardingRepository<T extends ShardingEntity<P>, P extends Comparable<? super P>> {
     
     /**
      * Insert a single entity

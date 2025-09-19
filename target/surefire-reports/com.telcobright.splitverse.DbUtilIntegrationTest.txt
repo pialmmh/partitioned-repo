@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.telcobright.splitverse.DbUtilIntegrationTest
+-------------------------------------------------------------------------------
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 7, Time elapsed: 0.017 s -- in com.telcobright.splitverse.DbUtilIntegrationTest

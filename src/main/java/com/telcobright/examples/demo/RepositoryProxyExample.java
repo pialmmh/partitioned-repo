@@ -30,7 +30,7 @@ public class RepositoryProxyExample {
             .build();
         
         SplitVerseRepository<SmsEntity, LocalDateTime> smsRepo =
-            SplitVerseRepository.builder()
+            SplitVerseRepository.<SmsEntity, LocalDateTime>builder()
                 .withSingleShard(smsShardConfig)
                 .withEntityClass(SmsEntity.class)
                 .build();
@@ -50,8 +50,8 @@ public class RepositoryProxyExample {
             .enabled(true)
             .build();
         
-        SplitVerseRepository<OrderEntity, LocalDateTime> orderRepo = 
-            SplitVerseRepository.builder()
+        SplitVerseRepository<OrderEntity, LocalDateTime> orderRepo =
+            SplitVerseRepository.<OrderEntity, LocalDateTime>builder()
                 .withSingleShard(orderShardConfig)
                 .withEntityClass(OrderEntity.class)
                 .build();
@@ -77,7 +77,7 @@ public class RepositoryProxyExample {
     /**
      * Demonstrate common operations that work with any ShardingRepository
      */
-    private static <T extends com.telcobright.core.entity.ShardingEntity> 
+    private static <T extends com.telcobright.core.entity.ShardingEntity<LocalDateTime>>
             void demonstrateCommonOperations(ShardingRepository<T, LocalDateTime> repo, String repoName) {
         
         try {

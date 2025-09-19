@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TelecomSubscriberExample.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.splitverse.examples</a> &gt; <span class="el_source">TelecomSubscriberExample.java</span></div><h1>TelecomSubscriberExample.java</h1><pre class="source lang-java linenums">package com.telcobright.splitverse.examples;
+
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
+import com.telcobright.splitverse.examples.entity.SubscriberEntity;
+
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.*;
+
+/**
+ * Example demonstrating Split-Verse usage for telecom subscriber management.
+ * Shows transition from single shard to multi-shard capability.
+ */
+<span class="nc" id="L16">public class TelecomSubscriberExample {</span>
+    
+    public static void main(String[] args) {
+<span class="nc" id="L19">        System.out.println(&quot;===========================================&quot;);</span>
+<span class="nc" id="L20">        System.out.println(&quot;  Split-Verse Telecom Subscriber Example&quot;);</span>
+<span class="nc" id="L21">        System.out.println(&quot;===========================================\n&quot;);</span>
+        
+        try {
+            // Phase 1: Single Shard Demo
+<span class="nc" id="L25">            singleShardDemo();</span>
+            
+<span class="nc" id="L27">            System.out.println(&quot;\n===========================================\n&quot;);</span>
+            
+            // Phase 2: Multi-Shard Demo (commented out for now)
+            // multiShardDemo();
+            
+<span class="nc" id="L32">        } catch (Exception e) {</span>
+<span class="nc" id="L33">            System.err.println(&quot;Error: &quot; + e.getMessage());</span>
+<span class="nc" id="L34">            e.printStackTrace();</span>
+<span class="nc" id="L35">        }</span>
+<span class="nc" id="L36">    }</span>
+    
+    private static void singleShardDemo() throws SQLException {
+<span class="nc" id="L39">        System.out.println(&quot;PHASE 1: Single Shard Configuration&quot;);</span>
+<span class="nc" id="L40">        System.out.println(&quot;-----------------------------------&quot;);</span>
+        
+        // Configure single shard (wrapping existing partitioned-repo)
+<span class="nc" id="L43">        ShardConfig singleShard = ShardConfig.builder()</span>
+<span class="nc" id="L44">            .shardId(&quot;primary-shard&quot;)</span>
+<span class="nc" id="L45">            .host(&quot;127.0.0.1&quot;)</span>
+<span class="nc" id="L46">            .port(3306)</span>
+<span class="nc" id="L47">            .database(&quot;telecom_db&quot;)</span>
+<span class="nc" id="L48">            .username(&quot;root&quot;)</span>
+<span class="nc" id="L49">            .password(&quot;123456&quot;)</span>
+<span class="nc" id="L50">            .connectionPoolSize(10)</span>
+<span class="nc" id="L51">            .build();</span>
+        
+        // Create Split-Verse repository with single shard
+        SplitVerseRepository&lt;SubscriberEntity, LocalDateTime&gt; repository =
+<span class="nc" id="L55">            SplitVerseRepository.&lt;SubscriberEntity, LocalDateTime&gt;builder()</span>
+<span class="nc" id="L56">                .withSingleShard(singleShard)</span>
+<span class="nc" id="L57">                .withEntityClass(SubscriberEntity.class)</span>
+<span class="nc" id="L58">                .build();</span>
+        
+<span class="nc" id="L60">        System.out.println(&quot;✓ Repository initialized with single shard\n&quot;);</span>
+        
+        // Generate external IDs (NO AUTO_INCREMENT!)
+<span class="nc" id="L63">        String[] subscriberIds = generateSubscriberIds(5);</span>
+        
+        // 1. Insert subscribers
+<span class="nc" id="L66">        System.out.println(&quot;1. Inserting subscribers:&quot;);</span>
+<span class="nc" id="L67">        List&lt;SubscriberEntity&gt; subscribers = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        for (int i = 0; i &lt; subscriberIds.length; i++) {</span>
+<span class="nc" id="L70">            SubscriberEntity subscriber = new SubscriberEntity();</span>
+<span class="nc" id="L71">            subscriber.setId(subscriberIds[i]);</span>
+<span class="nc" id="L72">            subscriber.setMsisdn(&quot;+88017&quot; + String.format(&quot;%08d&quot;, 10000000 + i));</span>
+<span class="nc" id="L73">            subscriber.setImsi(&quot;47001012345678&quot; + i);</span>
+<span class="nc" id="L74">            subscriber.setBalance(new BigDecimal(&quot;100.00&quot;));</span>
+<span class="nc" id="L75">            subscriber.setStatus(&quot;ACTIVE&quot;);</span>
+<span class="nc" id="L76">            subscriber.setPlan(&quot;PREPAID&quot;);</span>
+<span class="nc" id="L77">            subscriber.setCreatedAt(LocalDateTime.now().minusDays(30 - i));</span>
+            
+<span class="nc" id="L79">            repository.insert(subscriber);</span>
+<span class="nc" id="L80">            subscribers.add(subscriber);</span>
+<span class="nc" id="L81">            System.out.println(&quot;  ✓ Inserted: &quot; + subscriber.getId() + </span>
+<span class="nc" id="L82">                &quot; (MSISDN: &quot; + subscriber.getMsisdn() + &quot;)&quot;);</span>
+        }
+        
+        // 2. Find by ID (hash routing in action)
+<span class="nc" id="L86">        System.out.println(&quot;\n2. Finding subscriber by ID:&quot;);</span>
+<span class="nc" id="L87">        String searchId = subscriberIds[2];</span>
+<span class="nc" id="L88">        SubscriberEntity found = repository.findById(searchId);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (found != null) {</span>
+<span class="nc" id="L90">            System.out.println(&quot;  ✓ Found: &quot; + found.getId() + </span>
+<span class="nc" id="L91">                &quot; - MSISDN: &quot; + found.getMsisdn() + </span>
+<span class="nc" id="L92">                &quot; - Balance: $&quot; + found.getBalance());</span>
+        }
+        
+        // 3. Update balance
+<span class="nc" id="L96">        System.out.println(&quot;\n3. Updating subscriber balance:&quot;);</span>
+<span class="nc" id="L97">        found.setBalance(found.getBalance().add(new BigDecimal(&quot;50.00&quot;)));</span>
+<span class="nc" id="L98">        repository.updateById(searchId, found);</span>
+<span class="nc" id="L99">        System.out.println(&quot;  ✓ Updated balance to: $&quot; + found.getBalance());</span>
+        
+        // 4. Batch insert
+<span class="nc" id="L102">        System.out.println(&quot;\n4. Batch inserting CDR-related subscribers:&quot;);</span>
+<span class="nc" id="L103">        List&lt;SubscriberEntity&gt; batchSubscribers = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        for (int i = 5; i &lt; 8; i++) {</span>
+<span class="nc" id="L105">            SubscriberEntity subscriber = new SubscriberEntity();</span>
+<span class="nc" id="L106">            subscriber.setId(generateNanoId());</span>
+<span class="nc" id="L107">            subscriber.setMsisdn(&quot;+88019&quot; + String.format(&quot;%08d&quot;, 10000000 + i));</span>
+<span class="nc" id="L108">            subscriber.setImsi(&quot;47001012345679&quot; + i);</span>
+<span class="nc" id="L109">            subscriber.setBalance(new BigDecimal(&quot;50.00&quot;));</span>
+<span class="nc" id="L110">            subscriber.setStatus(&quot;ACTIVE&quot;);</span>
+<span class="nc" id="L111">            subscriber.setPlan(&quot;POSTPAID&quot;);</span>
+<span class="nc" id="L112">            subscriber.setCreatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L113">            batchSubscribers.add(subscriber);</span>
+        }
+<span class="nc" id="L115">        repository.insertMultiple(batchSubscribers);</span>
+<span class="nc" id="L116">        System.out.println(&quot;  ✓ Batch inserted &quot; + batchSubscribers.size() + &quot; subscribers&quot;);</span>
+        
+        // 5. Date range query (fan-out in multi-shard, direct in single)
+<span class="nc" id="L119">        System.out.println(&quot;\n5. Finding recent subscribers:&quot;);</span>
+<span class="nc" id="L120">        List&lt;SubscriberEntity&gt; recent = repository.findAllByDateRange(</span>
+<span class="nc" id="L121">            LocalDateTime.now().minusDays(7),</span>
+<span class="nc" id="L122">            LocalDateTime.now()</span>
+        );
+<span class="nc" id="L124">        System.out.println(&quot;  ✓ Found &quot; + recent.size() + &quot; subscribers in last 7 days&quot;);</span>
+        
+        // 6. Cursor-based iteration
+<span class="nc" id="L127">        System.out.println(&quot;\n6. Cursor-based iteration:&quot;);</span>
+<span class="nc" id="L128">        String cursor = &quot;0&quot;;</span>
+<span class="nc" id="L129">        SubscriberEntity next = repository.findOneByIdGreaterThan(cursor);</span>
+<span class="nc" id="L130">        int count = 0;</span>
+<span class="nc bnc" id="L131" title="All 4 branches missed.">        while (next != null &amp;&amp; count &lt; 3) {</span>
+<span class="nc" id="L132">            System.out.println(&quot;  → &quot; + next.getId() + &quot; - &quot; + next.getMsisdn());</span>
+<span class="nc" id="L133">            cursor = next.getId();</span>
+<span class="nc" id="L134">            next = repository.findOneByIdGreaterThan(cursor);</span>
+<span class="nc" id="L135">            count++;</span>
+        }
+        
+        // 7. Demonstrate hash distribution (for future multi-shard)
+<span class="nc" id="L139">        System.out.println(&quot;\n7. Hash Distribution Analysis:&quot;);</span>
+<span class="nc" id="L140">        demonstrateHashDistribution(subscriberIds);</span>
+        
+        // Cleanup
+<span class="nc" id="L143">        repository.shutdown();</span>
+<span class="nc" id="L144">        System.out.println(&quot;\n✓ Repository shutdown complete&quot;);</span>
+<span class="nc" id="L145">    }</span>
+    
+    private static void multiShardDemo() throws SQLException {
+<span class="nc" id="L148">        System.out.println(&quot;PHASE 2: Multi-Shard Configuration (Future)&quot;);</span>
+<span class="nc" id="L149">        System.out.println(&quot;-------------------------------------------&quot;);</span>
+        
+        // Configure multiple shards
+<span class="nc" id="L152">        List&lt;ShardConfig&gt; shards = Arrays.asList(</span>
+<span class="nc" id="L153">            ShardConfig.builder()</span>
+<span class="nc" id="L154">                .shardId(&quot;dhaka-01&quot;)</span>
+<span class="nc" id="L155">                .host(&quot;10.0.1.10&quot;)</span>
+<span class="nc" id="L156">                .port(3306)</span>
+<span class="nc" id="L157">                .database(&quot;telecom_dhaka&quot;)</span>
+<span class="nc" id="L158">                .username(&quot;root&quot;)</span>
+<span class="nc" id="L159">                .password(&quot;password&quot;)</span>
+<span class="nc" id="L160">                .build(),</span>
+            
+<span class="nc" id="L162">            ShardConfig.builder()</span>
+<span class="nc" id="L163">                .shardId(&quot;chittagong-01&quot;)</span>
+<span class="nc" id="L164">                .host(&quot;10.0.2.10&quot;)</span>
+<span class="nc" id="L165">                .port(3306)</span>
+<span class="nc" id="L166">                .database(&quot;telecom_ctg&quot;)</span>
+<span class="nc" id="L167">                .username(&quot;root&quot;)</span>
+<span class="nc" id="L168">                .password(&quot;password&quot;)</span>
+<span class="nc" id="L169">                .build(),</span>
+            
+<span class="nc" id="L171">            ShardConfig.builder()</span>
+<span class="nc" id="L172">                .shardId(&quot;sylhet-01&quot;)</span>
+<span class="nc" id="L173">                .host(&quot;10.0.3.10&quot;)</span>
+<span class="nc" id="L174">                .port(3306)</span>
+<span class="nc" id="L175">                .database(&quot;telecom_sylhet&quot;)</span>
+<span class="nc" id="L176">                .username(&quot;root&quot;)</span>
+<span class="nc" id="L177">                .password(&quot;password&quot;)</span>
+<span class="nc" id="L178">                .enabled(false)  // Can be enabled later</span>
+<span class="nc" id="L179">                .build()</span>
+        );
+        
+        // Create Split-Verse repository with multiple shards
+        SplitVerseRepository&lt;SubscriberEntity, LocalDateTime&gt; repository =
+<span class="nc" id="L184">            SplitVerseRepository.&lt;SubscriberEntity, LocalDateTime&gt;builder()</span>
+<span class="nc" id="L185">                .withShardConfigs(shards)</span>
+<span class="nc" id="L186">                .withEntityClass(SubscriberEntity.class)</span>
+<span class="nc" id="L187">                .build();</span>
+        
+<span class="nc" id="L189">        System.out.println(&quot;✓ Repository initialized with &quot; + shards.size() + &quot; shards&quot;);</span>
+        
+        // The API remains exactly the same!
+        // Split-Verse handles routing transparently
+<span class="nc" id="L193">    }</span>
+    
+    /**
+     * Generate subscriber IDs using different strategies
+     */
+    private static String[] generateSubscriberIds(int count) {
+<span class="nc" id="L199">        String[] ids = new String[count];</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc" id="L201">            ids[i] = generateNanoId();</span>
+        }
+<span class="nc" id="L203">        return ids;</span>
+    }
+    
+    /**
+     * Simple NanoID generator (in production, use proper library)
+     */
+    private static String generateNanoId() {
+<span class="nc" id="L210">        String chars = &quot;0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz&quot;;</span>
+<span class="nc" id="L211">        Random random = new Random();</span>
+<span class="nc" id="L212">        StringBuilder id = new StringBuilder(&quot;SUB_&quot;);</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">        for (int i = 0; i &lt; 21; i++) {</span>
+<span class="nc" id="L214">            id.append(chars.charAt(random.nextInt(chars.length())));</span>
+        }
+<span class="nc" id="L216">        return id.toString();</span>
+    }
+    
+    /**
+     * Demonstrate how IDs would be distributed across shards
+     */
+    private static void demonstrateHashDistribution(String[] ids) {
+        // Simulate distribution across 3 shards
+<span class="nc" id="L224">        int[] distribution = new int[3];</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        for (String id : ids) {</span>
+<span class="nc" id="L226">            int hash = Math.abs(id.hashCode());</span>
+<span class="nc" id="L227">            int shardIndex = hash % 3;</span>
+<span class="nc" id="L228">            distribution[shardIndex]++;</span>
+        }
+        
+<span class="nc" id="L231">        System.out.println(&quot;  If using 3 shards, distribution would be:&quot;);</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        for (int i = 0; i &lt; distribution.length; i++) {</span>
+<span class="nc" id="L233">            System.out.println(&quot;    Shard &quot; + i + &quot;: &quot; + distribution[i] + &quot; subscribers&quot;);</span>
+        }
+<span class="nc" id="L235">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

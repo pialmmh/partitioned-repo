@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DateBasedPartitionStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.partition</a> &gt; <span class="el_source">DateBasedPartitionStrategy.java</span></div><h1>DateBasedPartitionStrategy.java</h1><pre class="source lang-java linenums">package com.telcobright.core.partition;
+
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.annotation.ShardingKey;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.lang.reflect.Field;
+
+/**
+ * Date-based partitioning strategy implementation.
+ * Partitions data by LocalDateTime field using MySQL RANGE partitioning.
+ * Creates daily partitions by default.
+ */
+public class DateBasedPartitionStrategy&lt;T extends ShardingEntity&gt; implements PartitionStrategy&lt;T&gt; {
+    
+<span class="nc" id="L19">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
+    private final String partitionKeyColumn;
+    private final PartitionGranularity granularity;
+    
+    /**
+     * Granularity of date-based partitions.
+     */
+<span class="nc" id="L26">    public enum PartitionGranularity {</span>
+<span class="nc" id="L27">        DAILY(&quot;Daily partitions&quot;),</span>
+<span class="nc" id="L28">        MONTHLY(&quot;Monthly partitions&quot;),</span>
+<span class="nc" id="L29">        YEARLY(&quot;Yearly partitions&quot;);</span>
+        
+        private final String description;
+        
+<span class="nc" id="L33">        PartitionGranularity(String description) {</span>
+<span class="nc" id="L34">            this.description = description;</span>
+<span class="nc" id="L35">        }</span>
+    }
+    
+    /**
+     * Create date-based partition strategy with default daily granularity.
+     * 
+     * @param partitionKeyColumn Column name to partition by (must be LocalDateTime)
+     */
+    public DateBasedPartitionStrategy(String partitionKeyColumn) {
+<span class="nc" id="L44">        this(partitionKeyColumn, PartitionGranularity.DAILY);</span>
+<span class="nc" id="L45">    }</span>
+    
+    /**
+     * Create date-based partition strategy with specified granularity.
+     * 
+     * @param partitionKeyColumn Column name to partition by
+     * @param granularity Partition granularity (daily, monthly, yearly)
+     */
+<span class="nc" id="L53">    public DateBasedPartitionStrategy(String partitionKeyColumn, PartitionGranularity granularity) {</span>
+<span class="nc" id="L54">        this.partitionKeyColumn = partitionKeyColumn;</span>
+<span class="nc" id="L55">        this.granularity = granularity;</span>
+<span class="nc" id="L56">    }</span>
+    
+    @Override
+    public PartitionType getType() {
+<span class="nc" id="L60">        return PartitionType.DATE_BASED;</span>
+    }
+    
+    @Override
+    public String generatePartitionByClause(String partitionKeyColumn) {
+<span class="nc" id="L65">        return String.format(&quot;PARTITION BY RANGE (TO_DAYS(%s))&quot;, partitionKeyColumn);</span>
+    }
+    
+    @Override
+    public String generateInitialPartitions(Object startValue, Object endValue) {
+<span class="nc bnc" id="L70" title="All 4 branches missed.">        if (!(startValue instanceof LocalDateTime) || !(endValue instanceof LocalDateTime)) {</span>
+<span class="nc" id="L71">            throw new IllegalArgumentException(&quot;Date-based partitioning requires LocalDateTime values&quot;);</span>
+        }
+        
+<span class="nc" id="L74">        LocalDateTime start = (LocalDateTime) startValue;</span>
+<span class="nc" id="L75">        LocalDateTime end = (LocalDateTime) endValue;</span>
+        
+<span class="nc" id="L77">        StringBuilder partitions = new StringBuilder(&quot; (\n&quot;);</span>
+<span class="nc" id="L78">        LocalDateTime current = start;</span>
+<span class="nc" id="L79">        boolean first = true;</span>
+        
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        while (!current.isAfter(end)) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (!first) {</span>
+<span class="nc" id="L83">                partitions.append(&quot;,\n&quot;);</span>
+            }
+            
+<span class="nc" id="L86">            String partitionName = generatePartitionName(current);</span>
+<span class="nc" id="L87">            LocalDateTime nextDay = current.plusDays(1);</span>
+<span class="nc" id="L88">            String partitionValue = String.format(&quot;TO_DAYS('%s')&quot;, nextDay.toLocalDate());</span>
+            
+<span class="nc" id="L90">            partitions.append(String.format(&quot;  PARTITION %s VALUES LESS THAN (%s)&quot;, </span>
+                partitionName, partitionValue));
+            
+<span class="nc" id="L93">            first = false;</span>
+<span class="nc" id="L94">            current = getNextPartitionDate(current);</span>
+<span class="nc" id="L95">        }</span>
+        
+<span class="nc" id="L97">        partitions.append(&quot;\n)&quot;);</span>
+<span class="nc" id="L98">        return partitions.toString();</span>
+    }
+    
+    @Override
+    public void createPartition(Connection connection, String tableName, 
+                               String partitionName, Object partitionValue) throws SQLException {
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (!(partitionValue instanceof LocalDateTime)) {</span>
+<span class="nc" id="L105">            throw new IllegalArgumentException(&quot;Date-based partitioning requires LocalDateTime value&quot;);</span>
+        }
+        
+<span class="nc" id="L108">        LocalDateTime date = (LocalDateTime) partitionValue;</span>
+<span class="nc" id="L109">        LocalDateTime nextDate = getNextPartitionDate(date);</span>
+<span class="nc" id="L110">        String sqlValue = String.format(&quot;TO_DAYS('%s')&quot;, nextDate.toLocalDate());</span>
+        
+<span class="nc" id="L112">        String sql = String.format(&quot;ALTER TABLE %s ADD PARTITION (PARTITION %s VALUES LESS THAN (%s))&quot;,</span>
+            tableName, partitionName, sqlValue);
+        
+<span class="nc" id="L115">        try (Statement stmt = connection.createStatement()) {</span>
+<span class="nc" id="L116">            stmt.execute(sql);</span>
+        }
+<span class="nc" id="L118">    }</span>
+    
+    @Override
+    public void dropPartition(Connection connection, String tableName, 
+                             String partitionName) throws SQLException {
+<span class="nc" id="L123">        String sql = String.format(&quot;ALTER TABLE %s DROP PARTITION %s&quot;, tableName, partitionName);</span>
+        
+<span class="nc" id="L125">        try (Statement stmt = connection.createStatement()) {</span>
+<span class="nc" id="L126">            stmt.execute(sql);</span>
+        }
+<span class="nc" id="L128">    }</span>
+    
+    @Override
+    public List&lt;String&gt; getPartitions(Connection connection, String database, 
+                                     String tableName) throws SQLException {
+<span class="nc" id="L133">        List&lt;String&gt; partitions = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc" id="L135">        String sql = &quot;SELECT partition_name FROM information_schema.partitions &quot; +</span>
+                    &quot;WHERE table_schema = ? AND table_name = ? &quot; +
+                    &quot;AND partition_name IS NOT NULL &quot; +
+                    &quot;ORDER BY partition_ordinal_position&quot;;
+        
+<span class="nc" id="L140">        try (PreparedStatement stmt = connection.prepareStatement(sql)) {</span>
+<span class="nc" id="L141">            stmt.setString(1, database);</span>
+<span class="nc" id="L142">            stmt.setString(2, tableName);</span>
+            
+<span class="nc" id="L144">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L146">                    partitions.add(rs.getString(&quot;partition_name&quot;));</span>
+                }
+            }
+        }
+        
+<span class="nc" id="L151">        return partitions;</span>
+    }
+    
+    @Override
+    public boolean partitionExists(Connection connection, String database, 
+                                  String tableName, String partitionName) throws SQLException {
+<span class="nc" id="L157">        String sql = &quot;SELECT 1 FROM information_schema.partitions &quot; +</span>
+                    &quot;WHERE table_schema = ? AND table_name = ? AND partition_name = ?&quot;;
+        
+<span class="nc" id="L160">        try (PreparedStatement stmt = connection.prepareStatement(sql)) {</span>
+<span class="nc" id="L161">            stmt.setString(1, database);</span>
+<span class="nc" id="L162">            stmt.setString(2, tableName);</span>
+<span class="nc" id="L163">            stmt.setString(3, partitionName);</span>
+            
+<span class="nc" id="L165">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc" id="L166">                return rs.next();</span>
+            }
+        }
+    }
+    
+    @Override
+    public String generatePartitionName(Object value) {
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (!(value instanceof LocalDateTime)) {</span>
+<span class="nc" id="L174">            throw new IllegalArgumentException(&quot;Date-based partitioning requires LocalDateTime value&quot;);</span>
+        }
+        
+<span class="nc" id="L177">        LocalDateTime date = (LocalDateTime) value;</span>
+        
+<span class="nc bnc" id="L179" title="All 4 branches missed.">        switch (granularity) {</span>
+            case DAILY:
+<span class="nc" id="L181">                return &quot;p&quot; + date.format(DATE_FORMAT);</span>
+            case MONTHLY:
+<span class="nc" id="L183">                return &quot;p&quot; + date.format(DateTimeFormatter.ofPattern(&quot;yyyyMM&quot;));</span>
+            case YEARLY:
+<span class="nc" id="L185">                return &quot;p&quot; + date.format(DateTimeFormatter.ofPattern(&quot;yyyy&quot;));</span>
+            default:
+<span class="nc" id="L187">                return &quot;p&quot; + date.format(DATE_FORMAT);</span>
+        }
+    }
+    
+    @Override
+    public String getPartitionKeyColumn() {
+<span class="nc" id="L193">        return partitionKeyColumn;</span>
+    }
+    
+    @Override
+    public void validateEntity(Class&lt;T&gt; entityClass) {
+        // Check that entity has a LocalDateTime field with @ShardingKey
+<span class="nc" id="L199">        boolean hasValidShardingKey = false;</span>
+        
+<span class="nc bnc" id="L201" title="All 2 branches missed.">        for (Field field : entityClass.getDeclaredFields()) {</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">            if (field.isAnnotationPresent(ShardingKey.class)) {</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                if (!LocalDateTime.class.isAssignableFrom(field.getType())) {</span>
+<span class="nc" id="L204">                    throw new IllegalArgumentException(</span>
+<span class="nc" id="L205">                        String.format(&quot;Date-based partitioning requires @ShardingKey field to be LocalDateTime, &quot; +</span>
+                                     &quot;but found %s in entity %s&quot;, 
+<span class="nc" id="L207">                                     field.getType().getSimpleName(), </span>
+<span class="nc" id="L208">                                     entityClass.getSimpleName())</span>
+                    );
+                }
+<span class="nc" id="L211">                hasValidShardingKey = true;</span>
+<span class="nc" id="L212">                break;</span>
+            }
+        }
+        
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (!hasValidShardingKey) {</span>
+<span class="nc" id="L217">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L218">                String.format(&quot;Date-based partitioning requires entity %s to have a LocalDateTime field &quot; +</span>
+<span class="nc" id="L219">                             &quot;annotated with @ShardingKey&quot;, entityClass.getSimpleName())</span>
+            );
+        }
+<span class="nc" id="L222">    }</span>
+    
+    @Override
+    public List&lt;PartitionDefinition&gt; getPartitionsForRetentionPeriod(int retentionDays) {
+<span class="nc" id="L226">        List&lt;PartitionDefinition&gt; partitions = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc" id="L228">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L229">        LocalDateTime startDate = now.minusDays(retentionDays);</span>
+<span class="nc" id="L230">        LocalDateTime endDate = now.plusDays(retentionDays);</span>
+        
+<span class="nc" id="L232">        LocalDateTime current = startDate;</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">        while (!current.isAfter(endDate)) {</span>
+<span class="nc" id="L234">            String partitionName = generatePartitionName(current);</span>
+<span class="nc" id="L235">            LocalDateTime nextDate = getNextPartitionDate(current);</span>
+            
+<span class="nc" id="L237">            partitions.add(new PartitionDefinition(partitionName, nextDate));</span>
+<span class="nc" id="L238">            current = nextDate;</span>
+<span class="nc" id="L239">        }</span>
+        
+<span class="nc" id="L241">        return partitions;</span>
+    }
+    
+    @Override
+    public List&lt;String&gt; getPartitionsToDropp(Connection connection, String database, 
+                                            String tableName, Object cutoffValue) throws SQLException {
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        if (!(cutoffValue instanceof LocalDateTime)) {</span>
+<span class="nc" id="L248">            throw new IllegalArgumentException(&quot;Date-based partitioning requires LocalDateTime cutoff value&quot;);</span>
+        }
+        
+<span class="nc" id="L251">        LocalDateTime cutoff = (LocalDateTime) cutoffValue;</span>
+<span class="nc" id="L252">        String cutoffPartitionName = generatePartitionName(cutoff);</span>
+        
+<span class="nc" id="L254">        List&lt;String&gt; allPartitions = getPartitions(connection, database, tableName);</span>
+<span class="nc" id="L255">        List&lt;String&gt; partitionsToDrop = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc bnc" id="L257" title="All 2 branches missed.">        for (String partition : allPartitions) {</span>
+            // Compare partition names (they're date-based and sortable)
+<span class="nc bnc" id="L259" title="All 2 branches missed.">            if (partition.compareTo(cutoffPartitionName) &lt; 0) {</span>
+<span class="nc" id="L260">                partitionsToDrop.add(partition);</span>
+            }
+<span class="nc" id="L262">        }</span>
+        
+<span class="nc" id="L264">        return partitionsToDrop;</span>
+    }
+    
+    /**
+     * Get the next partition date based on granularity.
+     */
+    private LocalDateTime getNextPartitionDate(LocalDateTime current) {
+<span class="nc bnc" id="L271" title="All 4 branches missed.">        switch (granularity) {</span>
+            case DAILY:
+<span class="nc" id="L273">                return current.plusDays(1);</span>
+            case MONTHLY:
+<span class="nc" id="L275">                return current.plusMonths(1).withDayOfMonth(1);</span>
+            case YEARLY:
+<span class="nc" id="L277">                return current.plusYears(1).withDayOfYear(1);</span>
+            default:
+<span class="nc" id="L279">                return current.plusDays(1);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

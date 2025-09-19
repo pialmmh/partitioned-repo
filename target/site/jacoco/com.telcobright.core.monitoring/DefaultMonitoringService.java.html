@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultMonitoringService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.monitoring</a> &gt; <span class="el_source">DefaultMonitoringService.java</span></div><h1>DefaultMonitoringService.java</h1><pre class="source lang-java linenums">package com.telcobright.core.monitoring;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Default implementation of MonitoringService
+ */
+public class DefaultMonitoringService implements MonitoringService {
+    
+    private final MonitoringConfig config;
+    private final RepositoryMetrics metrics;
+    private final MetricsCollector metricsCollector;
+    // private final ObjectMapper objectMapper; // Removed - Jackson dependency
+    private final HttpClient httpClient;
+    
+    private final ScheduledExecutorService scheduler;
+<span class="nc" id="L27">    private final AtomicBoolean running = new AtomicBoolean(false);</span>
+    private volatile ScheduledFuture&lt;?&gt; monitoringTask;
+    
+<span class="nc" id="L30">    public DefaultMonitoringService(MonitoringConfig config, RepositoryMetrics metrics, MetricsCollector metricsCollector) {</span>
+<span class="nc" id="L31">        this.config = config;</span>
+<span class="nc" id="L32">        this.metrics = metrics;</span>
+<span class="nc" id="L33">        this.metricsCollector = metricsCollector;</span>
+        // this.objectMapper = new ObjectMapper(); // Removed - Jackson dependency
+        // this.objectMapper.registerModule(new JavaTimeModule()); // Removed - Jackson dependency
+<span class="nc" id="L36">        this.httpClient = HttpClient.newHttpClient();</span>
+<span class="nc" id="L37">        this.scheduler = Executors.newScheduledThreadPool(1, r -&gt; {</span>
+<span class="nc" id="L38">            Thread t = new Thread(r, &quot;repository-monitoring&quot;);</span>
+<span class="nc" id="L39">            t.setDaemon(true);</span>
+<span class="nc" id="L40">            return t;</span>
+        });
+<span class="nc" id="L42">    }</span>
+    
+    @Override
+    public void start() {
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (!config.isEnabled()) {</span>
+<span class="nc" id="L47">            return;</span>
+        }
+        
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (running.compareAndSet(false, true)) {</span>
+            // Print initial metrics immediately
+<span class="nc" id="L52">            System.out.printf(&quot;Started repository monitoring: %s%n&quot;, config);</span>
+<span class="nc" id="L53">            recordInitialMetrics();</span>
+            
+            // Schedule periodic reporting
+<span class="nc" id="L56">            monitoringTask = scheduler.scheduleAtFixedRate(</span>
+                this::reportMetrics,
+<span class="nc" id="L58">                config.getReportingIntervalSeconds(),</span>
+<span class="nc" id="L59">                config.getReportingIntervalSeconds(),</span>
+                TimeUnit.SECONDS
+            );
+        }
+<span class="nc" id="L63">    }</span>
+    
+    @Override
+    public void stop() {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (running.compareAndSet(true, false)) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (monitoringTask != null) {</span>
+<span class="nc" id="L69">                monitoringTask.cancel(false);</span>
+            }
+<span class="nc" id="L71">            scheduler.shutdown();</span>
+            try {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {</span>
+<span class="nc" id="L74">                    scheduler.shutdownNow();</span>
+                }
+<span class="nc" id="L76">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L77">                scheduler.shutdownNow();</span>
+<span class="nc" id="L78">                Thread.currentThread().interrupt();</span>
+<span class="nc" id="L79">            }</span>
+        }
+<span class="nc" id="L81">    }</span>
+    
+    @Override
+    public boolean isRunning() {
+<span class="nc" id="L85">        return running.get();</span>
+    }
+    
+    @Override
+    public RepositoryMetrics getMetrics() {
+<span class="nc" id="L90">        return metrics;</span>
+    }
+    
+    @Override
+    public void recordMaintenanceJobStart() {
+<span class="nc" id="L95">        metrics.setLastRunTimestamp(LocalDateTime.now());</span>
+        // TODO: Set next scheduled time based on scheduler configuration
+<span class="nc" id="L97">    }</span>
+    
+    @Override
+    public void recordMaintenanceJobSuccess(long durationMs, int partitionsCreated, int partitionsDeleted) {
+<span class="nc" id="L101">        metrics.setLastJobDurationMs(durationMs);</span>
+<span class="nc" id="L102">        metrics.setPartitionsCreatedLastRun(partitionsCreated);</span>
+<span class="nc" id="L103">        metrics.setPartitionsDeletedLastRun(partitionsDeleted);</span>
+<span class="nc" id="L104">        metrics.setLastMaintenanceJobSucceeded(true);</span>
+        
+        // Collect current partition info
+<span class="nc" id="L107">        collectPartitionMetrics();</span>
+<span class="nc" id="L108">    }</span>
+    
+    @Override
+    public void recordMaintenanceJobFailure(long durationMs, Throwable error) {
+<span class="nc" id="L112">        metrics.setLastJobDurationMs(durationMs);</span>
+<span class="nc" id="L113">        metrics.setLastMaintenanceJobSucceeded(false);</span>
+        
+<span class="nc" id="L115">        System.err.printf(&quot;Maintenance job failed after %d ms: %s%n&quot;, durationMs, error.getMessage());</span>
+<span class="nc" id="L116">    }</span>
+    
+    @Override
+    public void updatePartitionInfo(int partitionCount, int prefixedTableCount) {
+<span class="nc" id="L120">        metrics.setNumberOfPartitions(partitionCount);</span>
+<span class="nc" id="L121">        metrics.setNumberOfPrefixedTables(prefixedTableCount);</span>
+<span class="nc" id="L122">    }</span>
+    
+    @Override
+    public MonitoringConfig getConfig() {
+<span class="nc" id="L126">        return config;</span>
+    }
+    
+    @Override
+    public String getPrometheusMetrics() {
+<span class="nc" id="L131">        StringBuilder sb = new StringBuilder();</span>
+        
+        // Scheduler metrics
+<span class="nc" id="L134">        sb.append(&quot;# HELP repository_last_run_timestamp_seconds Last maintenance job run timestamp\n&quot;);</span>
+<span class="nc" id="L135">        sb.append(&quot;# TYPE repository_last_run_timestamp_seconds gauge\n&quot;);</span>
+<span class="nc" id="L136">        sb.append(String.format(&quot;repository_last_run_timestamp_seconds{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L137">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getLastRunTimestampEpoch()));</span>
+        
+<span class="nc" id="L139">        sb.append(&quot;# HELP repository_last_job_duration_seconds Last maintenance job duration\n&quot;);</span>
+<span class="nc" id="L140">        sb.append(&quot;# TYPE repository_last_job_duration_seconds gauge\n&quot;);</span>
+<span class="nc" id="L141">        sb.append(String.format(&quot;repository_last_job_duration_seconds{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %.3f%n&quot;,</span>
+<span class="nc" id="L142">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getLastJobDurationMs() / 1000.0));</span>
+        
+        // Partition metrics
+<span class="nc" id="L145">        sb.append(&quot;# HELP repository_partitions_total Total number of partitions\n&quot;);</span>
+<span class="nc" id="L146">        sb.append(&quot;# TYPE repository_partitions_total gauge\n&quot;);</span>
+<span class="nc" id="L147">        sb.append(String.format(&quot;repository_partitions_total{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L148">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getNumberOfPartitions()));</span>
+        
+<span class="nc" id="L150">        sb.append(&quot;# HELP repository_prefixed_tables_total Total number of prefixed tables\n&quot;);</span>
+<span class="nc" id="L151">        sb.append(&quot;# TYPE repository_prefixed_tables_total gauge\n&quot;);</span>
+<span class="nc" id="L152">        sb.append(String.format(&quot;repository_prefixed_tables_total{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L153">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getNumberOfPrefixedTables()));</span>
+        
+<span class="nc" id="L155">        sb.append(&quot;# HELP repository_partitions_created_last_run Partitions created in last run\n&quot;);</span>
+<span class="nc" id="L156">        sb.append(&quot;# TYPE repository_partitions_created_last_run gauge\n&quot;);</span>
+<span class="nc" id="L157">        sb.append(String.format(&quot;repository_partitions_created_last_run{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L158">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getPartitionsCreatedLastRun()));</span>
+        
+<span class="nc" id="L160">        sb.append(&quot;# HELP repository_partitions_deleted_last_run Partitions deleted in last run\n&quot;);</span>
+<span class="nc" id="L161">        sb.append(&quot;# TYPE repository_partitions_deleted_last_run gauge\n&quot;);</span>
+<span class="nc" id="L162">        sb.append(String.format(&quot;repository_partitions_deleted_last_run{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L163">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getPartitionsDeletedLastRun()));</span>
+        
+        // Error metrics
+<span class="nc" id="L166">        sb.append(&quot;# HELP repository_last_job_success Last job success status (1=success, 0=failure)\n&quot;);</span>
+<span class="nc" id="L167">        sb.append(&quot;# TYPE repository_last_job_success gauge\n&quot;);</span>
+<span class="nc" id="L168">        sb.append(String.format(&quot;repository_last_job_success{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.isLastMaintenanceJobSucceeded() ? 1 : 0));</span>
+        
+<span class="nc" id="L171">        sb.append(&quot;# HELP repository_total_failures_total Total number of maintenance job failures\n&quot;);</span>
+<span class="nc" id="L172">        sb.append(&quot;# TYPE repository_total_failures_total counter\n&quot;);</span>
+<span class="nc" id="L173">        sb.append(String.format(&quot;repository_total_failures_total{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L174">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getTotalFailureCount()));</span>
+        
+        // Service info
+<span class="nc" id="L177">        sb.append(&quot;# HELP repository_startup_timestamp_seconds Service startup timestamp\n&quot;);</span>
+<span class="nc" id="L178">        sb.append(&quot;# TYPE repository_startup_timestamp_seconds gauge\n&quot;);</span>
+<span class="nc" id="L179">        sb.append(String.format(&quot;repository_startup_timestamp_seconds{repository_type=\&quot;%s\&quot;,repository_name=\&quot;%s\&quot;,hostname=\&quot;%s\&quot;} %d%n&quot;,</span>
+<span class="nc" id="L180">                metrics.getRepositoryType(), metrics.getRepositoryName(), metrics.getHostname(), metrics.getStartupTimestampEpoch()));</span>
+        
+<span class="nc" id="L182">        return sb.toString();</span>
+    }
+    
+    @Override
+    public String getJsonMetrics() {
+        // JSON functionality disabled - Jackson dependency not available
+<span class="nc" id="L188">        return &quot;{\&quot;error\&quot;:\&quot;Jackson dependency not available\&quot;}&quot;;</span>
+        /*
+        try {
+            ObjectNode json = objectMapper.createObjectNode();
+            
+            // Service info
+            json.put(&quot;service_name&quot;, config.getServiceName());
+            json.put(&quot;instance_id&quot;, config.getInstanceId());
+            json.put(&quot;hostname&quot;, metrics.getHostname());
+            json.put(&quot;startup_timestamp&quot;, metrics.getStartupTimestamp().toString());
+            json.put(&quot;startup_timestamp_epoch&quot;, metrics.getStartupTimestampEpoch());
+            
+            // Repository info
+            json.put(&quot;repository_type&quot;, metrics.getRepositoryType());
+            json.put(&quot;repository_name&quot;, metrics.getRepositoryName());
+            
+            // Scheduler metrics
+            ObjectNode scheduler = json.putObject(&quot;scheduler&quot;);
+            if (metrics.getLastRunTimestamp() != null) {
+                scheduler.put(&quot;last_run_timestamp&quot;, metrics.getLastRunTimestamp().toString());
+                scheduler.put(&quot;last_run_timestamp_epoch&quot;, metrics.getLastRunTimestampEpoch());
+            }
+            if (metrics.getNextScheduledTime() != null) {
+                scheduler.put(&quot;next_scheduled_time&quot;, metrics.getNextScheduledTime().toString());
+                scheduler.put(&quot;next_scheduled_time_epoch&quot;, metrics.getNextScheduledTimeEpoch());
+            }
+            scheduler.put(&quot;last_job_duration_ms&quot;, metrics.getLastJobDurationMs());
+            
+            // Partition metrics
+            ObjectNode partitions = json.putObject(&quot;partition_maintenance&quot;);
+            partitions.put(&quot;number_of_partitions&quot;, metrics.getNumberOfPartitions());
+            partitions.put(&quot;number_of_prefixed_tables&quot;, metrics.getNumberOfPrefixedTables());
+            partitions.put(&quot;partitions_created_last_run&quot;, metrics.getPartitionsCreatedLastRun());
+            partitions.put(&quot;partitions_deleted_last_run&quot;, metrics.getPartitionsDeletedLastRun());
+            
+            if (metrics.getTotalListOfPartitions() != null) {
+                partitions.set(&quot;total_list_of_partitions&quot;, objectMapper.valueToTree(metrics.getTotalListOfPartitions()));
+            }
+            if (metrics.getNextPartitionsToDelete() != null) {
+                partitions.set(&quot;next_partitions_to_delete&quot;, objectMapper.valueToTree(metrics.getNextPartitionsToDelete()));
+            }
+            
+            // Error metrics
+            ObjectNode errors = json.putObject(&quot;errors&quot;);
+            errors.put(&quot;last_maintenance_job_succeeded&quot;, metrics.isLastMaintenanceJobSucceeded());
+            errors.put(&quot;total_failure_count&quot;, metrics.getTotalFailureCount());
+            
+            return objectMapper.writeValueAsString(json);
+        } catch (Exception e) {
+            return String.format(&quot;{\&quot;error\&quot;: \&quot;Failed to serialize metrics: %s\&quot;}&quot;, e.getMessage());
+        }
+        */
+    }
+    
+    private void reportMetrics() {
+        try {
+            // Collect latest partition info before reporting
+<span class="nc" id="L245">            collectPartitionMetrics();</span>
+            
+            // Always print simplified metrics to console first
+<span class="nc" id="L248">            printSimplifiedMetrics();</span>
+            
+            // Then handle configured delivery method
+<span class="nc bnc" id="L251" title="All 4 branches missed.">            switch (config.getDeliveryMethod()) {</span>
+                case HTTP_ENDPOINT:
+                    // HTTP endpoint doesn't push - metrics are pulled via getPrometheusMetrics()
+<span class="nc" id="L254">                    break;</span>
+                case REST_PUSH:
+<span class="nc" id="L256">                    pushToRestEndpoint();</span>
+<span class="nc" id="L257">                    break;</span>
+                case SLF4J_LOGGING:
+<span class="nc" id="L259">                    logMetrics();</span>
+<span class="nc" id="L260">                    break;</span>
+                case KAFKA_PUSH:
+                    // TODO: Implement Kafka push
+                    break;
+            }
+<span class="nc" id="L265">        } catch (Exception e) {</span>
+<span class="nc" id="L266">            System.err.printf(&quot;Error reporting metrics: %s%n&quot;, e.getMessage());</span>
+<span class="nc" id="L267">        }</span>
+<span class="nc" id="L268">    }</span>
+    
+    private void collectPartitionMetrics() {
+<span class="nc bnc" id="L271" title="All 2 branches missed.">        if (metricsCollector != null) {</span>
+            try {
+<span class="nc" id="L273">                String tableName = determineMainTableName();</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">                if (tableName != null) {</span>
+<span class="nc" id="L275">                    int partitionCount = metricsCollector.countPartitions(tableName);</span>
+<span class="nc" id="L276">                    int prefixedTableCount = metricsCollector.countPrefixedTables(metrics.getRepositoryName());</span>
+                    
+<span class="nc" id="L278">                    metrics.setNumberOfPartitions(partitionCount);</span>
+<span class="nc" id="L279">                    metrics.setNumberOfPrefixedTables(prefixedTableCount);</span>
+                    
+                    // Get partition names
+<span class="nc" id="L282">                    metrics.setTotalListOfPartitions(metricsCollector.getPartitionNames(tableName));</span>
+                }
+<span class="nc" id="L284">            } catch (Exception e) {</span>
+<span class="nc" id="L285">                System.err.printf(&quot;Error collecting partition metrics: %s%n&quot;, e.getMessage());</span>
+<span class="nc" id="L286">            }</span>
+        }
+<span class="nc" id="L288">    }</span>
+    
+    private String determineMainTableName() {
+        // For partitioned repos, the main table name is typically the repository name
+        // For multi-table repos, we might need to look at the most recent table
+<span class="nc" id="L293">        return metrics.getRepositoryName();</span>
+    }
+    
+    private void pushToRestEndpoint() {
+        try {
+<span class="nc" id="L298">            String jsonPayload = getJsonMetrics();</span>
+            
+<span class="nc" id="L300">            HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L301">                    .uri(URI.create(config.getRestPushUrl()))</span>
+<span class="nc" id="L302">                    .header(&quot;Content-Type&quot;, &quot;application/json&quot;)</span>
+<span class="nc" id="L303">                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))</span>
+<span class="nc" id="L304">                    .build();</span>
+            
+<span class="nc" id="L306">            HttpResponse&lt;String&gt; response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());</span>
+            
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            if (response.statusCode() &gt;= 400) {</span>
+<span class="nc" id="L309">                System.err.printf(&quot;Failed to push metrics to %s: HTTP %d - %s%n&quot;,</span>
+<span class="nc" id="L310">                        config.getRestPushUrl(), response.statusCode(), response.body());</span>
+            }
+<span class="nc" id="L312">        } catch (Exception e) {</span>
+<span class="nc" id="L313">            System.err.printf(&quot;Error pushing metrics to REST endpoint: %s%n&quot;, e.getMessage());</span>
+<span class="nc" id="L314">        }</span>
+<span class="nc" id="L315">    }</span>
+    
+    private void logMetrics() {
+<span class="nc" id="L318">        String jsonMetrics = getJsonMetrics();</span>
+<span class="nc" id="L319">        System.out.printf(&quot;REPOSITORY_METRICS: %s%n&quot;, jsonMetrics);</span>
+<span class="nc" id="L320">    }</span>
+    
+    /**
+     * Always print simplified, human-readable metrics to console
+     */
+    private void printSimplifiedMetrics() {
+<span class="nc" id="L326">        System.out.println();</span>
+<span class="nc" id="L327">        System.out.println(&quot;========================================&quot;);</span>
+<span class="nc" id="L328">        System.out.printf(&quot; REPOSITORY METRICS - %s &quot;, java.time.LocalDateTime.now().toString());</span>
+<span class="nc" id="L329">        System.out.println();</span>
+<span class="nc" id="L330">        System.out.println(&quot;========================================&quot;);</span>
+        
+        // Service Info
+<span class="nc" id="L333">        System.out.printf(&quot;Service: %s (%s)%n&quot;, config.getServiceName(), config.getInstanceId());</span>
+<span class="nc" id="L334">        System.out.printf(&quot;Repository: %s [%s]%n&quot;, metrics.getRepositoryName(), metrics.getRepositoryType());</span>
+<span class="nc" id="L335">        System.out.printf(&quot;Hostname: %s%n&quot;, metrics.getHostname());</span>
+<span class="nc" id="L336">        System.out.println();</span>
+        
+        // Scheduler Status
+<span class="nc" id="L339">        System.out.println(&quot;📅 SCHEDULER STATUS:&quot;);</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (metrics.getLastRunTimestamp() != null) {</span>
+<span class="nc" id="L341">            System.out.printf(&quot;   Last Run: %s%n&quot;, metrics.getLastRunTimestamp().toString());</span>
+<span class="nc" id="L342">            System.out.printf(&quot;   Duration: %d ms%n&quot;, metrics.getLastJobDurationMs());</span>
+        } else {
+<span class="nc" id="L344">            System.out.println(&quot;   Last Run: Never&quot;);</span>
+        }
+        
+<span class="nc bnc" id="L347" title="All 2 branches missed.">        if (metrics.getNextScheduledTime() != null) {</span>
+<span class="nc" id="L348">            System.out.printf(&quot;   Next Run: %s%n&quot;, metrics.getNextScheduledTime().toString());</span>
+        }
+<span class="nc" id="L350">        System.out.println();</span>
+        
+        // Partition Metrics
+<span class="nc" id="L353">        System.out.println(&quot;📊 PARTITION METRICS:&quot;);</span>
+<span class="nc" id="L354">        System.out.printf(&quot;   Total Partitions: %d%n&quot;, metrics.getNumberOfPartitions());</span>
+<span class="nc" id="L355">        System.out.printf(&quot;   Prefixed Tables: %d%n&quot;, metrics.getNumberOfPrefixedTables());</span>
+<span class="nc" id="L356">        System.out.printf(&quot;   Created Last Run: %d%n&quot;, metrics.getPartitionsCreatedLastRun());</span>
+<span class="nc" id="L357">        System.out.printf(&quot;   Deleted Last Run: %d%n&quot;, metrics.getPartitionsDeletedLastRun());</span>
+        
+<span class="nc bnc" id="L359" title="All 4 branches missed.">        if (metrics.getTotalListOfPartitions() != null &amp;&amp; !metrics.getTotalListOfPartitions().isEmpty()) {</span>
+<span class="nc" id="L360">            System.out.printf(&quot;   Active Partitions: %s%n&quot;, </span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">                            metrics.getTotalListOfPartitions().size() &gt; 5 </span>
+<span class="nc" id="L362">                                ? metrics.getTotalListOfPartitions().subList(0, 5) + &quot;... (+&quot; + (metrics.getTotalListOfPartitions().size() - 5) + &quot; more)&quot;</span>
+<span class="nc" id="L363">                                : metrics.getTotalListOfPartitions());</span>
+        }
+<span class="nc" id="L365">        System.out.println();</span>
+        
+        // Health Status
+<span class="nc" id="L368">        System.out.println(&quot;🏥 HEALTH STATUS:&quot;);</span>
+<span class="nc bnc" id="L369" title="All 2 branches missed.">        String healthStatus = metrics.isLastMaintenanceJobSucceeded() ? &quot;✅ HEALTHY&quot; : &quot;❌ FAILED&quot;;</span>
+<span class="nc" id="L370">        System.out.printf(&quot;   Last Job: %s%n&quot;, healthStatus);</span>
+<span class="nc" id="L371">        System.out.printf(&quot;   Total Failures: %d%n&quot;, metrics.getTotalFailureCount());</span>
+        
+<span class="nc bnc" id="L373" title="All 4 branches missed.">        if (metrics.getNextPartitionsToDelete() != null &amp;&amp; !metrics.getNextPartitionsToDelete().isEmpty()) {</span>
+<span class="nc" id="L374">            System.out.printf(&quot;   Next Cleanup: %d partitions%n&quot;, metrics.getNextPartitionsToDelete().size());</span>
+        }
+<span class="nc" id="L376">        System.out.println();</span>
+        
+        // Delivery Method
+<span class="nc" id="L379">        System.out.println(&quot;📡 MONITORING CONFIG:&quot;);</span>
+<span class="nc" id="L380">        System.out.printf(&quot;   Delivery: %s%n&quot;, config.getDeliveryMethod().name());</span>
+<span class="nc" id="L381">        System.out.printf(&quot;   Format: %s%n&quot;, config.getMetricFormat().name());</span>
+<span class="nc" id="L382">        System.out.printf(&quot;   Interval: %d seconds%n&quot;, config.getReportingIntervalSeconds());</span>
+        
+<span class="nc bnc" id="L384" title="All 4 branches missed.">        switch (config.getDeliveryMethod()) {</span>
+            case HTTP_ENDPOINT:
+<span class="nc" id="L386">                System.out.printf(&quot;   Endpoint: %s%n&quot;, config.getHttpEndpointPath());</span>
+<span class="nc" id="L387">                break;</span>
+            case REST_PUSH:
+<span class="nc" id="L389">                System.out.printf(&quot;   Push URL: %s%n&quot;, config.getRestPushUrl());</span>
+<span class="nc" id="L390">                break;</span>
+            case KAFKA_PUSH:
+<span class="nc" id="L392">                System.out.printf(&quot;   Kafka Topic: %s%n&quot;, config.getKafkaTopicName());</span>
+                break;
+        }
+        
+<span class="nc" id="L396">        System.out.println(&quot;========================================&quot;);</span>
+<span class="nc" id="L397">        System.out.println();</span>
+<span class="nc" id="L398">    }</span>
+    
+    /**
+     * Record initial metrics when monitoring starts
+     */
+    private void recordInitialMetrics() {
+        try {
+            // Collect initial partition info
+<span class="nc" id="L406">            collectPartitionMetrics();</span>
+            
+            // Print initial state
+<span class="nc" id="L409">            printSimplifiedMetrics();</span>
+<span class="nc" id="L410">        } catch (Exception e) {</span>
+<span class="nc" id="L411">            System.err.printf(&quot;Error recording initial metrics: %s%n&quot;, e.getMessage());</span>
+<span class="nc" id="L412">        }</span>
+<span class="nc" id="L413">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

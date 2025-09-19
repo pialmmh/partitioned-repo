@@ -59,6 +59,16 @@ public class ComprehensiveStrategyTest {
         @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    @Override
+    public LocalDateTime getPartitionColValue() {
+        return createdAt;
+    }
+
+    @Override
+    public void setPartitionColValue(LocalDateTime value) {
+        this.createdAt = value;
+    }
+
         public Long getSequenceNumber() { return sequenceNumber; }
         public void setSequenceNumber(Long sequenceNumber) { this.sequenceNumber = sequenceNumber; }
         public Integer getCategoryId() { return categoryId; }
@@ -560,7 +570,7 @@ public class ComprehensiveStrategyTest {
         PartitionColumnType columnType,
         PartitionRange range) {
 
-        SplitVerseRepository.Builder<TestEntity> builder = SplitVerseRepository.<TestEntity, LocalDateTime>builder()
+        SplitVerseRepository.Builder<TestEntity, LocalDateTime> builder = SplitVerseRepository.<TestEntity, LocalDateTime>builder()
             .withEntityClass(TestEntity.class)
             .withTableName("test_" + name.toLowerCase().replace("-", "_"))
             .withShardingStrategy(strategy)

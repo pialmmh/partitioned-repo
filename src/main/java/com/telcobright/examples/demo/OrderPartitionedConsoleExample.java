@@ -69,7 +69,7 @@ public class OrderPartitionedConsoleExample {
                 .enabled(true)
                 .build();
             
-            orderRepo = SplitVerseRepository.builder()
+            orderRepo = SplitVerseRepository.<OrderEntity, LocalDateTime>builder()
                 .withSingleShard(shardConfig)
                 .withEntityClass(OrderEntity.class)
                 .build();
