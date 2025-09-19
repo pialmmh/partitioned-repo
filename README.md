@@ -470,6 +470,49 @@ See the `/src/main/java/com/telcobright/splitverse/examples/` directory for:
 - `SimpleSplitVerseTest.java` - Basic operations
 - `SplitVerseMultiShardTest.java` - Multi-shard scenarios
 
+## ⚠️ Known Limitations
+
+### MULTI_TABLE Mode Limitations
+
+Currently, the `GenericMultiTableRepository` implementation has the following limitations:
+
+1. **VALUE_RANGE and HASH Partitioning Not Fully Supported**:
+   - The MULTI_TABLE mode currently always creates date-based tables (e.g., `table_20250919`) regardless of the PartitionRange setting
+   - VALUE_RANGE_10K, VALUE_RANGE_100K, HASH_16, HASH_256 etc. are not properly implemented
+   - These partition ranges will still result in daily tables being created
+
+2. **Table Initialization Overhead**:
+   - On startup, the system creates tables for the entire retention period (default 30 days before + 30 days after = 61 tables)
+   - This can cause timeouts with large retention periods
+   - **Workaround**: Use a shorter retention period (e.g., 3 days) for performance-sensitive tests
+
+3. **Recommended Configuration for Non-Time-Based Partitioning**:
+   - Use PARTITIONED mode instead of MULTI_TABLE mode for VALUE_RANGE or HASH partitioning
+   - Or use DAILY/HOURLY/MONTHLY partition ranges with MULTI_TABLE mode
+
+### Example Workaround for Performance Tests
+
+```java
+// Instead of VALUE_RANGE partitioning (currently not working correctly):
+// .withPartitionRange(PartitionRange.VALUE_RANGE_10K)  // This still creates daily tables!
+
+// Use time-based partitioning with shorter retention:
+repository = SplitVerseRepository.<Event>builder()
+    .withEntityClass(Event.class)
+    .withPartitionRange(PartitionRange.DAILY)
+    .withRetentionDays(3)  // Only 3 days to reduce table count
+    .withRepositoryMode(RepositoryMode.MULTI_TABLE)
+    // ... other configuration
+    .build();
+```
+
+### Future Improvements
+
+A complete redesign of the multi-table partitioning system is planned to properly support:
+- Value-based table ranges (e.g., `table_0_9999`, `table_10000_19999`)
+- Hash-based table buckets (e.g., `table_hash_0`, `table_hash_1`)
+- Composite partitioning strategies
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please ensure:

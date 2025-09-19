@@ -14,6 +14,10 @@ import com.telcobright.core.config.DataSourceConfig;
 import com.telcobright.splitverse.config.ShardConfig;
 import com.telcobright.splitverse.config.RepositoryMode;
 import com.telcobright.splitverse.routing.HashRouter;
+import com.telcobright.core.sql.SqlGeneratorByEntityRegistry;
+import com.telcobright.core.sql.SqlStatementCache;
+import com.telcobright.core.persistence.PersistenceProvider;
+import com.telcobright.core.persistence.MySQLPersistenceProvider;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -39,6 +43,8 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     private final ExecutorService executorService;
     private final PartitionType partitionType;
     private final String partitionKeyColumn;
+    private final SqlGeneratorByEntityRegistry sqlRegistry;
+    private final SqlStatementCache sqlCache;
     
     private SplitVerseRepository(Builder<T> builder) {
         this.entityClass = builder.entityClass;
@@ -50,6 +56,9 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         this.executorService = Executors.newFixedThreadPool(
             Math.min(builder.shardConfigs.size() * 2, 10)
         );
+        this.sqlRegistry = builder.sqlRegistry;
+        this.sqlCache = builder.sqlCache != null ? builder.sqlCache :
+            (sqlRegistry != null ? sqlRegistry.getCache() : new SqlStatementCache());
         
         // Initialize shard repositories
         List<String> activeShardIds = new ArrayList<>();
@@ -61,8 +70,9 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
                     activeShardIds.add(config.getShardId());
                     System.out.println("[SplitVerse] Initialized shard: " + config.getShardId());
                 } catch (Exception e) {
-                    System.err.println("[SplitVerse] Failed to initialize shard " + 
+                    System.err.println("[SplitVerse] Failed to initialize shard " +
                         config.getShardId() + ": " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }
@@ -78,6 +88,11 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     private ShardingRepository<T> createShardRepository(ShardConfig config, Builder<T> builder) {
+        // Pass SQL cache to repositories if available
+        PersistenceProvider persistenceProvider = null;
+        if (sqlCache != null) {
+            persistenceProvider = new MySQLPersistenceProvider(sqlCache);
+        }
         // Use table name from builder or annotation
         String tableName = builder.tableName;
         if (tableName == null || tableName.isEmpty()) {
@@ -98,7 +113,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
 
         // Choose repository type based on mode
         if (builder.getRepositoryMode() == RepositoryMode.MULTI_TABLE) {
-            // Create multi-table repository (separate table per day)
+            // Create multi-table repository with proper partition support
             return GenericMultiTableRepository.<T>builder(entityClass)
                 .host(config.getHost())
                 .port(config.getPort())
@@ -108,9 +123,13 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
                 .baseTableName(tableName)
                 .tableRetentionDays(builder.getRetentionDays())
                 .tableGranularity(builder.getTableGranularity())
+                .partitionRange(builder.getPartitionRange())
+                .partitionColumn(builder.getPartitionColumn())
+                .partitionColumnType(builder.getPartitionColumnType())
                 .autoCreateTables(true)
                 .charset(builder.getCharset())
                 .collation(builder.getCollation())
+                .persistenceProvider(persistenceProvider)
                 .build();
         } else {
             // Create partitioned repository (single table with partitions)
@@ -463,6 +482,10 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         private String charset = "utf8mb4"; // Default charset
         private String collation = "utf8mb4_bin"; // Default collation
         private int idSize = 22; // Default ID size
+        private SqlGeneratorByEntityRegistry sqlRegistry;
+        private SqlStatementCache sqlCache;
+        private PersistenceProvider.DatabaseType databaseType = PersistenceProvider.DatabaseType.MYSQL;
+        private boolean pregenerateSql = false;
         
         public Builder<T> withSingleShard(ShardConfig config) {
             this.shardConfigs = Collections.singletonList(config);
@@ -670,6 +693,44 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             return this;
         }
 
+        /**
+         * Enable SQL pre-generation for better performance.
+         * SQL statements will be generated at startup for batch sizes: 10, 100, 1000, 5000.
+         */
+        public Builder<T> withSqlPregeneration() {
+            this.pregenerateSql = true;
+            return this;
+        }
+
+        /**
+         * Set the database type for SQL generation.
+         * Default is MySQL.
+         */
+        public Builder<T> withDatabaseType(PersistenceProvider.DatabaseType dbType) {
+            if (dbType == null) {
+                throw new IllegalArgumentException("Database type cannot be null");
+            }
+            this.databaseType = dbType;
+            return this;
+        }
+
+        /**
+         * Provide a custom SQL statement cache.
+         * If not provided and SQL pre-generation is enabled, a new cache will be created.
+         */
+        public Builder<T> withSqlCache(SqlStatementCache cache) {
+            this.sqlCache = cache;
+            return this;
+        }
+
+        /**
+         * Provide a custom SQL generator registry.
+         * This allows sharing the registry across multiple repositories.
+         */
+        public Builder<T> withSqlRegistry(SqlGeneratorByEntityRegistry registry) {
+            this.sqlRegistry = registry;
+            return this;
+        }
 
         public SplitVerseRepository<T> build() {
             // Validate required fields
@@ -720,6 +781,27 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             System.out.println("  Charset: " + charset + ", Collation: " + collation);
             System.out.println("  Shards: " + shardConfigs.size());
 
+            // Handle SQL pre-generation if enabled
+            if (pregenerateSql) {
+                if (sqlRegistry == null) {
+                    sqlRegistry = new SqlGeneratorByEntityRegistry();
+                }
+                if (sqlCache == null) {
+                    sqlCache = new SqlStatementCache();
+                }
+                sqlRegistry.setCache(sqlCache);
+
+                // Register entity with pre-generation
+                Map<Class<?>, List<String>> entityTableMap = new HashMap<>();
+                List<String> tableNames = determineTableNames();
+                entityTableMap.put(entityClass, tableNames);
+
+                System.out.println("[SplitVerse] Pre-generating SQL for " + entityClass.getSimpleName() +
+                    " with " + tableNames.size() + " table pattern(s)");
+                sqlRegistry.pregenerateForTables(databaseType, entityTableMap);
+                System.out.println("[SplitVerse] SQL pre-generation complete");
+            }
+
             return new SplitVerseRepository<>(this);
         }
         
@@ -731,5 +813,72 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         int getRetentionDays() { return retentionDays; }
         String getCharset() { return charset; }
         String getCollation() { return collation; }
+        PartitionRange getPartitionRange() { return partitionRange; }
+
+        /**
+         * Determine table names based on configuration.
+         * Used for SQL pre-generation.
+         */
+        private List<String> determineTableNames() {
+            List<String> tableNames = new ArrayList<>();
+            String baseTable = tableName != null ? tableName : entityClass.getSimpleName().toLowerCase() + "s";
+
+            if (repositoryMode == RepositoryMode.MULTI_TABLE) {
+                // For multi-table mode, generate patterns based on partition range
+                if (partitionRange != null) {
+                    switch (partitionRange) {
+                        case HOURLY:
+                        case DAILY:
+                        case MONTHLY:
+                            // Date-based patterns
+                            tableNames.add(baseTable + "_2025_09_19"); // Example daily pattern
+                            break;
+                        case VALUE_RANGE_10K:
+                            // Value range patterns
+                            for (int i = 0; i < 10; i++) {
+                                int start = i * 10000;
+                                int end = start + 9999;
+                                tableNames.add(baseTable + "_" + start + "_" + end);
+                            }
+                            break;
+                        case VALUE_RANGE_100K:
+                            // Generate first 5 ranges as examples
+                            for (int i = 0; i < 5; i++) {
+                                int start = i * 100000;
+                                int end = start + 99999;
+                                tableNames.add(baseTable + "_" + start + "_" + end);
+                            }
+                            break;
+                        case HASH_4:
+                            for (int i = 0; i < 4; i++) {
+                                tableNames.add(baseTable + "_hash_" + i);
+                            }
+                            break;
+                        case HASH_8:
+                            for (int i = 0; i < 8; i++) {
+                                tableNames.add(baseTable + "_hash_" + i);
+                            }
+                            break;
+                        case HASH_16:
+                            for (int i = 0; i < 16; i++) {
+                                tableNames.add(baseTable + "_hash_" + i);
+                            }
+                            break;
+                        default:
+                            tableNames.add(baseTable);
+                    }
+                } else {
+                    // Default to base table if no partition range specified
+                    tableNames.add(baseTable);
+                }
+            } else {
+                // For partitioned mode, single table
+                tableNames.add(baseTable);
+            }
+
+            return tableNames;
+        }
+        String getPartitionColumn() { return partitionColumn; }
+        PartitionColumnType getPartitionColumnType() { return partitionColumnType; }
     }
 }

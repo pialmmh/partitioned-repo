@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.CrudOperationsTest" time="2.52" tests="9" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.ApiValidationTest" time="0.019" tests="6" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -55,53 +55,10 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testInsertSingleEntity" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.114">
-    <system-out><![CDATA[[SplitVerse] Building repository with:
-  Entity: User
-  Table: users
-  Sharding Strategy: DUAL_KEY_HASH_RANGE
-  Repository Mode: MULTI_TABLE
-  Partition Column: created_at (LOCAL_DATE_TIME)
-  Partition Range: DAILY
-  Table Granularity: DAILY
-  Retention Days: 7
-  ID Size: 22 bytes
-  Charset: utf8mb4, Collation: utf8mb4_bin
-  Shards: 1
-[2025-09-19 21:35:07.997] INFO  [MultiTableRepo.users] Initializing daily tables for retention period: 2025-09-12 to 2025-09-26 (15 days)
-[2025-09-19 21:35:09.032] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250912
-[2025-09-19 21:35:09.055] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250913
-[2025-09-19 21:35:09.066] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250914
-[2025-09-19 21:35:09.076] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250915
-[2025-09-19 21:35:09.088] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250916
-[2025-09-19 21:35:09.097] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250917
-[2025-09-19 21:35:09.104] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250918
-[2025-09-19 21:35:09.112] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250919
-[2025-09-19 21:35:09.121] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250920
-[2025-09-19 21:35:09.129] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250921
-[2025-09-19 21:35:09.136] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250922
-[2025-09-19 21:35:09.143] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250923
-[2025-09-19 21:35:09.153] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250924
-[2025-09-19 21:35:09.163] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250925
-[2025-09-19 21:35:09.171] INFO  [MultiTableRepo.users] Ensured table exists: test_split_verse.users_20250926
-[2025-09-19 21:35:09.172] INFO  [MultiTableRepo.users] Completed table initialization
-[SplitVerse] Initialized shard: shard-0
-[SplitVerse] Initialized with 1 active shard(s)
-Inserted user with ID: 07c9f79cda374e41ae7ea5
-]]></system-out>
-    <system-err><![CDATA[Sep 19, 2025 9:35:07 PM com.telcobright.core.connection.ConnectionProvider <init>
-INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/test_split_verse?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
-]]></system-err>
-  </testcase>
-  <testcase name="testFindById" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.119"/>
-  <testcase name="testInsertMultipleEntities" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.044">
-    <system-out><![CDATA[Inserted 3 users
-]]></system-out>
-  </testcase>
-  <testcase name="testFindAllByDateRange" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.053"/>
-  <testcase name="testUpdateById" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.156"/>
-  <testcase name="testFindBatchByIdGreaterThan" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.17"/>
-  <testcase name="testFindOneByIdGreaterThan" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.132"/>
-  <testcase name="testFindAllBeforeDate" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.077"/>
-  <testcase name="testFindAllAfterDate" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.072"/>
+  <testcase name="testRequiredFieldValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
+  <testcase name="testDataSourceConfigValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.003"/>
+  <testcase name="testDualKeyStrategyValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
+  <testcase name="testIdSizeValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.001"/>
+  <testcase name="testTableNameValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
+  <testcase name="testRetentionDaysValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
 </testsuite>

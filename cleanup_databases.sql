@@ -1,0 +1,48 @@
+-- Clean up all test databases
+DROP DATABASE IF EXISTS daily_tables_test;
+DROP DATABASE IF EXISTS multi_table_mode_test;
+DROP DATABASE IF EXISTS partitioned_mode_test;
+DROP DATABASE IF EXISTS realworld_test;
+DROP DATABASE IF EXISTS shard1_db;
+DROP DATABASE IF EXISTS shard2_db;
+DROP DATABASE IF EXISTS shard3_db;
+DROP DATABASE IF EXISTS shard_nested_test_0;
+DROP DATABASE IF EXISTS shard_nested_test_1;
+DROP DATABASE IF EXISTS shard_nested_test_2;
+DROP DATABASE IF EXISTS shardingsphere_test;
+DROP DATABASE IF EXISTS split_verse_comp_test;
+DROP DATABASE IF EXISTS split_verse_perf_test;
+DROP DATABASE IF EXISTS split_verse_test;
+DROP DATABASE IF EXISTS splitverse_operations_test;
+DROP DATABASE IF EXISTS splitverse_test;
+DROP DATABASE IF EXISTS statemachine_test;
+DROP DATABASE IF EXISTS stellar_test;
+DROP DATABASE IF EXISTS telco_test;
+DROP DATABASE IF EXISTS test;
+DROP DATABASE IF EXISTS test_corner_case;
+DROP DATABASE IF EXISTS test_db;
+DROP DATABASE IF EXISTS test_debug;
+DROP DATABASE IF EXISTS test_split_verse;
+DROP DATABASE IF EXISTS test_splitverse_pregeneration;
+DROP DATABASE IF EXISTS testdb;
+
+-- Create required test databases fresh
+CREATE DATABASE IF NOT EXISTS test_db;
+CREATE DATABASE IF NOT EXISTS shard1_db;
+CREATE DATABASE IF NOT EXISTS shard2_db;
+CREATE DATABASE IF NOT EXISTS shard3_db;
+CREATE DATABASE IF NOT EXISTS test_split_verse;
+CREATE DATABASE IF NOT EXISTS split_verse_test;
+CREATE DATABASE IF NOT EXISTS split_verse_comp_test;
+CREATE DATABASE IF NOT EXISTS split_verse_perf_test;
+CREATE DATABASE IF NOT EXISTS splitverse_test;
+CREATE DATABASE IF NOT EXISTS partitioned_mode_test;
+CREATE DATABASE IF NOT EXISTS multi_table_mode_test;
+CREATE DATABASE IF NOT EXISTS shard_nested_test_0;
+CREATE DATABASE IF NOT EXISTS shard_nested_test_1;
+CREATE DATABASE IF NOT EXISTS shard_nested_test_2;
+CREATE DATABASE IF NOT EXISTS testdb;
+CREATE DATABASE IF NOT EXISTS test_shard_1;
+CREATE DATABASE IF NOT EXISTS test_shard_2;
+CREATE DATABASE IF NOT EXISTS test_shard_3;
+CREATE DATABASE IF NOT EXISTS partition_range_test;

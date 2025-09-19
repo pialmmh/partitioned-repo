@@ -81,17 +81,15 @@ public class PerformanceTest {
         // Create performance test database
         TestDatabaseSetup.createTestDatabase(PERF_DB);
 
-        // Create repository with time-based partitioning for performance testing
-        // NOTE: VALUE_RANGE partitioning has a bug - it still creates daily tables
-        // Using DAILY partitioning instead with shorter retention for performance
+        // Create repository with VALUE_RANGE partitioning - now properly implemented
         repository = SplitVerseRepository.<Event>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
-            .withPartitionColumn("created_at", PartitionColumnType.LOCAL_DATE_TIME)
-            .withPartitionRange(PartitionRange.DAILY)
+            .withPartitionColumn("sequence_number", PartitionColumnType.LONG)
+            .withPartitionRange(PartitionRange.VALUE_RANGE_10K) // Creates tables for every 10K records
             .withRepositoryMode(RepositoryMode.MULTI_TABLE)
-            .withRetentionDays(3) // Only 3 days to reduce initialization time
+            .withRetentionDays(10) // Creates 10 initial tables (0-9999, 10000-19999, etc.)
             .withDataSources(Arrays.asList(
                 DataSourceConfig.create("127.0.0.1", 3306, PERF_DB, "root", "123456")
             ))

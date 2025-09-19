@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.023" tests="7" errors="0" skipped="7" failures="0">
+  <properties/>
+  <testcase name="testSingleInsertUsingJPA" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+  <testcase name="testDerivedQueryMethods" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+  <testcase name="testCustomJPQLQueries" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+  <testcase name="testMySQLBatchInsert" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+  <testcase name="testPerformanceComparison" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+  <testcase name="testMixedOperations" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+  <testcase name="testLargeBatchInsert" classname="com.telcobright.splitverse.DbUtilIntegrationTest" time="0.0">
+    <skipped message="Temporarily disabled due to Spring context loading issues"/>
+  </testcase>
+</testsuite>
