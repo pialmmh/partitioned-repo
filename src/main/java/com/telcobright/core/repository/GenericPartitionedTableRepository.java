@@ -3,6 +3,7 @@ import com.telcobright.api.ShardingRepository;
 
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
 import com.telcobright.core.monitoring.*;
 import com.telcobright.core.pagination.Page;
 import com.telcobright.core.pagination.PageRequest;
@@ -383,31 +384,47 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
     public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
         String fullTableName = database + "." + tableName;
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
-        
-        // Add date range to the WHERE clause for partition pruning
-        String sql = String.format(metadata.getUpdateByIdSQL() + " AND %s >= ? AND %s <= ?",
-                                 fullTableName, shardingColumn, shardingColumn);
-        
-        try (Connection conn = connectionProvider.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            metadata.setUpdateParameters(stmt, entity, id);
-            
-            // Add date range parameters
-            int paramCount = stmt.getParameterMetaData().getParameterCount();
-            // TODO: Handle generic partition value types
-            if (startValue instanceof LocalDateTime) {
-                stmt.setTimestamp(paramCount - 1, Timestamp.valueOf((LocalDateTime) startValue));
-                stmt.setTimestamp(paramCount, Timestamp.valueOf((LocalDateTime) endValue));
-            } else {
-                stmt.setObject(paramCount - 1, startValue);
-                stmt.setObject(paramCount, endValue);
+        String idColumn = metadata.getIdField().getColumnName();
+
+        // Build UPDATE SQL with date range check
+        StringBuilder sqlBuilder = new StringBuilder("UPDATE ").append(fullTableName).append(" SET ");
+        List<FieldMetadata> fields = metadata.getFields();
+        boolean first = true;
+        for (FieldMetadata field : fields) {
+            if (!field.isId()) {
+                if (!first) sqlBuilder.append(", ");
+                sqlBuilder.append(field.getColumnName()).append(" = ?");
+                first = false;
             }
-            
+        }
+        sqlBuilder.append(" WHERE ").append(idColumn).append(" = ?");
+        sqlBuilder.append(" AND ").append(shardingColumn).append(" BETWEEN ? AND ?");
+
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sqlBuilder.toString())) {
+
+            // Set field values
+            int paramIndex = 1;
+            for (FieldMetadata field : fields) {
+                if (!field.isId()) {
+                    Object value = field.getValue(entity);
+                    stmt.setObject(paramIndex++, value);
+                }
+            }
+
+            // Set WHERE clause parameters
+            stmt.setString(paramIndex++, id);
+            if (startValue instanceof LocalDateTime) {
+                stmt.setTimestamp(paramIndex++, Timestamp.valueOf((LocalDateTime) startValue));
+                stmt.setTimestamp(paramIndex, Timestamp.valueOf((LocalDateTime) endValue));
+            } else {
+                stmt.setObject(paramIndex++, startValue);
+                stmt.setObject(paramIndex, endValue);
+            }
+
             int rowsUpdated = stmt.executeUpdate();
             if (rowsUpdated == 0) {
-                throw new SQLException("Entity with ID " + id + " not found in date range " + 
-                                     startValue + " to " + endValue);
+                throw new SQLException("No rows updated for ID: " + id);
             }
         }
     }

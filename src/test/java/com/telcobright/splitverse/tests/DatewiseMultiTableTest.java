@@ -324,14 +324,14 @@ public class DatewiseMultiTableTest {
 
         // Insert many events across multiple days
         for (int day = 0; day < days; day++) {
-            LocalDateTime eventTime = now.minusDays(day);
+            LocalDateTime dayStart = now.minusDays(day).toLocalDate().atStartOfDay();
             List<EventEntity> batchEvents = new ArrayList<>();
 
             for (int i = 0; i < eventsPerDay; i++) {
                 batchEvents.add(new EventEntity(
                     "Event_" + i,
                     "PERF_TEST",
-                    eventTime.plusMinutes(i),
+                    dayStart.plusHours(i % 24),  // Spread events throughout the day
                     "{\"index\":" + i + "}"
                 ));
             }
@@ -343,14 +343,29 @@ public class DatewiseMultiTableTest {
         long insertTime = System.currentTimeMillis() - startTime;
         System.out.printf("  Insert time: %d ms for %d events\n", insertTime, eventsPerDay * days);
 
-        // Query performance test
+        // Query performance test - query the exact date range we inserted
+        LocalDateTime queryStart = now.minusDays(days).toLocalDate().atStartOfDay();
+        LocalDateTime queryEnd = now.toLocalDate().plusDays(1).atStartOfDay();
+
+        System.out.printf("  Querying from %s to %s\n", queryStart, queryEnd);
         startTime = System.currentTimeMillis();
         List<EventEntity> allEvents = repository.findAllByPartitionRange(
-            now.minusDays(days), now
+            queryStart, queryEnd
         );
         long queryTime = System.currentTimeMillis() - startTime;
 
         System.out.printf("  Query time: %d ms for %d events\n", queryTime, allEvents.size());
+
+        // If no events found, try querying each day separately to debug
+        if (allEvents.isEmpty()) {
+            System.out.println("  Debug: Trying to query each day separately...");
+            for (int day = 0; day < days; day++) {
+                LocalDateTime dayStart = now.minusDays(day).toLocalDate().atStartOfDay();
+                LocalDateTime dayEnd = dayStart.plusDays(1);
+                List<EventEntity> dayEvents = repository.findAllByPartitionRange(dayStart, dayEnd);
+                System.out.printf("    Day %d (%s): %d events\n", day + 1, dayStart.toLocalDate(), dayEvents.size());
+            }
+        }
         assertTrue(allEvents.size() >= eventsPerDay * days, "Should retrieve all inserted events");
 
         // Performance assertions

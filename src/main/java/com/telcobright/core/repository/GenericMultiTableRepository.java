@@ -3,6 +3,7 @@ import com.telcobright.api.ShardingRepository;
 
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
 import com.telcobright.core.monitoring.*;
 import com.telcobright.core.pagination.Page;
 import com.telcobright.core.pagination.PageRequest;
@@ -219,24 +220,48 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     @Override
     public List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
-        
-        String query = QueryDSL.select()
-            .column("*")
-            .from(tablePrefix)  // QueryDSL expects just the prefix, PartitionedQueryBuilder handles full table names
-            // TODO: Handle generic partition value types
-            .where(w -> {
+        List<T> results = new ArrayList<>();
+
+        // Get relevant tables for the date range
+        List<String> relevantTables = new ArrayList<>();
+        if (startValue instanceof LocalDateTime && endValue instanceof LocalDateTime) {
+            relevantTables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+        } else {
+            // For non-date types, query all tables
+            relevantTables = getExistingTables();
+        }
+
+        // Query each table
+        for (String tableName : relevantTables) {
+            String sql = String.format("SELECT * FROM %s WHERE %s BETWEEN ? AND ?",
+                tableName, shardingColumn);
+
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                // Set parameters based on type
                 if (startValue instanceof LocalDateTime) {
-                    return w.dateRange(shardingColumn, (LocalDateTime) startValue, (LocalDateTime) endValue);
+                    stmt.setTimestamp(1, java.sql.Timestamp.valueOf((LocalDateTime) startValue));
+                    stmt.setTimestamp(2, java.sql.Timestamp.valueOf((LocalDateTime) endValue));
                 } else {
-                    // For non-date types, we need to handle differently
-                    // TODO: Add generic range support to QueryDSL
-                    return w;
+                    stmt.setObject(1, startValue);
+                    stmt.setObject(2, endValue);
                 }
-            })
-            .buildPartitioned(database, startValue instanceof LocalDateTime ? (LocalDateTime) startValue : LocalDateTime.now(),
-                             endValue instanceof LocalDateTime ? (LocalDateTime) endValue : LocalDateTime.now());
-        
-        return executeQuery(query, null, rs -> metadata.mapResultSet(rs));
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        results.add(metadata.mapResultSet(rs));
+                    }
+                }
+            } catch (SQLException e) {
+                // Table might not exist, continue to next
+                if (!e.getMessage().contains("doesn't exist")) {
+                    throw e;
+                }
+            }
+        }
+
+        return results;
     }
     
     /**
@@ -483,35 +508,54 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     @Override
     public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
-        
+        String idColumn = metadata.getIdField().getColumnName();
+
         // Get tables that could contain data in this date range
-        // TODO: Handle generic partition value types for table range
         List<String> tables = new ArrayList<>();
         if (startValue instanceof LocalDateTime && endValue instanceof LocalDateTime) {
             tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+        } else {
+            tables = getExistingTables();
         }
-        
+
         boolean updated = false;
         for (String table : tables) {
-            // Try to update in each relevant table
-            String sql = String.format(metadata.getUpdateByIdSQL() + " AND %s >= ? AND %s <= ?", 
-                                     table, shardingColumn, shardingColumn);
-            
-            try (Connection conn = connectionProvider.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-                
-                metadata.setUpdateParameters(stmt, entity, id);
-                // Add date range parameters
-                int paramCount = stmt.getParameterMetaData().getParameterCount();
-                // TODO: Handle generic partition value types
-                if (startValue instanceof LocalDateTime) {
-                    stmt.setTimestamp(paramCount - 1, Timestamp.valueOf((LocalDateTime) startValue));
-                    stmt.setTimestamp(paramCount, Timestamp.valueOf((LocalDateTime) endValue));
-                } else {
-                    stmt.setObject(paramCount - 1, startValue);
-                    stmt.setObject(paramCount, endValue);
+            // Build UPDATE SQL with date range check
+            StringBuilder sqlBuilder = new StringBuilder("UPDATE ").append(table).append(" SET ");
+            List<FieldMetadata> fields = metadata.getFields();
+            boolean first = true;
+            for (FieldMetadata field : fields) {
+                if (!field.isId()) {
+                    if (!first) sqlBuilder.append(", ");
+                    sqlBuilder.append(field.getColumnName()).append(" = ?");
+                    first = false;
                 }
-                
+            }
+            sqlBuilder.append(" WHERE ").append(idColumn).append(" = ?");
+            sqlBuilder.append(" AND ").append(shardingColumn).append(" BETWEEN ? AND ?");
+
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sqlBuilder.toString())) {
+
+                // Set field values
+                int paramIndex = 1;
+                for (FieldMetadata field : fields) {
+                    if (!field.isId()) {
+                        Object value = field.getValue(entity);
+                        stmt.setObject(paramIndex++, value);
+                    }
+                }
+
+                // Set WHERE clause parameters
+                stmt.setString(paramIndex++, id);
+                if (startValue instanceof LocalDateTime) {
+                    stmt.setTimestamp(paramIndex++, Timestamp.valueOf((LocalDateTime) startValue));
+                    stmt.setTimestamp(paramIndex, Timestamp.valueOf((LocalDateTime) endValue));
+                } else {
+                    stmt.setObject(paramIndex++, startValue);
+                    stmt.setObject(paramIndex, endValue);
+                }
+
                 int rowsUpdated = stmt.executeUpdate();
                 if (rowsUpdated > 0) {
                     updated = true;
@@ -520,14 +564,13 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
             } catch (SQLException e) {
                 // Table might not exist, continue to next
                 if (!e.getMessage().contains("doesn't exist")) {
-                    throw e;
+                    logger.warn("Error updating in table " + table + ": " + e.getMessage());
                 }
             }
         }
-        
+
         if (!updated) {
-            throw new SQLException("Entity with ID " + id + " not found in date range " + 
-                                 startValue + " to " + endValue);
+            throw new SQLException("No rows updated for ID: " + id);
         }
     }
     
@@ -631,13 +674,15 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     private List<String> getTablesForDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         List<String> tables = new ArrayList<>();
         LocalDateTime current = startDate.toLocalDate().atStartOfDay();
-        
-        while (!current.isAfter(endDate)) {
+        LocalDateTime endDay = endDate.toLocalDate().atStartOfDay();
+
+        // Include all days from start to end (inclusive)
+        while (!current.isAfter(endDay)) {
             String tableName = getTableName(current);
             tables.add(tableName);
             current = current.plusDays(1);
         }
-        
+
         return tables;
     }
     
@@ -1150,19 +1195,23 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     @Override
     public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
         String idColumn = metadata.getIdField().getColumnName();
-        // TODO: Handle generic partition value types for table range
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+
+        // Get tables that could contain data in this date range
         List<String> tables = new ArrayList<>();
         if (startValue instanceof LocalDateTime && endValue instanceof LocalDateTime) {
             tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+        } else {
+            tables = getExistingTables();
         }
 
         for (String table : tables) {
             String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ? AND " +
-                         "created_at BETWEEN ? AND ?";
+                         shardingColumn + " BETWEEN ? AND ?";
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, id);
-                // TODO: Handle generic partition value types
+
                 if (startValue instanceof LocalDateTime) {
                     stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) startValue));
                     stmt.setTimestamp(3, Timestamp.valueOf((LocalDateTime) endValue));

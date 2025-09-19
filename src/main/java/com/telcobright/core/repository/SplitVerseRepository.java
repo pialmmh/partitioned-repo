@@ -334,28 +334,26 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     
     @Override
     public List<T> findBatchByIdGreaterThan(String id, int batchSize) throws SQLException {
-        // For single shard, direct delegation
+        // For single shard, direct delegation with optimization
         if (shardRepositories.size() == 1) {
+            // Single shard: can use direct LIMIT/OFFSET in SQL for efficiency
             return shardRepositories.values().iterator().next()
                 .findBatchByIdGreaterThan(id, batchSize);
         }
-        
-        // For multiple shards, need to merge results
-        List<T> results = new ArrayList<>();
-        for (ShardingRepository<T, P> shard : shardRepositories.values()) {
-            if (results.size() >= batchSize) {
-                break;
-            }
-            int remaining = batchSize - results.size();
-            List<T> shardResults = shard.findBatchByIdGreaterThan(id, remaining);
-            results.addAll(shardResults);
-        }
-        
-        // Sort and limit to batchSize
-        return results.stream()
-            .sorted((a, b) -> compareIds(a.getId(), b.getId()))
-            .limit(batchSize)
-            .collect(Collectors.toList());
+
+        // For multiple shards, proper cross-shard pagination is complex
+        throw new UnsupportedOperationException(
+            "Cross-shard pagination is not yet implemented for multiple shards. " +
+            "Current configuration has " + shardRepositories.size() + " shards. " +
+            "Please use a single shard configuration or implement cursor-based pagination."
+        );
+
+        /* Future implementation for multi-shard pagination:
+         * 1. Query each shard with: SELECT * WHERE id > ? ORDER BY id LIMIT (offset + batchSize)
+         * 2. Merge all results maintaining sort order
+         * 3. Apply pagination window to get the requested batch
+         * 4. Consider using CrossShardPaginator class for this
+         */
     }
     
     @Override
