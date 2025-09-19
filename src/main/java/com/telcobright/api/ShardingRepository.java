@@ -10,15 +10,17 @@ import java.util.List;
 
 /**
  * Common interface for sharding-aware repositories
- * 
+ *
  * Enforces that all entities used with this repository must implement ShardingEntity,
- * which guarantees the presence of required getId/setId and getCreatedAt/setCreatedAt methods.
- * 
+ * which guarantees the presence of required getId/setId and partition column accessors.
+ *
  * All IDs are String type (externally generated - NO AUTO_INCREMENT).
- * 
+ * Partition columns can be any Comparable type (LocalDateTime, Long, String, etc.)
+ *
  * @param <T> Entity type that must implement ShardingEntity
+ * @param <P> Partition column value type (must be Comparable)
  */
-public interface ShardingRepository<T extends ShardingEntity> {
+public interface ShardingRepository<T extends ShardingEntity<P>, P extends Comparable<P>> {
     
     /**
      * Insert a single entity
@@ -31,9 +33,26 @@ public interface ShardingRepository<T extends ShardingEntity> {
     void insertMultiple(List<T> entities) throws SQLException;
     
     /**
-     * Find all entities within a date range
+     * Find all entities within a partition value range
      */
-    List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException;
+
+    /**
+     * Find all entities within a date range (backward compatibility)
+     * @deprecated Use findAllByPartitionRange for generic support
+     */
+    @Deprecated
+    default List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            return findAllByPartitionRange(start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
     
     /**
      * Find entity by primary key
@@ -41,24 +60,88 @@ public interface ShardingRepository<T extends ShardingEntity> {
     T findById(String id) throws SQLException;
     
     /**
-     * Find first entity within a date range
+     * Find first entity within a partition value range
      */
-    T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
+
+    /**
+     * Find first entity within a date range (backward compatibility)
+     * @deprecated Use findByIdAndPartitionRange for generic support
+     */
+    @Deprecated
+    default T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            return findByIdAndPartitionRange(null, start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
     
     /**
-     * Find all entities with specific IDs within a date range
+     * Find all entities with specific IDs within a partition value range
      */
-    List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException;
+
+    /**
+     * Find all entities with specific IDs within a date range (backward compatibility)
+     * @deprecated Use findAllByIdsAndPartitionRange for generic support
+     */
+    @Deprecated
+    default List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            return findAllByIdsAndPartitionRange(ids, start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
     
     /**
-     * Find all entities before a specific date
+     * Find all entities before a specific partition value
      */
-    List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException;
+    List<T> findAllBeforePartitionValue(P beforeValue) throws SQLException;
+
+    /**
+     * Find all entities before a specific date (backward compatibility)
+     * @deprecated Use findAllBeforePartitionValue for generic support
+     */
+    @Deprecated
+    default List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P before = (P) beforeDate;
+            return findAllBeforePartitionValue(before);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
     
     /**
-     * Find all entities after a specific date
+     * Find all entities after a specific partition value
      */
-    List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException;
+    List<T> findAllAfterPartitionValue(P afterValue) throws SQLException;
+
+    /**
+     * Find all entities after a specific date (backward compatibility)
+     * @deprecated Use findAllAfterPartitionValue for generic support
+     */
+    @Deprecated
+    default List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P after = (P) afterDate;
+            return findAllAfterPartitionValue(after);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
     
     /**
      * Update entity by primary key
@@ -66,9 +149,26 @@ public interface ShardingRepository<T extends ShardingEntity> {
     void updateById(String id, T entity) throws SQLException;
     
     /**
-     * Update entity by primary key within a specific date range
+     * Update entity by primary key within a specific partition value range
      */
-    void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException;
+
+    /**
+     * Update entity by primary key within a specific date range (backward compatibility)
+     * @deprecated Use updateByIdAndPartitionRange for generic support
+     */
+    @Deprecated
+    default void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            updateByIdAndPartitionRange(id, entity, start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
     
     /**
      * Find one entity with ID greater than the specified ID.
@@ -99,14 +199,48 @@ public interface ShardingRepository<T extends ShardingEntity> {
     void deleteById(String id) throws SQLException;
 
     /**
-     * Delete entity by primary key within a specific date range
+     * Delete entity by primary key within a specific partition value range
      */
-    void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Delete all entities within a date range
+     * Delete entity by primary key within a specific date range (backward compatibility)
+     * @deprecated Use deleteByIdAndPartitionRange for generic support
      */
-    void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException;
+    @Deprecated
+    default void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            deleteByIdAndPartitionRange(id, start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
+
+    /**
+     * Delete all entities within a partition value range
+     */
+    void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException;
+
+    /**
+     * Delete all entities within a date range (backward compatibility)
+     * @deprecated Use deleteAllByPartitionRange for generic support
+     */
+    @Deprecated
+    default void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            deleteAllByPartitionRange(start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
 
     /**
      * Shutdown the repository and release resources

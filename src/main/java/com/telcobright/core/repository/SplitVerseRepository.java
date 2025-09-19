@@ -27,15 +27,15 @@ import java.util.stream.Collectors;
 
 /**
  * Split-Verse Repository: Infinite horizontal sharding layer.
- * 
+ *
  * Phase 1 Implementation: Single shard wrapper with hash routing ready for expansion.
- * 
+ *
  * @param <T> Entity type implementing ShardingEntity
- * @param <K> Key type (String recommended for flexibility)
+ * @param <P> Partition column value type (must be Comparable)
  */
-public class SplitVerseRepository<T extends ShardingEntity> implements ShardingRepository<T> {
+public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Comparable<P>> implements ShardingRepository<T, P> {
     
-    private final Map<String, ShardingRepository<T>> shardRepositories;
+    private final Map<String, ShardingRepository<T, P>> shardRepositories;
     private final HashRouter router;
     private final List<ShardConfig> shardConfigs;
     private final Class<T> entityClass;
@@ -46,7 +46,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     private final SqlGeneratorByEntityRegistry sqlRegistry;
     private final SqlStatementCache sqlCache;
     
-    private SplitVerseRepository(Builder<T> builder) {
+    private SplitVerseRepository(Builder<T, P> builder) {
         this.entityClass = builder.entityClass;
         this.shardConfigs = builder.shardConfigs;
         this.partitionType = builder.getPartitionType();
@@ -87,7 +87,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
             " active shard(s)");
     }
     
-    private ShardingRepository<T> createShardRepository(ShardConfig config, Builder<T> builder) {
+    private ShardingRepository<T, P> createShardRepository(ShardConfig config, Builder<T, P> builder) {
         // Pass SQL cache to repositories if available
         PersistenceProvider persistenceProvider = null;
         if (sqlCache != null) {
@@ -114,7 +114,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         // Choose repository type based on mode
         if (builder.getRepositoryMode() == RepositoryMode.MULTI_TABLE) {
             // Create multi-table repository with proper partition support
-            return GenericMultiTableRepository.<T>builder(entityClass)
+            return GenericMultiTableRepository.<T, P>builder(entityClass)
                 .host(config.getHost())
                 .port(config.getPort())
                 .database(config.getDatabase())
@@ -133,7 +133,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
                 .build();
         } else {
             // Create partitioned repository (single table with partitions)
-            return GenericPartitionedTableRepository.<T>builder(entityClass)
+            return GenericPartitionedTableRepository.<T, P>builder(entityClass)
                 .host(config.getHost())
                 .port(config.getPort())
                 .database(config.getDatabase())
@@ -149,7 +149,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         }
     }
     
-    private ShardingRepository<T> getShardForKey(String key) {
+    private ShardingRepository<T, P> getShardForKey(String key) {
         if (shardRepositories.size() == 1) {
             // Optimization for single shard
             return shardRepositories.values().iterator().next();
@@ -212,19 +212,19 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     @Override
-    public List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException {
         // Fan-out query to all shards
         if (shardRepositories.size() == 1) {
             // Optimization for single shard
             return shardRepositories.values().iterator().next()
-                .findAllByDateRange(startDate, endDate);
+                .findAllByPartitionRange(startValue, endValue);
         }
         
         // Parallel query execution for multiple shards
         List<CompletableFuture<List<T>>> futures = shardRepositories.values().stream()
             .map(shard -> CompletableFuture.supplyAsync(() -> {
                 try {
-                    return shard.findAllByDateRange(startDate, endDate);
+                    return shard.findAllByPartitionRange(startValue, endValue);
                 } catch (SQLException e) {
                     throw new CompletionException(e);
                 }
@@ -244,10 +244,10 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     @Override
-    public T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
         // Fan-out to all shards, return first found
         for (ShardingRepository<T> shard : shardRepositories.values()) {
-            T result = shard.findByIdAndDateRange(startDate, endDate);
+            T result = shard.findByIdAndPartitionRange(id, startValue, endValue);
             if (result != null) {
                 return result;
             }
@@ -256,8 +256,8 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     @Override
-    public List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, 
-                                            LocalDateTime endDate) throws SQLException {
+    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue,
+                                                  P endValue) throws SQLException {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
@@ -273,22 +273,22 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         List<T> results = new ArrayList<>();
         for (Map.Entry<String, List<String>> entry : idsByShard.entrySet()) {
             ShardingRepository<T> shard = shardRepositories.get(entry.getKey());
-            results.addAll(shard.findAllByIdsAndDateRange(entry.getValue(), startDate, endDate));
+            results.addAll(shard.findAllByIdsAndPartitionRange(entry.getValue(), startValue, endValue));
         }
         
         return results;
     }
     
     @Override
-    public List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
+    public List<T> findAllBeforePartitionValue(P beforeValue) throws SQLException {
         // Fan-out query to all shards
-        return fanOutQuery(shard -> shard.findAllBeforeDate(beforeDate));
+        return fanOutQuery(shard -> shard.findAllBeforePartitionValue(beforeValue));
     }
     
     @Override
-    public List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
+    public List<T> findAllAfterPartitionValue(P afterValue) throws SQLException {
         // Fan-out query to all shards
-        return fanOutQuery(shard -> shard.findAllAfterDate(afterDate));
+        return fanOutQuery(shard -> shard.findAllAfterPartitionValue(afterValue));
     }
     
     @Override
@@ -302,14 +302,14 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     @Override
-    public void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, 
-                                       LocalDateTime endDate) throws SQLException {
+    public void updateByIdAndPartitionRange(String id, T entity, P startValue,
+                                            P endValue) throws SQLException {
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
         
         ShardingRepository<T> targetShard = getShardForKey(id);
-        targetShard.updateByIdAndDateRange(id, entity, startDate, endDate);
+        targetShard.updateByIdAndPartitionRange(id, entity, startValue, endValue);
     }
     
     @Override
@@ -369,20 +369,20 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
 
     @Override
-    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
 
         ShardingRepository<T> targetShard = getShardForKey(id);
-        targetShard.deleteByIdAndDateRange(id, startDate, endDate);
+        targetShard.deleteByIdAndPartitionRange(id, startValue, endValue);
     }
 
     @Override
-    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
         // Fan-out delete to all shards
         for (ShardingRepository<T> shard : shardRepositories.values()) {
-            shard.deleteAllByDateRange(startDate, endDate);
+            shard.deleteAllByPartitionRange(startValue, endValue);
         }
     }
 
@@ -417,7 +417,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     }
     
     // Helper method for fan-out queries
-    private List<T> fanOutQuery(ShardQueryFunction<T> queryFunction) throws SQLException {
+    private List<T> fanOutQuery(ShardQueryFunction<T, P> queryFunction) throws SQLException {
         if (shardRepositories.size() == 1) {
             return queryFunction.query(shardRepositories.values().iterator().next());
         }
@@ -452,16 +452,16 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
     
     // Functional interface for shard queries
     @FunctionalInterface
-    private interface ShardQueryFunction<T extends ShardingEntity> {
-        List<T> query(ShardingRepository<T> shard) throws SQLException;
+    private interface ShardQueryFunction<T extends ShardingEntity<P>, P extends Comparable<P>> {
+        List<T> query(ShardingRepository<T, P> shard) throws SQLException;
     }
     
     // Builder
-    public static <T extends ShardingEntity> Builder<T> builder() {
-        return new Builder<>();
+    public static <T extends ShardingEntity<P>, P extends Comparable<P>> Builder<T, P> builder() {
+        return new Builder<T, P>();
     }
     
-    public static class Builder<T extends ShardingEntity> {
+    public static class Builder<T extends ShardingEntity<P>, P extends Comparable<P>> {
         private List<ShardConfig> shardConfigs = new ArrayList<>();
         private Class<T> entityClass;
         private String tableName;
@@ -487,17 +487,17 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         private PersistenceProvider.DatabaseType databaseType = PersistenceProvider.DatabaseType.MYSQL;
         private boolean pregenerateSql = false;
         
-        public Builder<T> withSingleShard(ShardConfig config) {
+        public Builder<T, P> withSingleShard(ShardConfig config) {
             this.shardConfigs = Collections.singletonList(config);
             return this;
         }
         
-        public Builder<T> withShardConfigs(List<ShardConfig> configs) {
+        public Builder<T, P> withShardConfigs(List<ShardConfig> configs) {
             this.shardConfigs = configs;
             return this;
         }
         
-        public Builder<T> withEntityClass(Class<T> entityClass) {
+        public Builder<T, P> withEntityClass(Class<T> entityClass) {
             this.entityClass = entityClass;
             return this;
         }
@@ -510,7 +510,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * @return Builder instance
          * @throws UnsupportedOperationException if partition type is not implemented
          */
-        public Builder<T> withPartitionType(PartitionType partitionType) {
+        public Builder<T, P> withPartitionType(PartitionType partitionType) {
             if (partitionType == null) {
                 throw new IllegalArgumentException("Partition type cannot be null");
             }
@@ -527,7 +527,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * @param columnName Name of the column to partition by
          * @return Builder instance
          */
-        public Builder<T> withPartitionKeyColumn(String columnName) {
+        public Builder<T, P> withPartitionKeyColumn(String columnName) {
             if (columnName == null || columnName.trim().isEmpty()) {
                 throw new IllegalArgumentException("Partition key column cannot be null or empty");
             }
@@ -539,7 +539,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Set the repository mode (PARTITIONED or MULTI_TABLE).
          * Default is PARTITIONED.
          */
-        public Builder<T> withRepositoryMode(RepositoryMode mode) {
+        public Builder<T, P> withRepositoryMode(RepositoryMode mode) {
             if (mode == null) {
                 throw new IllegalArgumentException("Repository mode cannot be null");
             }
@@ -551,7 +551,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Set the table granularity for multi-table mode.
          * Only applies when repository mode is MULTI_TABLE.
          */
-        public Builder<T> withTableGranularity(GenericMultiTableRepository.TableGranularity granularity) {
+        public Builder<T, P> withTableGranularity(GenericMultiTableRepository.TableGranularity granularity) {
             if (granularity == null) {
                 throw new IllegalArgumentException("Table granularity cannot be null");
             }
@@ -563,7 +563,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Set the retention period in days.
          * Applies to both partitioned and multi-table modes.
          */
-        public Builder<T> withRetentionDays(int days) {
+        public Builder<T, P> withRetentionDays(int days) {
             if (days < 1) {
                 throw new IllegalArgumentException("Retention days must be at least 1");
             }
@@ -574,7 +574,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Set the character set for tables.
          */
-        public Builder<T> withCharset(String charset) {
+        public Builder<T, P> withCharset(String charset) {
             if (charset != null && !charset.trim().isEmpty()) {
                 this.charset = charset;
             }
@@ -584,7 +584,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Set the collation for tables.
          */
-        public Builder<T> withCollation(String collation) {
+        public Builder<T, P> withCollation(String collation) {
             if (collation != null && !collation.trim().isEmpty()) {
                 this.collation = collation;
             }
@@ -596,7 +596,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Set the table name for the entities.
          */
-        public Builder<T> withTableName(String tableName) {
+        public Builder<T, P> withTableName(String tableName) {
             if (tableName == null || tableName.trim().isEmpty()) {
                 throw new IllegalArgumentException("Table name cannot be null or empty");
             }
@@ -607,7 +607,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Set the sharding strategy.
          */
-        public Builder<T> withShardingStrategy(ShardingStrategy strategy) {
+        public Builder<T, P> withShardingStrategy(ShardingStrategy strategy) {
             if (strategy == null) {
                 throw new IllegalArgumentException("Sharding strategy cannot be null");
             }
@@ -619,7 +619,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Set the partition column name and type.
          * Required for DUAL_KEY strategies.
          */
-        public Builder<T> withPartitionColumn(String columnName, PartitionColumnType columnType) {
+        public Builder<T, P> withPartitionColumn(String columnName, PartitionColumnType columnType) {
             if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {
                 if (columnName == null || columnName.trim().isEmpty()) {
                     throw new IllegalArgumentException("Partition column name required for DUAL_KEY strategies");
@@ -639,7 +639,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Set the partition range.
          */
-        public Builder<T> withPartitionRange(PartitionRange range) {
+        public Builder<T, P> withPartitionRange(PartitionRange range) {
             if (range == null) {
                 throw new IllegalArgumentException("Partition range cannot be null");
             }
@@ -659,7 +659,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Set the ID field size (8-22 bytes).
          */
-        public Builder<T> withIdSize(int size) {
+        public Builder<T, P> withIdSize(int size) {
             if (size < 8 || size > 22) {
                 throw new IllegalArgumentException("ID size must be between 8 and 22 bytes");
             }
@@ -670,7 +670,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
         /**
          * Configure data sources for sharding.
          */
-        public Builder<T> withDataSources(List<DataSourceConfig> dataSources) {
+        public Builder<T, P> withDataSources(List<DataSourceConfig> dataSources) {
             if (dataSources == null || dataSources.isEmpty()) {
                 throw new IllegalArgumentException("At least one data source is required");
             }
@@ -697,7 +697,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Enable SQL pre-generation for better performance.
          * SQL statements will be generated at startup for batch sizes: 10, 100, 1000, 5000.
          */
-        public Builder<T> withSqlPregeneration() {
+        public Builder<T, P> withSqlPregeneration() {
             this.pregenerateSql = true;
             return this;
         }
@@ -706,7 +706,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Set the database type for SQL generation.
          * Default is MySQL.
          */
-        public Builder<T> withDatabaseType(PersistenceProvider.DatabaseType dbType) {
+        public Builder<T, P> withDatabaseType(PersistenceProvider.DatabaseType dbType) {
             if (dbType == null) {
                 throw new IllegalArgumentException("Database type cannot be null");
             }
@@ -718,7 +718,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Provide a custom SQL statement cache.
          * If not provided and SQL pre-generation is enabled, a new cache will be created.
          */
-        public Builder<T> withSqlCache(SqlStatementCache cache) {
+        public Builder<T, P> withSqlCache(SqlStatementCache cache) {
             this.sqlCache = cache;
             return this;
         }
@@ -727,12 +727,12 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
          * Provide a custom SQL generator registry.
          * This allows sharing the registry across multiple repositories.
          */
-        public Builder<T> withSqlRegistry(SqlGeneratorByEntityRegistry registry) {
+        public Builder<T, P> withSqlRegistry(SqlGeneratorByEntityRegistry registry) {
             this.sqlRegistry = registry;
             return this;
         }
 
-        public SplitVerseRepository<T> build() {
+        public SplitVerseRepository<T, P> build() {
             // Validate required fields
             if (shardConfigs.isEmpty()) {
                 throw new IllegalArgumentException("At least one shard configuration is required");
@@ -802,7 +802,7 @@ public class SplitVerseRepository<T extends ShardingEntity> implements ShardingR
                 System.out.println("[SplitVerse] SQL pre-generation complete");
             }
 
-            return new SplitVerseRepository<>(this);
+            return new SplitVerseRepository<T, P>(this);
         }
         
         // Package-private getters for SplitVerseRepository constructor

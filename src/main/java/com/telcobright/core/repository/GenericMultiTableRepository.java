@@ -29,18 +29,19 @@ import com.telcobright.core.persistence.PersistenceProviderFactory;
  * Generic Multi-Table Repository implementation
  * Creates separate tables for each day based on sharding key
  * Each daily table is internally partitioned by hour (24 partitions per day)
- * 
+ *
  * Table Structure:
  * - Daily tables: database.tablePrefix_YYYYMMDD (e.g., test.sms_20250807)
  * - Hourly partitions within each table: h00, h01, h02, ..., h23
  * - Partitioning function: HOUR(sharding_column)
- * 
+ *
  * Entities must implement ShardingEntity to ensure they have
- * required getId/setId and getCreatedAt/setCreatedAt methods.
- * 
+ * required getId/setId and partition value accessor methods.
+ *
  * @param <T> Entity type that implements ShardingEntity
+ * @param <P> Partition column value type (must be Comparable)
  */
-public class GenericMultiTableRepository<T extends ShardingEntity> implements ShardingRepository<T> {
+public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends Comparable<P>> implements ShardingRepository<T, P> {
     private final Logger logger;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
@@ -85,7 +86,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     private volatile long lastMaintenanceRun = 0;
     private static final long MAINTENANCE_COOLDOWN_MS = 60000; // 1 minute minimum between maintenance runs
     
-    private GenericMultiTableRepository(Builder<T> builder) {
+    private GenericMultiTableRepository(Builder<T, P> builder) {
         this.database = builder.database;
         this.partitionRetentionPeriod = builder.partitionRetentionPeriod;
         this.autoManagePartitions = builder.autoManagePartitions;
@@ -216,14 +217,21 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Find all entities by date range
      */
     @Override
-    public List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         
         String query = QueryDSL.select()
             .column("*")
             .from(tablePrefix)  // QueryDSL expects just the prefix, PartitionedQueryBuilder handles full table names
-            .where(w -> w.dateRange(shardingColumn, startDate, endDate))
-            .buildPartitioned(database, startDate, endDate);
+            // TODO: Handle generic partition value types
+            .where(w -> {
+                if (startValue instanceof LocalDateTime) {
+                    return w.dateRange(shardingColumn, (LocalDateTime) startValue, (LocalDateTime) endValue);
+                } else {
+                    return w.between(shardingColumn, startValue, endValue);
+                }
+            })
+            .buildPartitioned(database, startValue, endValue);
         
         return executeQuery(query, null, rs -> metadata.mapResultSet(rs));
     }
@@ -258,9 +266,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Find entity by ID within a date range
      */
     @Override
-    public T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
         // This method returns the first entity found in the date range
-        List<T> entities = findAllByDateRange(startDate, endDate);
+        List<T> entities = findAllByPartitionRange(startValue, endValue);
         return entities.isEmpty() ? null : entities.get(0);
     }
     
@@ -268,7 +276,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Find all entities by IDs within a date range
      */
     @Override
-    public List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
@@ -279,13 +287,16 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
         
         // Build list of relevant tables based on date range
         List<String> relevantTables = new ArrayList<>();
-        LocalDateTime current = startDate.toLocalDate().atStartOfDay();
-        while (!current.isAfter(endDate)) {
-            String tableName = getTableName(current);
-            if (tableExists(tableName)) {
-                relevantTables.add(tableName);
+        // TODO: Handle generic partition value types for table iteration
+        if (startValue instanceof LocalDateTime) {
+            LocalDateTime current = ((LocalDateTime) startValue).toLocalDate().atStartOfDay();
+            while (!current.isAfter((LocalDateTime) endValue)) {
+                String tableName = getTableName(current);
+                if (tableExists(tableName)) {
+                    relevantTables.add(tableName);
+                }
+                current = current.plusDays(1);
             }
-            current = current.plusDays(1);
         }
         
         // Search for IDs in relevant tables
@@ -307,8 +318,14 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
                 }
                 
                 // Set date range parameters
-                stmt.setTimestamp(paramIndex++, Timestamp.valueOf(startDate));
-                stmt.setTimestamp(paramIndex, Timestamp.valueOf(endDate));
+                // TODO: Handle generic partition value types
+                if (startValue instanceof LocalDateTime) {
+                    stmt.setTimestamp(paramIndex++, Timestamp.valueOf((LocalDateTime) startValue));
+                    stmt.setTimestamp(paramIndex, Timestamp.valueOf((LocalDateTime) endValue));
+                } else {
+                    stmt.setObject(paramIndex++, startValue);
+                    stmt.setObject(paramIndex, endValue);
+                }
                 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -325,7 +342,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Find all entities before a specific date
      */
     @Override
-    public List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
+    public List<T> findAllBeforePartitionValue(P beforeValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         List<T> results = new ArrayList<>();
 
@@ -345,7 +362,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
             }
 
             // Determine if we should skip this table based on partition range
-            if (shouldSkipTableBefore(tableDateTime, beforeDate)) {
+            // TODO: Handle generic partition value types
+            if (beforeValue instanceof LocalDateTime && shouldSkipTableBefore(tableDateTime, (LocalDateTime) beforeValue)) {
                 continue;
             }
 
@@ -355,7 +373,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-                stmt.setTimestamp(1, Timestamp.valueOf(beforeDate));
+                // TODO: Handle generic partition value types
+                if (beforeValue instanceof LocalDateTime) {
+                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) beforeValue));
+                } else {
+                    stmt.setObject(1, beforeValue);
+                }
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -372,7 +395,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Find all entities after a specific date
      */
     @Override
-    public List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
+    public List<T> findAllAfterPartitionValue(P afterValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         List<T> results = new ArrayList<>();
 
@@ -392,7 +415,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
             }
 
             // Determine if we should skip this table based on partition range
-            if (shouldSkipTableAfter(tableDateTime, afterDate)) {
+            // TODO: Handle generic partition value types
+            if (afterValue instanceof LocalDateTime && shouldSkipTableAfter(tableDateTime, (LocalDateTime) afterValue)) {
                 continue;
             }
 
@@ -402,7 +426,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-                stmt.setTimestamp(1, Timestamp.valueOf(afterDate));
+                // TODO: Handle generic partition value types
+                if (afterValue instanceof LocalDateTime) {
+                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) afterValue));
+                } else {
+                    stmt.setObject(1, afterValue);
+                }
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -449,11 +478,15 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Update entity by primary key within a specific date range
      */
     @Override
-    public void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         
         // Get tables that could contain data in this date range
-        List<String> tables = getTablesForDateRange(startDate, endDate);
+        // TODO: Handle generic partition value types for table range
+        List<String> tables = new ArrayList<>();
+        if (startValue instanceof LocalDateTime && endValue instanceof LocalDateTime) {
+            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+        }
         
         boolean updated = false;
         for (String table : tables) {
@@ -467,8 +500,14 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
                 metadata.setUpdateParameters(stmt, entity, id);
                 // Add date range parameters
                 int paramCount = stmt.getParameterMetaData().getParameterCount();
-                stmt.setTimestamp(paramCount - 1, Timestamp.valueOf(startDate));
-                stmt.setTimestamp(paramCount, Timestamp.valueOf(endDate));
+                // TODO: Handle generic partition value types
+                if (startValue instanceof LocalDateTime) {
+                    stmt.setTimestamp(paramCount - 1, Timestamp.valueOf((LocalDateTime) startValue));
+                    stmt.setTimestamp(paramCount, Timestamp.valueOf((LocalDateTime) endValue));
+                } else {
+                    stmt.setObject(paramCount - 1, startValue);
+                    stmt.setObject(paramCount, endValue);
+                }
                 
                 int rowsUpdated = stmt.executeUpdate();
                 if (rowsUpdated > 0) {
@@ -485,7 +524,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
         
         if (!updated) {
             throw new SQLException("Entity with ID " + id + " not found in date range " + 
-                                 startDate + " to " + endDate);
+                                 startValue + " to " + endValue);
         }
     }
     
@@ -1106,9 +1145,13 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     }
 
     @Override
-    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
         String idColumn = metadata.getIdField().getColumnName();
-        List<String> tables = getTablesForDateRange(startDate, endDate);
+        // TODO: Handle generic partition value types for table range
+        List<String> tables = new ArrayList<>();
+        if (startValue instanceof LocalDateTime && endValue instanceof LocalDateTime) {
+            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+        }
 
         for (String table : tables) {
             String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ? AND " +
@@ -1124,8 +1167,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     }
 
     @Override
-    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        List<String> tables = getTablesForDateRange(startDate, endDate);
+    public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
+        // TODO: Handle generic partition value types for table range
+        List<String> tables = new ArrayList<>();
+        if (startValue instanceof LocalDateTime && endValue instanceof LocalDateTime) {
+            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+        }
 
         for (String table : tables) {
             String sql = "DELETE FROM " + table + " WHERE created_at BETWEEN ? AND ?";
@@ -1185,7 +1232,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
     /**
      * Builder for GenericMultiTableRepository
      */
-    static class Builder<T extends ShardingEntity> {
+    static class Builder<T extends ShardingEntity<P>, P extends Comparable<P>> {
         private final Class<T> entityClass;
         private String host = "localhost";
         private int port = 3306;
@@ -1212,130 +1259,130 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
             this.entityClass = entityClass;
         }
         
-        public Builder<T> host(String host) {
+        public Builder<T, P> host(String host) {
             this.host = host;
             return this;
         }
         
-        public Builder<T> port(int port) {
+        public Builder<T, P> port(int port) {
             this.port = port;
             return this;
         }
         
-        public Builder<T> database(String database) {
+        public Builder<T, P> database(String database) {
             this.database = database;
             return this;
         }
         
-        public Builder<T> username(String username) {
+        public Builder<T, P> username(String username) {
             this.username = username;
             return this;
         }
         
-        public Builder<T> password(String password) {
+        public Builder<T, P> password(String password) {
             this.password = password;
             return this;
         }
         
-        public Builder<T> tablePrefix(String tablePrefix) {
+        public Builder<T, P> tablePrefix(String tablePrefix) {
             this.tablePrefix = tablePrefix;
             return this;
         }
 
-        public Builder<T> baseTableName(String baseTableName) {
+        public Builder<T, P> baseTableName(String baseTableName) {
             this.tablePrefix = baseTableName;
             return this;
         }
 
-        public Builder<T> tableRetentionDays(int days) {
+        public Builder<T, P> tableRetentionDays(int days) {
             this.partitionRetentionPeriod = days;
             return this;
         }
 
-        public Builder<T> tableGranularity(TableGranularity granularity) {
+        public Builder<T, P> tableGranularity(TableGranularity granularity) {
             this.tableGranularity = granularity;
             return this;
         }
 
-        public Builder<T> autoCreateTables(boolean autoCreate) {
+        public Builder<T, P> autoCreateTables(boolean autoCreate) {
             this.initializePartitionsOnStart = autoCreate;
             return this;
         }
 
-        public Builder<T> charset(String charset) {
+        public Builder<T, P> charset(String charset) {
             if (charset != null && !charset.trim().isEmpty()) {
                 this.charset = charset;
             }
             return this;
         }
 
-        public Builder<T> collation(String collation) {
+        public Builder<T, P> collation(String collation) {
             if (collation != null && !collation.trim().isEmpty()) {
                 this.collation = collation;
             }
             return this;
         }
         
-        public Builder<T> partitionRetentionPeriod(int days) {
+        public Builder<T, P> partitionRetentionPeriod(int days) {
             this.partitionRetentionPeriod = days;
             return this;
         }
         
-        public Builder<T> autoManagePartitions(boolean enable) {
+        public Builder<T, P> autoManagePartitions(boolean enable) {
             this.autoManagePartitions = enable;
             return this;
         }
         
-        public Builder<T> partitionAdjustmentTime(int hour, int minute) {
+        public Builder<T, P> partitionAdjustmentTime(int hour, int minute) {
             this.partitionAdjustmentTime = LocalTime.of(hour, minute);
             return this;
         }
         
-        public Builder<T> partitionAdjustmentTime(LocalTime time) {
+        public Builder<T, P> partitionAdjustmentTime(LocalTime time) {
             this.partitionAdjustmentTime = time;
             return this;
         }
         
-        public Builder<T> initializePartitionsOnStart(boolean initialize) {
+        public Builder<T, P> initializePartitionsOnStart(boolean initialize) {
             this.initializePartitionsOnStart = initialize;
             return this;
         }
         
-        public Builder<T> monitoring(MonitoringConfig monitoringConfig) {
+        public Builder<T, P> monitoring(MonitoringConfig monitoringConfig) {
             this.monitoringConfig = monitoringConfig;
             return this;
         }
         
-        public Builder<T> logger(Logger logger) {
+        public Builder<T, P> logger(Logger logger) {
             this.logger = logger;
             return this;
         }
 
-        public Builder<T> partitionRange(PartitionRange range) {
+        public Builder<T, P> partitionRange(PartitionRange range) {
             this.partitionRange = range;
             return this;
         }
 
-        public Builder<T> partitionColumn(String column) {
+        public Builder<T, P> partitionColumn(String column) {
             this.partitionColumn = column;
             return this;
         }
 
-        public Builder<T> partitionColumnType(PartitionColumnType type) {
+        public Builder<T, P> partitionColumnType(PartitionColumnType type) {
             this.partitionColumnType = type;
             return this;
         }
 
-        public Builder<T> persistenceProvider(PersistenceProvider provider) {
+        public Builder<T, P> persistenceProvider(PersistenceProvider provider) {
             this.persistenceProvider = provider;
             return this;
         }
 
-        public GenericMultiTableRepository<T> build() {
+        public GenericMultiTableRepository<T, P> build() {
             if (database == null || username == null || password == null) {
                 throw new IllegalStateException("Database, username, and password are required");
             }
-            return new GenericMultiTableRepository<>(this);
+            return new GenericMultiTableRepository<T, P>(this);
         }
     }
     
@@ -1343,7 +1390,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity> implements Sh
      * Create a new builder
      */
     // Package-private factory method - only SplitVerseRepository can use this
-    static <T extends ShardingEntity> Builder<T> builder(Class<T> entityClass) {
-        return new Builder<>(entityClass);
+    static <T extends ShardingEntity<P>, P extends Comparable<P>> Builder<T, P> builder(Class<T> entityClass) {
+        return new Builder<T, P>(entityClass);
     }
 }

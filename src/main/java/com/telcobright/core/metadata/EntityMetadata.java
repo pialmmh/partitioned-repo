@@ -1,6 +1,7 @@
 package com.telcobright.core.metadata;
 
 import com.telcobright.core.annotation.*;
+import com.telcobright.core.entity.ShardingEntity;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -19,6 +20,7 @@ public class EntityMetadata<T> {
     private final List<FieldMetadata> fields;
     private final FieldMetadata idField;
     private final FieldMetadata shardingKeyField;
+    private final String partitionColumnName;  // Cached partition column name
     private final String insertSQL;
     private final String selectByIdSQL;
     private final String updateByIdSQL;
@@ -77,7 +79,14 @@ public class EntityMetadata<T> {
         
         this.idField = tempIdField;
         this.shardingKeyField = tempShardingField;
-        
+
+        // Cache partition column name from @ShardingKey field
+        if (tempShardingField != null) {
+            this.partitionColumnName = tempShardingField.getColumnName();
+        } else {
+            this.partitionColumnName = null;
+        }
+
         // Enforce required columns
         validateRequiredColumns();
         
@@ -136,10 +145,10 @@ public class EntityMetadata<T> {
             );
         }
         
-        // Validate sharding key is LocalDateTime type
-        if (!LocalDateTime.class.isAssignableFrom(shardingKeyField.getType())) {
+        // Validate sharding key is a Comparable type for range queries
+        if (!Comparable.class.isAssignableFrom(shardingKeyField.getType())) {
             throw new IllegalArgumentException(
-                String.format("Entity %s @ShardingKey field '%s' must be of type LocalDateTime (found: %s)", 
+                String.format("Entity %s @ShardingKey field '%s' must implement Comparable for range partitioning (found: %s)",
                     entityClass.getSimpleName(), shardingKeyField.getFieldName(), shardingKeyField.getType().getSimpleName())
             );
         }
@@ -377,6 +386,7 @@ public class EntityMetadata<T> {
     public FieldMetadata getIdField() { return idField; }
     public FieldMetadata getShardingKeyField() { return shardingKeyField; }
     public List<FieldMetadata> getFields() { return fields; }
+    public String getPartitionColumnName() { return partitionColumnName; }
     
     public String getId(T entity) {
         if (idField == null) {
@@ -395,6 +405,36 @@ public class EntityMetadata<T> {
         if (shardingKeyField == null) {
             throw new IllegalStateException("No sharding key field found in entity");
         }
-        return (LocalDateTime) shardingKeyField.getValue(entity);
+        Object value = shardingKeyField.getValue(entity);
+        // For backward compatibility, try to cast to LocalDateTime
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+        // Try to use the new interface method if available
+        if (entity instanceof ShardingEntity) {
+            Object partitionValue = ((ShardingEntity) entity).getPartitionColValue();
+            if (partitionValue instanceof LocalDateTime) {
+                return (LocalDateTime) partitionValue;
+            }
+        }
+        throw new ClassCastException("Sharding key value is not LocalDateTime: " + value.getClass());
+    }
+
+    /**
+     * Get the partition column value from the entity (generic type support).
+     */
+    @SuppressWarnings("unchecked")
+    public <V extends Comparable<V>> V getPartitionColValue(T entity) {
+        if (shardingKeyField == null) {
+            throw new IllegalStateException("No sharding key field found in entity");
+        }
+        Object value = shardingKeyField.getValue(entity);
+        if (value == null) {
+            return null;
+        }
+        if (!Comparable.class.isAssignableFrom(value.getClass())) {
+            throw new ClassCastException("Partition column value must be Comparable: " + value.getClass());
+        }
+        return (V) value;
     }
 }

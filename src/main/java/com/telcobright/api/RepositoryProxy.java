@@ -11,12 +11,13 @@ import java.util.List;
 /**
  * Public API proxy for sharding repositories.
  * This class provides a unified interface for both multi-table and partitioned table strategies.
- * 
+ *
  * @param <T> Entity type that must implement ShardingEntity
+ * @param <P> Partition column value type (must be Comparable)
  */
-public class RepositoryProxy<T extends ShardingEntity> implements ShardingRepository<T> {
+public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<P>> implements ShardingRepository<T, P> {
     
-    private final ShardingRepository<T> delegate;
+    private final ShardingRepository<T, P> delegate;
     private final RepositoryType type;
     
     public enum RepositoryType {
@@ -24,7 +25,7 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
         PARTITIONED_TABLE
     }
     
-    private RepositoryProxy(ShardingRepository<T> delegate, RepositoryType type) {
+    private RepositoryProxy(ShardingRepository<T, P> delegate, RepositoryType type) {
         this.delegate = delegate;
         this.type = type;
     }
@@ -32,17 +33,17 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
     /**
      * Create a proxy for a multi-table repository
      */
-    public static <T extends ShardingEntity> RepositoryProxy<T> forMultiTable(
-            GenericMultiTableRepository<T> repository) {
-        return new RepositoryProxy<>(repository, RepositoryType.MULTI_TABLE);
+    public static <T extends ShardingEntity<P>, P extends Comparable<P>> RepositoryProxy<T, P> forMultiTable(
+            GenericMultiTableRepository<T, P> repository) {
+        return new RepositoryProxy<T, P>(repository, RepositoryType.MULTI_TABLE);
     }
     
     /**
      * Create a proxy for a partitioned table repository
      */
-    public static <T extends ShardingEntity> RepositoryProxy<T> forPartitionedTable(
-            GenericPartitionedTableRepository<T> repository) {
-        return new RepositoryProxy<>(repository, RepositoryType.PARTITIONED_TABLE);
+    public static <T extends ShardingEntity<P>, P extends Comparable<P>> RepositoryProxy<T, P> forPartitionedTable(
+            GenericPartitionedTableRepository<T, P> repository) {
+        return new RepositoryProxy<T, P>(repository, RepositoryType.PARTITIONED_TABLE);
     }
     
     /**
@@ -63,8 +64,8 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
     }
     
     @Override
-    public List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        return delegate.findAllByDateRange(startDate, endDate);
+    public List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException {
+        return delegate.findAllByPartitionRange(startValue, endValue);
     }
     
     @Override
@@ -73,23 +74,23 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
     }
     
     @Override
-    public T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        return delegate.findByIdAndDateRange(startDate, endDate);
+    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+        return delegate.findByIdAndPartitionRange(id, startValue, endValue);
     }
     
     @Override
-    public List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        return delegate.findAllByIdsAndDateRange(ids, startDate, endDate);
+    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException {
+        return delegate.findAllByIdsAndPartitionRange(ids, startValue, endValue);
     }
     
     @Override
-    public List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
-        return delegate.findAllBeforeDate(beforeDate);
+    public List<T> findAllBeforePartitionValue(P beforeValue) throws SQLException {
+        return delegate.findAllBeforePartitionValue(beforeValue);
     }
     
     @Override
-    public List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
-        return delegate.findAllAfterDate(afterDate);
+    public List<T> findAllAfterPartitionValue(P afterValue) throws SQLException {
+        return delegate.findAllAfterPartitionValue(afterValue);
     }
     
     @Override
@@ -98,8 +99,8 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
     }
     
     @Override
-    public void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        delegate.updateByIdAndDateRange(id, entity, startDate, endDate);
+    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
+        delegate.updateByIdAndPartitionRange(id, entity, startValue, endValue);
     }
     
     @Override
@@ -118,13 +119,13 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
     }
 
     @Override
-    public void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        delegate.deleteByIdAndDateRange(id, startDate, endDate);
+    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+        delegate.deleteByIdAndPartitionRange(id, startValue, endValue);
     }
 
     @Override
-    public void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-        delegate.deleteAllByDateRange(startDate, endDate);
+    public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
+        delegate.deleteAllByPartitionRange(startValue, endValue);
     }
 
     @Override
@@ -137,7 +138,7 @@ public class RepositoryProxy<T extends ShardingEntity> implements ShardingReposi
      * Use with caution - this exposes internal implementation details
      */
     @SuppressWarnings("unchecked")
-    public <R extends ShardingRepository<T>> R getDelegate() {
+    public <R extends ShardingRepository<T, P>> R getDelegate() {
         return (R) delegate;
     }
 }
