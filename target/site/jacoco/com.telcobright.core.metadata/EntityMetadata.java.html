@@ -406,18 +406,17 @@ public class EntityMetadata&lt;T&gt; {
 <span class="nc" id="L406">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
         }
 <span class="nc" id="L408">        Object value = shardingKeyField.getValue(entity);</span>
-        // For backward compatibility, try to cast to LocalDateTime
-<span class="nc bnc" id="L410" title="All 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
-<span class="nc" id="L411">            return (LocalDateTime) value;</span>
+<span class="nc bnc" id="L409" title="All 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
+<span class="nc" id="L410">            return (LocalDateTime) value;</span>
         }
-        // Try to use the new interface method if available
-<span class="nc bnc" id="L414" title="All 2 branches missed.">        if (entity instanceof ShardingEntity) {</span>
-<span class="nc" id="L415">            Object partitionValue = ((ShardingEntity) entity).getPartitionColValue();</span>
-<span class="nc bnc" id="L416" title="All 2 branches missed.">            if (partitionValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L417">                return (LocalDateTime) partitionValue;</span>
+        // Use the interface method if available
+<span class="nc bnc" id="L413" title="All 2 branches missed.">        if (entity instanceof ShardingEntity) {</span>
+<span class="nc" id="L414">            Object partitionValue = ((ShardingEntity) entity).getPartitionColValue();</span>
+<span class="nc bnc" id="L415" title="All 2 branches missed.">            if (partitionValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L416">                return (LocalDateTime) partitionValue;</span>
             }
         }
-<span class="nc" id="L420">        throw new ClassCastException(&quot;Sharding key value is not LocalDateTime: &quot; + value.getClass());</span>
+<span class="nc" id="L419">        throw new ClassCastException(&quot;Sharding key value is not LocalDateTime: &quot; + value.getClass());</span>
     }
 
     /**
@@ -425,17 +424,17 @@ public class EntityMetadata&lt;T&gt; {
      */
     @SuppressWarnings(&quot;unchecked&quot;)
     public &lt;V extends Comparable&lt;V&gt;&gt; V getPartitionColValue(T entity) {
-<span class="nc bnc" id="L428" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
-<span class="nc" id="L429">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
+<span class="nc bnc" id="L427" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="nc" id="L428">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
         }
-<span class="nc" id="L431">        Object value = shardingKeyField.getValue(entity);</span>
-<span class="nc bnc" id="L432" title="All 2 branches missed.">        if (value == null) {</span>
-<span class="nc" id="L433">            return null;</span>
+<span class="nc" id="L430">        Object value = shardingKeyField.getValue(entity);</span>
+<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L432">            return null;</span>
         }
-<span class="nc bnc" id="L435" title="All 2 branches missed.">        if (!Comparable.class.isAssignableFrom(value.getClass())) {</span>
-<span class="nc" id="L436">            throw new ClassCastException(&quot;Partition column value must be Comparable: &quot; + value.getClass());</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">        if (!Comparable.class.isAssignableFrom(value.getClass())) {</span>
+<span class="nc" id="L435">            throw new ClassCastException(&quot;Partition column value must be Comparable: &quot; + value.getClass());</span>
         }
-<span class="nc" id="L438">        return (V) value;</span>
+<span class="nc" id="L437">        return (V) value;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

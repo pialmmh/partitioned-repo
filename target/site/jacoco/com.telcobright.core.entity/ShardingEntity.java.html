@@ -3,7 +3,6 @@
 import com.telcobright.core.annotation.Column;
 import com.telcobright.core.annotation.ShardingKey;
 import java.lang.reflect.Field;
-import java.time.LocalDateTime;
 
 /**
  * Base interface for all entities used with ShardingRepository.
@@ -78,51 +77,18 @@ public interface ShardingEntity&lt;T extends Comparable&lt;? super T&gt;&gt; {
      */
     default String getPartitionColName() {
         // Find field with @ShardingKey annotation
-<span class="nc bnc" id="L81" title="All 2 branches missed.">        for (Field field : this.getClass().getDeclaredFields()) {</span>
-<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (field.isAnnotationPresent(ShardingKey.class)) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        for (Field field : this.getClass().getDeclaredFields()) {</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            if (field.isAnnotationPresent(ShardingKey.class)) {</span>
                 // Get column name from @Column annotation
-<span class="nc" id="L84">                Column column = field.getAnnotation(Column.class);</span>
-<span class="nc bnc" id="L85" title="All 6 branches missed.">                if (column != null &amp;&amp; column.name() != null &amp;&amp; !column.name().isEmpty()) {</span>
-<span class="nc" id="L86">                    return column.name();</span>
+<span class="nc" id="L83">                Column column = field.getAnnotation(Column.class);</span>
+<span class="nc bnc" id="L84" title="All 6 branches missed.">                if (column != null &amp;&amp; column.name() != null &amp;&amp; !column.name().isEmpty()) {</span>
+<span class="nc" id="L85">                    return column.name();</span>
                 }
                 // Fallback to field name if no @Column
-<span class="nc" id="L89">                return field.getName();</span>
+<span class="nc" id="L88">                return field.getName();</span>
             }
         }
-<span class="nc" id="L92">        throw new IllegalStateException(&quot;No field with @ShardingKey annotation found in &quot; + this.getClass().getName());</span>
+<span class="nc" id="L91">        throw new IllegalStateException(&quot;No field with @ShardingKey annotation found in &quot; + this.getClass().getName());</span>
     }
-
-    /**
-     * Get the datetime value used for partitioning.
-     * This method is kept for backward compatibility with existing code.
-     *
-     * @return the partitioning datetime
-     * @deprecated Use getPartitionColValue() instead for generic support
-     */
-    @Deprecated
-    default LocalDateTime getCreatedAt() {
-<span class="nc" id="L104">        Object value = getPartitionColValue();</span>
-<span class="nc bnc" id="L105" title="All 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
-<span class="nc" id="L106">            return (LocalDateTime) value;</span>
-        }
-<span class="nc" id="L108">        throw new UnsupportedOperationException(&quot;This entity does not use LocalDateTime for partitioning&quot;);</span>
-    }
-
-    /**
-     * Set the datetime value used for partitioning.
-     * This method is kept for backward compatibility with existing code.
-     *
-     * @param createdAt the partitioning datetime
-     * @deprecated Use setPartitionColValue() instead for generic support
-     */
-    @Deprecated
-    @SuppressWarnings(&quot;unchecked&quot;)
-    default void setCreatedAt(LocalDateTime createdAt) {
-        try {
-<span class="nc" id="L122">            setPartitionColValue((T) createdAt);</span>
-<span class="nc" id="L123">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L124">            throw new UnsupportedOperationException(&quot;This entity does not use LocalDateTime for partitioning&quot;);</span>
-<span class="nc" id="L125">        }</span>
-<span class="nc" id="L126">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

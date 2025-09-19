@@ -79,10 +79,6 @@ public class SmsEntity implements ShardingEntity<LocalDateTime> {
     @Override
     public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
 
-    // Backward compatibility
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    
     public LocalDateTime getDeliveredAt() { return deliveredAt; }
     public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }
     

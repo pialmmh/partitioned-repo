@@ -28,9 +28,7 @@ public class DebugTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     @Override

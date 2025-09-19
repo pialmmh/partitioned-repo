@@ -38,8 +38,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException;
 
     /**
-     * Find all entities within a date range (backward compatibility)
-     * @deprecated Use findAllByPartitionRange for generic support
+     * Find all entities within a date range     * @deprecated Use findAllByPartitionRange for generic support
      */
     @Deprecated
     default List<T> findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -65,8 +64,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Find first entity within a date range (backward compatibility)
-     * @deprecated Use findByIdAndPartitionRange for generic support
+     * Find first entity within a date range     * @deprecated Use findByIdAndPartitionRange for generic support
      */
     @Deprecated
     default T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -87,8 +85,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException;
 
     /**
-     * Find all entities with specific IDs within a date range (backward compatibility)
-     * @deprecated Use findAllByIdsAndPartitionRange for generic support
+     * Find all entities with specific IDs within a date range     * @deprecated Use findAllByIdsAndPartitionRange for generic support
      */
     @Deprecated
     default List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -109,8 +106,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     List<T> findAllBeforePartitionValue(P beforeValue) throws SQLException;
 
     /**
-     * Find all entities before a specific date (backward compatibility)
-     * @deprecated Use findAllBeforePartitionValue for generic support
+     * Find all entities before a specific date     * @deprecated Use findAllBeforePartitionValue for generic support
      */
     @Deprecated
     default List<T> findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
@@ -129,8 +125,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     List<T> findAllAfterPartitionValue(P afterValue) throws SQLException;
 
     /**
-     * Find all entities after a specific date (backward compatibility)
-     * @deprecated Use findAllAfterPartitionValue for generic support
+     * Find all entities after a specific date     * @deprecated Use findAllAfterPartitionValue for generic support
      */
     @Deprecated
     default List<T> findAllAfterDate(LocalDateTime afterDate) throws SQLException {
@@ -154,8 +149,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException;
 
     /**
-     * Update entity by primary key within a specific date range (backward compatibility)
-     * @deprecated Use updateByIdAndPartitionRange for generic support
+     * Update entity by primary key within a specific date range     * @deprecated Use updateByIdAndPartitionRange for generic support
      */
     @Deprecated
     default void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -204,8 +198,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Delete entity by primary key within a specific date range (backward compatibility)
-     * @deprecated Use deleteByIdAndPartitionRange for generic support
+     * Delete entity by primary key within a specific date range     * @deprecated Use deleteByIdAndPartitionRange for generic support
      */
     @Deprecated
     default void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -226,8 +219,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException;
 
     /**
-     * Delete all entities within a date range (backward compatibility)
-     * @deprecated Use deleteAllByPartitionRange for generic support
+     * Delete all entities within a date range     * @deprecated Use deleteAllByPartitionRange for generic support
      */
     @Deprecated
     default void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {

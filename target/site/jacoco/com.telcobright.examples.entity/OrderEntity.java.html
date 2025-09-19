@@ -94,22 +94,19 @@ public class OrderEntity implements ShardingEntity&lt;LocalDateTime&gt; {
     @Override
 <span class="nc" id="L95">    public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }</span>
 
-    // Backward compatibility
-<span class="nc" id="L98">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
-<span class="nc" id="L99">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
     
-<span class="nc" id="L101">    public LocalDateTime getShippedAt() { return shippedAt; }</span>
-<span class="nc" id="L102">    public void setShippedAt(LocalDateTime shippedAt) { this.shippedAt = shippedAt; }</span>
+<span class="nc" id="L98">    public LocalDateTime getShippedAt() { return shippedAt; }</span>
+<span class="nc" id="L99">    public void setShippedAt(LocalDateTime shippedAt) { this.shippedAt = shippedAt; }</span>
     
-<span class="nc" id="L104">    public LocalDateTime getDeliveredAt() { return deliveredAt; }</span>
-<span class="nc" id="L105">    public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }</span>
+<span class="nc" id="L101">    public LocalDateTime getDeliveredAt() { return deliveredAt; }</span>
+<span class="nc" id="L102">    public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }</span>
     
-<span class="nc" id="L107">    public Integer getItemCount() { return itemCount; }</span>
-<span class="nc" id="L108">    public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }</span>
+<span class="nc" id="L104">    public Integer getItemCount() { return itemCount; }</span>
+<span class="nc" id="L105">    public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }</span>
     
     @Override
     public String toString() {
-<span class="nc" id="L112">        return String.format(&quot;OrderEntity{id='%s', customerId='%s', orderNumber='%s', amount=%s, status='%s', createdAt=%s}&quot;, </span>
+<span class="nc" id="L109">        return String.format(&quot;OrderEntity{id='%s', customerId='%s', orderNumber='%s', amount=%s, status='%s', createdAt=%s}&quot;, </span>
             id, customerId, orderNumber, totalAmount, status, createdAt);
     }
 }

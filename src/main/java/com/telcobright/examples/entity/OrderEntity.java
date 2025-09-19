@@ -94,9 +94,6 @@ public class OrderEntity implements ShardingEntity<LocalDateTime> {
     @Override
     public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
 
-    // Backward compatibility
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     
     public LocalDateTime getShippedAt() { return shippedAt; }
     public void setShippedAt(LocalDateTime shippedAt) { this.shippedAt = shippedAt; }

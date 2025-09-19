@@ -406,11 +406,10 @@ public class EntityMetadata<T> {
             throw new IllegalStateException("No sharding key field found in entity");
         }
         Object value = shardingKeyField.getValue(entity);
-        // For backward compatibility, try to cast to LocalDateTime
         if (value instanceof LocalDateTime) {
             return (LocalDateTime) value;
         }
-        // Try to use the new interface method if available
+        // Use the interface method if available
         if (entity instanceof ShardingEntity) {
             Object partitionValue = ((ShardingEntity) entity).getPartitionColValue();
             if (partitionValue instanceof LocalDateTime) {

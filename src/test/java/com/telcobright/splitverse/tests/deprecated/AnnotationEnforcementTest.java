@@ -29,9 +29,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }
@@ -55,9 +53,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id1; }
         @Override
         public void setId(String id) { this.id1 = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }
@@ -81,9 +77,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }
@@ -104,9 +98,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return String.valueOf(id); }
         @Override
         public void setId(String id) { this.id = Long.valueOf(id); }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }
@@ -127,9 +119,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt != null ? LocalDateTime.parse(createdAt) : null; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt != null ? createdAt.toString() : null; }
         @Override
         public LocalDateTime getPartitionColValue() { return getCreatedAt(); }
@@ -150,9 +140,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }
@@ -172,9 +160,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }
@@ -194,9 +180,7 @@ public class AnnotationEnforcementTest {
         public String getId() { return id; }
         @Override
         public void setId(String id) { this.id = id; }
-        @Override
         public LocalDateTime getCreatedAt() { return createdAt; }
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
         @Override
         public LocalDateTime getPartitionColValue() { return createdAt; }

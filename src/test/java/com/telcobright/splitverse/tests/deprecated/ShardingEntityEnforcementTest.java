@@ -23,11 +23,9 @@ public class ShardingEntityEnforcementTest {
         
         @Override
         public void setId(String id) { this.id = id; }
-        
-        @Override
+
         public LocalDateTime getCreatedAt() { return createdAt; }
 
-        @Override
         public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
         @Override
@@ -90,10 +88,10 @@ public class ShardingEntityEnforcementTest {
             // Test that we can use the entity
             ValidEntity entity = new ValidEntity();
             entity.setId("test_123");
-            entity.setCreatedAt(LocalDateTime.now());
+            entity.setPartitionColValue(LocalDateTime.now());
             
             System.out.println("✓ Entity ID: " + entity.getId());
-            System.out.println("✓ Entity CreatedAt: " + entity.getCreatedAt());
+            System.out.println("✓ Entity CreatedAt: " + entity.getPartitionColValue());
             
         } catch (Exception e) {
             System.out.println("✗ Error: " + e.getMessage());
@@ -138,8 +136,8 @@ public class ShardingEntityEnforcementTest {
         // Test LocalDateTime createdAt enforcement
         System.out.println("\nTesting LocalDateTime createdAt enforcement:");
         LocalDateTime testDate = LocalDateTime.now();
-        entity.setCreatedAt(testDate);
-        LocalDateTime retrievedDate = entity.getCreatedAt();
+        entity.setPartitionColValue(testDate);
+        LocalDateTime retrievedDate = entity.getPartitionColValue();
         System.out.println("  Set CreatedAt: " + testDate);
         System.out.println("  Get CreatedAt: " + retrievedDate);
         System.out.println("  ✓ LocalDateTime methods working");

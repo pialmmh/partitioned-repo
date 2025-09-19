@@ -79,10 +79,6 @@ public class SubscriberEntity implements ShardingEntity<LocalDateTime> {
     @Override
     public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }
 
-    // Backward compatibility
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     
     public String getMsisdn() { return msisdn; }
     public void setMsisdn(String msisdn) { this.msisdn = msisdn; }

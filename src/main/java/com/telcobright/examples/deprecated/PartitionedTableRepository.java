@@ -159,7 +159,7 @@ public class PartitionedTableRepository<T> {
      */
     public void insert(OrderEntity order) throws SQLException {
         // Automatically ensure partitions exist for the order date
-        ensurePartitionExistsForDate(order.getCreatedAt());
+        ensurePartitionExistsForDate(order.getPartitionColValue());
         
         String sql = "INSERT INTO " + database + "." + tableName + 
             " (customer_id, order_number, total_amount, status, payment_method, " +
@@ -175,7 +175,7 @@ public class PartitionedTableRepository<T> {
             stmt.setString(4, order.getStatus());
             stmt.setString(5, order.getPaymentMethod());
             stmt.setString(6, order.getShippingAddress());
-            stmt.setTimestamp(7, Timestamp.valueOf(order.getCreatedAt()));
+            stmt.setTimestamp(7, Timestamp.valueOf(order.getPartitionColValue()));
             stmt.setTimestamp(8, order.getShippedAt() != null ? 
                 Timestamp.valueOf(order.getShippedAt()) : null);
             stmt.setTimestamp(9, order.getDeliveredAt() != null ? 
@@ -736,7 +736,7 @@ public class PartitionedTableRepository<T> {
         order.setStatus(rs.getString("status"));
         order.setPaymentMethod(rs.getString("payment_method"));
         order.setShippingAddress(rs.getString("shipping_address"));
-        order.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        order.setPartitionColValue(rs.getTimestamp("created_at").toLocalDateTime());
         
         Timestamp shipped = rs.getTimestamp("shipped_at");
         order.setShippedAt(shipped != null ? shipped.toLocalDateTime() : null);

@@ -109,16 +109,13 @@ public class CitizenEntity implements ShardingEntity&lt;LocalDateTime&gt; {
     @Override
 <span class="nc" id="L110">    public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }</span>
 
-    // Backward compatibility
-<span class="nc" id="L113">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
-<span class="nc" id="L114">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
     
-<span class="nc" id="L116">    public LocalDateTime getUpdatedAt() { return updatedAt; }</span>
-<span class="nc" id="L117">    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }</span>
+<span class="nc" id="L113">    public LocalDateTime getUpdatedAt() { return updatedAt; }</span>
+<span class="nc" id="L114">    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }</span>
     
     @Override
     public String toString() {
-<span class="nc" id="L121">        return String.format(&quot;CitizenEntity{id='%s', name='%s %s', ssn='%s', status='%s', createdAt=%s}&quot;, </span>
+<span class="nc" id="L118">        return String.format(&quot;CitizenEntity{id='%s', name='%s %s', ssn='%s', status='%s', createdAt=%s}&quot;, </span>
             id, firstName, lastName, socialSecurityNumber, status, createdAt);
     }
 }

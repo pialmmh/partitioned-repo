@@ -158,9 +158,9 @@ public class MultiTableRepository<T> {
      */
     public void insert(SmsEntity sms) throws SQLException {
         // Automatically ensure table exists for the SMS date
-        ensureTableExistsForDate(sms.getCreatedAt());
+        ensureTableExistsForDate(sms.getPartitionColValue());
         
-        String tableName = getTableName(sms.getCreatedAt());
+        String tableName = getTableName(sms.getPartitionColValue());
         
         String sql = "INSERT INTO " + tableName + 
             " (user_id, phone_number, message, status, created_at, delivered_at, cost, provider) " +
@@ -173,7 +173,7 @@ public class MultiTableRepository<T> {
             stmt.setString(2, sms.getPhoneNumber());
             stmt.setString(3, sms.getMessage());
             stmt.setString(4, sms.getStatus());
-            stmt.setTimestamp(5, Timestamp.valueOf(sms.getCreatedAt()));
+            stmt.setTimestamp(5, Timestamp.valueOf(sms.getPartitionColValue()));
             stmt.setTimestamp(6, sms.getDeliveredAt() != null ? 
                 Timestamp.valueOf(sms.getDeliveredAt()) : null);
             stmt.setBigDecimal(7, sms.getCost());
@@ -711,7 +711,7 @@ public class MultiTableRepository<T> {
         sms.setPhoneNumber(rs.getString("phone_number"));
         sms.setMessage(rs.getString("message"));
         sms.setStatus(rs.getString("status"));
-        sms.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        sms.setPartitionColValue(rs.getTimestamp("created_at").toLocalDateTime());
         
         Timestamp delivered = rs.getTimestamp("delivered_at");
         sms.setDeliveredAt(delivered != null ? delivered.toLocalDateTime() : null);

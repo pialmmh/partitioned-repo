@@ -5,6 +5,7 @@ com/telcobright/splitverse/tests/AnnotationEnforcementTest$NoIdEntity.class
 com/telcobright/splitverse/tests/ShardingEntityEnforcementTest$InvalidEntity.class
 com/telcobright/splitverse/tests/AnnotationEnforcementTest.class
 com/telcobright/splitverse/tests/RepositoryModeTest.class
+com/telcobright/splitverse/tests/DatewiseMultiTableTest.class
 com/telcobright/splitverse/tests/SplitVerseBasicOperationsTest.class
 com/telcobright/splitverse/tests/AnnotationEnforcementTest$MultipleShardingKeyEntity.class
 com/telcobright/splitverse/tests/ComprehensiveStrategyTest$TestEntity.class
@@ -31,6 +32,7 @@ com/telcobright/splitverse/tests/AnnotationEnforcementTest$WrongIdTypeEntity.cla
 com/telcobright/splitverse/tests/DebugTest$TestEntity.class
 com/telcobright/splitverse/tests/CrudOperationsTest$User.class
 com/telcobright/splitverse/tests/SqlPregenerationTest$TestEvent.class
+com/telcobright/splitverse/tests/DatewiseMultiTableTest$EventEntity.class
 com/telcobright/splitverse/tests/DebugTest.class
 com/telcobright/splitverse/tests/SplitVerseMultiShardTest.class
 com/telcobright/splitverse/tests/ApiValidationTest.class

@@ -239,13 +239,13 @@ public class SplitVerseBasicOperationsTest {
             LocalDateTime lastWeek = now.minusDays(7);
             
             SubscriberEntity sub1 = createTestSubscriber("range_1", "+8801733333333");
-            sub1.setCreatedAt(now);
+            sub1.setPartitionColValue(now);
             
             SubscriberEntity sub2 = createTestSubscriber("range_2", "+8801744444444");
-            sub2.setCreatedAt(yesterday);
+            sub2.setPartitionColValue(yesterday);
             
             SubscriberEntity sub3 = createTestSubscriber("range_3", "+8801755555555");
-            sub3.setCreatedAt(lastWeek);
+            sub3.setPartitionColValue(lastWeek);
             
             repository.insert(sub1);
             repository.insert(sub2);
@@ -424,7 +424,7 @@ public class SplitVerseBasicOperationsTest {
             SubscriberEntity subscriber = new SubscriberEntity();
             subscriber.setId(testId);
             subscriber.setMsisdn("+8801788888888");
-            subscriber.setCreatedAt(LocalDateTime.now());
+            subscriber.setPartitionColValue(LocalDateTime.now());
             // Leave optional fields as null
             
             repository.insert(subscriber);
@@ -489,7 +489,7 @@ public class SplitVerseBasicOperationsTest {
         subscriber.setBalance(new BigDecimal("50.00"));
         subscriber.setStatus("ACTIVE");
         subscriber.setPlan("PREPAID");
-        subscriber.setCreatedAt(LocalDateTime.now());
+        subscriber.setPartitionColValue(LocalDateTime.now());
         subscriber.setDataBalanceMb(1000L);
         subscriber.setVoiceBalanceMinutes(100);
         return subscriber;

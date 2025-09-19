@@ -498,7 +498,7 @@ public class SplitVerseMultiShardTest {
         subscriber.setBalance(new BigDecimal("75.50"));
         subscriber.setStatus("ACTIVE");
         subscriber.setPlan("POSTPAID");
-        subscriber.setCreatedAt(LocalDateTime.now());
+        subscriber.setPartitionColValue(LocalDateTime.now());
         subscriber.setDataBalanceMb(2000L);
         subscriber.setVoiceBalanceMinutes(200);
         return subscriber;

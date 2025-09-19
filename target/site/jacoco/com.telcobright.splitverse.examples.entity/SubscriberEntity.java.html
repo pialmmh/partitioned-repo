@@ -79,46 +79,42 @@ public class SubscriberEntity implements ShardingEntity&lt;LocalDateTime&gt; {
     @Override
 <span class="nc" id="L80">    public void setPartitionColValue(LocalDateTime value) { this.createdAt = value; }</span>
 
-    // Backward compatibility
-<span class="nc" id="L83">    public LocalDateTime getCreatedAt() { return createdAt; }</span>
-
-<span class="nc" id="L85">    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }</span>
     
-<span class="nc" id="L87">    public String getMsisdn() { return msisdn; }</span>
-<span class="nc" id="L88">    public void setMsisdn(String msisdn) { this.msisdn = msisdn; }</span>
+<span class="nc" id="L83">    public String getMsisdn() { return msisdn; }</span>
+<span class="nc" id="L84">    public void setMsisdn(String msisdn) { this.msisdn = msisdn; }</span>
     
-<span class="nc" id="L90">    public String getImsi() { return imsi; }</span>
-<span class="nc" id="L91">    public void setImsi(String imsi) { this.imsi = imsi; }</span>
+<span class="nc" id="L86">    public String getImsi() { return imsi; }</span>
+<span class="nc" id="L87">    public void setImsi(String imsi) { this.imsi = imsi; }</span>
     
-<span class="nc" id="L93">    public String getIccid() { return iccid; }</span>
-<span class="nc" id="L94">    public void setIccid(String iccid) { this.iccid = iccid; }</span>
+<span class="nc" id="L89">    public String getIccid() { return iccid; }</span>
+<span class="nc" id="L90">    public void setIccid(String iccid) { this.iccid = iccid; }</span>
     
-<span class="nc" id="L96">    public BigDecimal getBalance() { return balance; }</span>
-<span class="nc" id="L97">    public void setBalance(BigDecimal balance) { this.balance = balance; }</span>
+<span class="nc" id="L92">    public BigDecimal getBalance() { return balance; }</span>
+<span class="nc" id="L93">    public void setBalance(BigDecimal balance) { this.balance = balance; }</span>
     
-<span class="nc" id="L99">    public String getStatus() { return status; }</span>
-<span class="nc" id="L100">    public void setStatus(String status) { this.status = status; }</span>
+<span class="nc" id="L95">    public String getStatus() { return status; }</span>
+<span class="nc" id="L96">    public void setStatus(String status) { this.status = status; }</span>
     
-<span class="nc" id="L102">    public String getPlan() { return plan; }</span>
-<span class="nc" id="L103">    public void setPlan(String plan) { this.plan = plan; }</span>
+<span class="nc" id="L98">    public String getPlan() { return plan; }</span>
+<span class="nc" id="L99">    public void setPlan(String plan) { this.plan = plan; }</span>
     
-<span class="nc" id="L105">    public Long getDataBalanceMb() { return dataBalanceMb; }</span>
-<span class="nc" id="L106">    public void setDataBalanceMb(Long dataBalanceMb) { this.dataBalanceMb = dataBalanceMb; }</span>
+<span class="nc" id="L101">    public Long getDataBalanceMb() { return dataBalanceMb; }</span>
+<span class="nc" id="L102">    public void setDataBalanceMb(Long dataBalanceMb) { this.dataBalanceMb = dataBalanceMb; }</span>
     
-<span class="nc" id="L108">    public Integer getVoiceBalanceMinutes() { return voiceBalanceMinutes; }</span>
+<span class="nc" id="L104">    public Integer getVoiceBalanceMinutes() { return voiceBalanceMinutes; }</span>
     public void setVoiceBalanceMinutes(Integer voiceBalanceMinutes) { 
-<span class="nc" id="L110">        this.voiceBalanceMinutes = voiceBalanceMinutes; </span>
-<span class="nc" id="L111">    }</span>
+<span class="nc" id="L106">        this.voiceBalanceMinutes = voiceBalanceMinutes; </span>
+<span class="nc" id="L107">    }</span>
     
-<span class="nc" id="L113">    public LocalDateTime getLastActivity() { return lastActivity; }</span>
-<span class="nc" id="L114">    public void setLastActivity(LocalDateTime lastActivity) { this.lastActivity = lastActivity; }</span>
+<span class="nc" id="L109">    public LocalDateTime getLastActivity() { return lastActivity; }</span>
+<span class="nc" id="L110">    public void setLastActivity(LocalDateTime lastActivity) { this.lastActivity = lastActivity; }</span>
     
-<span class="nc" id="L116">    public LocalDateTime getActivatedAt() { return activatedAt; }</span>
-<span class="nc" id="L117">    public void setActivatedAt(LocalDateTime activatedAt) { this.activatedAt = activatedAt; }</span>
+<span class="nc" id="L112">    public LocalDateTime getActivatedAt() { return activatedAt; }</span>
+<span class="nc" id="L113">    public void setActivatedAt(LocalDateTime activatedAt) { this.activatedAt = activatedAt; }</span>
     
     @Override
     public String toString() {
-<span class="nc" id="L121">        return String.format(&quot;Subscriber{id='%s', msisdn='%s', balance=%s, status='%s', plan='%s'}&quot;,</span>
+<span class="nc" id="L117">        return String.format(&quot;Subscriber{id='%s', msisdn='%s', balance=%s, status='%s', plan='%s'}&quot;,</span>
             id, msisdn, balance, status, plan);
     }
 }

@@ -74,7 +74,7 @@ public class TelecomSubscriberExample {
             subscriber.setBalance(new BigDecimal("100.00"));
             subscriber.setStatus("ACTIVE");
             subscriber.setPlan("PREPAID");
-            subscriber.setCreatedAt(LocalDateTime.now().minusDays(30 - i));
+            subscriber.setPartitionColValue(LocalDateTime.now().minusDays(30 - i));
             
             repository.insert(subscriber);
             subscribers.add(subscriber);
@@ -109,7 +109,7 @@ public class TelecomSubscriberExample {
             subscriber.setBalance(new BigDecimal("50.00"));
             subscriber.setStatus("ACTIVE");
             subscriber.setPlan("POSTPAID");
-            subscriber.setCreatedAt(LocalDateTime.now());
+            subscriber.setPartitionColValue(LocalDateTime.now());
             batchSubscribers.add(subscriber);
         }
         repository.insertMultiple(batchSubscribers);

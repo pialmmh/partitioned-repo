@@ -74,7 +74,7 @@ import java.util.*;
 <span class="nc" id="L74">            subscriber.setBalance(new BigDecimal(&quot;100.00&quot;));</span>
 <span class="nc" id="L75">            subscriber.setStatus(&quot;ACTIVE&quot;);</span>
 <span class="nc" id="L76">            subscriber.setPlan(&quot;PREPAID&quot;);</span>
-<span class="nc" id="L77">            subscriber.setCreatedAt(LocalDateTime.now().minusDays(30 - i));</span>
+<span class="nc" id="L77">            subscriber.setPartitionColValue(LocalDateTime.now().minusDays(30 - i));</span>
             
 <span class="nc" id="L79">            repository.insert(subscriber);</span>
 <span class="nc" id="L80">            subscribers.add(subscriber);</span>
@@ -109,7 +109,7 @@ import java.util.*;
 <span class="nc" id="L109">            subscriber.setBalance(new BigDecimal(&quot;50.00&quot;));</span>
 <span class="nc" id="L110">            subscriber.setStatus(&quot;ACTIVE&quot;);</span>
 <span class="nc" id="L111">            subscriber.setPlan(&quot;POSTPAID&quot;);</span>
-<span class="nc" id="L112">            subscriber.setCreatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L112">            subscriber.setPartitionColValue(LocalDateTime.now());</span>
 <span class="nc" id="L113">            batchSubscribers.add(subscriber);</span>
         }
 <span class="nc" id="L115">        repository.insertMultiple(batchSubscribers);</span>

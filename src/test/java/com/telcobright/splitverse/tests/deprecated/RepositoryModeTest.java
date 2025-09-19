@@ -80,7 +80,7 @@ public class RepositoryModeTest {
         subscriber.setId(UUID.randomUUID().toString());
         subscriber.setMsisdn("1234567890");
         // subscriber.setEmail("test@example.com"); // Email field doesn't exist
-        subscriber.setCreatedAt(LocalDateTime.now());
+        subscriber.setPartitionColValue(LocalDateTime.now());
         repository.insert(subscriber);
 
         // Verify table structure
@@ -126,7 +126,7 @@ public class RepositoryModeTest {
             subscriber.setId(UUID.randomUUID().toString());
             subscriber.setMsisdn("123456" + dayOffset);
             // subscriber.setEmail("test" + dayOffset + "@example.com"); // Email field doesn't exist
-            subscriber.setCreatedAt(LocalDateTime.now().plusDays(dayOffset));
+            subscriber.setPartitionColValue(LocalDateTime.now().plusDays(dayOffset));
             repository.insert(subscriber);
         }
 
@@ -173,7 +173,7 @@ public class RepositoryModeTest {
             subscriber.setId(UUID.randomUUID().toString());
             subscriber.setMsisdn("123456" + hourOffset);
             // subscriber.setEmail("test" + hourOffset + "@example.com"); // Email field doesn't exist
-            subscriber.setCreatedAt(LocalDateTime.now().plusHours(hourOffset));
+            subscriber.setPartitionColValue(LocalDateTime.now().plusHours(hourOffset));
             repository.insert(subscriber);
         }
 

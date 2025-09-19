@@ -38,19 +38,18 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     List&lt;T&gt; findAllByPartitionRange(P startValue, P endValue) throws SQLException;
 
     /**
-     * Find all entities within a date range (backward compatibility)
-     * @deprecated Use findAllByPartitionRange for generic support
+     * Find all entities within a date range     * @deprecated Use findAllByPartitionRange for generic support
      */
     @Deprecated
     default List&lt;T&gt; findAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L48">            P start = (P) startDate;</span>
+<span class="nc" id="L47">            P start = (P) startDate;</span>
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L50">            P end = (P) endDate;</span>
-<span class="nc" id="L51">            return findAllByPartitionRange(start, end);</span>
-<span class="nc" id="L52">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L53">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L49">            P end = (P) endDate;</span>
+<span class="nc" id="L50">            return findAllByPartitionRange(start, end);</span>
+<span class="nc" id="L51">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L52">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
         }
     }
     
@@ -65,19 +64,18 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Find first entity within a date range (backward compatibility)
-     * @deprecated Use findByIdAndPartitionRange for generic support
+     * Find first entity within a date range     * @deprecated Use findByIdAndPartitionRange for generic support
      */
     @Deprecated
     default T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L75">            P start = (P) startDate;</span>
+<span class="nc" id="L73">            P start = (P) startDate;</span>
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L77">            P end = (P) endDate;</span>
-<span class="nc" id="L78">            return findByIdAndPartitionRange(null, start, end);</span>
-<span class="nc" id="L79">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L80">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L75">            P end = (P) endDate;</span>
+<span class="nc" id="L76">            return findByIdAndPartitionRange(null, start, end);</span>
+<span class="nc" id="L77">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L78">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
         }
     }
     
@@ -87,19 +85,18 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     List&lt;T&gt; findAllByIdsAndPartitionRange(List&lt;String&gt; ids, P startValue, P endValue) throws SQLException;
 
     /**
-     * Find all entities with specific IDs within a date range (backward compatibility)
-     * @deprecated Use findAllByIdsAndPartitionRange for generic support
+     * Find all entities with specific IDs within a date range     * @deprecated Use findAllByIdsAndPartitionRange for generic support
      */
     @Deprecated
     default List&lt;T&gt; findAllByIdsAndDateRange(List&lt;String&gt; ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L97">            P start = (P) startDate;</span>
+<span class="nc" id="L94">            P start = (P) startDate;</span>
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L99">            P end = (P) endDate;</span>
-<span class="nc" id="L100">            return findAllByIdsAndPartitionRange(ids, start, end);</span>
-<span class="nc" id="L101">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L102">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L96">            P end = (P) endDate;</span>
+<span class="nc" id="L97">            return findAllByIdsAndPartitionRange(ids, start, end);</span>
+<span class="nc" id="L98">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L99">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
         }
     }
     
@@ -109,17 +106,16 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     List&lt;T&gt; findAllBeforePartitionValue(P beforeValue) throws SQLException;
 
     /**
-     * Find all entities before a specific date (backward compatibility)
-     * @deprecated Use findAllBeforePartitionValue for generic support
+     * Find all entities before a specific date     * @deprecated Use findAllBeforePartitionValue for generic support
      */
     @Deprecated
     default List&lt;T&gt; findAllBeforeDate(LocalDateTime beforeDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L119">            P before = (P) beforeDate;</span>
-<span class="nc" id="L120">            return findAllBeforePartitionValue(before);</span>
-<span class="nc" id="L121">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L122">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L115">            P before = (P) beforeDate;</span>
+<span class="nc" id="L116">            return findAllBeforePartitionValue(before);</span>
+<span class="nc" id="L117">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L118">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
         }
     }
     
@@ -129,17 +125,16 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     List&lt;T&gt; findAllAfterPartitionValue(P afterValue) throws SQLException;
 
     /**
-     * Find all entities after a specific date (backward compatibility)
-     * @deprecated Use findAllAfterPartitionValue for generic support
+     * Find all entities after a specific date     * @deprecated Use findAllAfterPartitionValue for generic support
      */
     @Deprecated
     default List&lt;T&gt; findAllAfterDate(LocalDateTime afterDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L139">            P after = (P) afterDate;</span>
-<span class="nc" id="L140">            return findAllAfterPartitionValue(after);</span>
-<span class="nc" id="L141">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L142">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L134">            P after = (P) afterDate;</span>
+<span class="nc" id="L135">            return findAllAfterPartitionValue(after);</span>
+<span class="nc" id="L136">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L137">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
         }
     }
     
@@ -154,21 +149,20 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException;
 
     /**
-     * Update entity by primary key within a specific date range (backward compatibility)
-     * @deprecated Use updateByIdAndPartitionRange for generic support
+     * Update entity by primary key within a specific date range     * @deprecated Use updateByIdAndPartitionRange for generic support
      */
     @Deprecated
     default void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L164">            P start = (P) startDate;</span>
+<span class="nc" id="L158">            P start = (P) startDate;</span>
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L166">            P end = (P) endDate;</span>
-<span class="nc" id="L167">            updateByIdAndPartitionRange(id, entity, start, end);</span>
-<span class="nc" id="L168">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L169">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
-<span class="nc" id="L170">        }</span>
-<span class="nc" id="L171">    }</span>
+<span class="nc" id="L160">            P end = (P) endDate;</span>
+<span class="nc" id="L161">            updateByIdAndPartitionRange(id, entity, start, end);</span>
+<span class="nc" id="L162">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L163">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L164">        }</span>
+<span class="nc" id="L165">    }</span>
     
     /**
      * Find one entity with ID greater than the specified ID.
@@ -204,21 +198,20 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Delete entity by primary key within a specific date range (backward compatibility)
-     * @deprecated Use deleteByIdAndPartitionRange for generic support
+     * Delete entity by primary key within a specific date range     * @deprecated Use deleteByIdAndPartitionRange for generic support
      */
     @Deprecated
     default void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L214">            P start = (P) startDate;</span>
+<span class="nc" id="L207">            P start = (P) startDate;</span>
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L216">            P end = (P) endDate;</span>
-<span class="nc" id="L217">            deleteByIdAndPartitionRange(id, start, end);</span>
-<span class="nc" id="L218">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L219">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
-<span class="nc" id="L220">        }</span>
-<span class="nc" id="L221">    }</span>
+<span class="nc" id="L209">            P end = (P) endDate;</span>
+<span class="nc" id="L210">            deleteByIdAndPartitionRange(id, start, end);</span>
+<span class="nc" id="L211">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L212">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L213">        }</span>
+<span class="nc" id="L214">    }</span>
 
     /**
      * Delete all entities within a partition value range
@@ -226,21 +219,20 @@ public interface ShardingRepository&lt;T extends ShardingEntity&lt;P&gt;, P exte
     void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException;
 
     /**
-     * Delete all entities within a date range (backward compatibility)
-     * @deprecated Use deleteAllByPartitionRange for generic support
+     * Delete all entities within a date range     * @deprecated Use deleteAllByPartitionRange for generic support
      */
     @Deprecated
     default void deleteAllByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L236">            P start = (P) startDate;</span>
+<span class="nc" id="L228">            P start = (P) startDate;</span>
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="nc" id="L238">            P end = (P) endDate;</span>
-<span class="nc" id="L239">            deleteAllByPartitionRange(start, end);</span>
-<span class="nc" id="L240">        } catch (ClassCastException e) {</span>
-<span class="nc" id="L241">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
-<span class="nc" id="L242">        }</span>
-<span class="nc" id="L243">    }</span>
+<span class="nc" id="L230">            P end = (P) endDate;</span>
+<span class="nc" id="L231">            deleteAllByPartitionRange(start, end);</span>
+<span class="nc" id="L232">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L233">            throw new UnsupportedOperationException(&quot;This repository does not use LocalDateTime for partitioning&quot;, e);</span>
+<span class="nc" id="L234">        }</span>
+<span class="nc" id="L235">    }</span>
 
     /**
      * Shutdown the repository and release resources

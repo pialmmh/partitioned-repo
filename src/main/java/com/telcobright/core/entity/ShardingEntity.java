@@ -3,7 +3,6 @@ package com.telcobright.core.entity;
 import com.telcobright.core.annotation.Column;
 import com.telcobright.core.annotation.ShardingKey;
 import java.lang.reflect.Field;
-import java.time.LocalDateTime;
 
 /**
  * Base interface for all entities used with ShardingRepository.
@@ -90,38 +89,5 @@ public interface ShardingEntity<T extends Comparable<? super T>> {
             }
         }
         throw new IllegalStateException("No field with @ShardingKey annotation found in " + this.getClass().getName());
-    }
-
-    /**
-     * Get the datetime value used for partitioning.
-     * This method is kept for backward compatibility with existing code.
-     *
-     * @return the partitioning datetime
-     * @deprecated Use getPartitionColValue() instead for generic support
-     */
-    @Deprecated
-    default LocalDateTime getCreatedAt() {
-        Object value = getPartitionColValue();
-        if (value instanceof LocalDateTime) {
-            return (LocalDateTime) value;
-        }
-        throw new UnsupportedOperationException("This entity does not use LocalDateTime for partitioning");
-    }
-
-    /**
-     * Set the datetime value used for partitioning.
-     * This method is kept for backward compatibility with existing code.
-     *
-     * @param createdAt the partitioning datetime
-     * @deprecated Use setPartitionColValue() instead for generic support
-     */
-    @Deprecated
-    @SuppressWarnings("unchecked")
-    default void setCreatedAt(LocalDateTime createdAt) {
-        try {
-            setPartitionColValue((T) createdAt);
-        } catch (ClassCastException e) {
-            throw new UnsupportedOperationException("This entity does not use LocalDateTime for partitioning");
-        }
     }
 }

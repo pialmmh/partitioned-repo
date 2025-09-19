@@ -159,7 +159,7 @@ public class PartitionedTableRepository&lt;T&gt; {
      */
     public void insert(OrderEntity order) throws SQLException {
         // Automatically ensure partitions exist for the order date
-<span class="nc" id="L162">        ensurePartitionExistsForDate(order.getCreatedAt());</span>
+<span class="nc" id="L162">        ensurePartitionExistsForDate(order.getPartitionColValue());</span>
         
 <span class="nc" id="L164">        String sql = &quot;INSERT INTO &quot; + database + &quot;.&quot; + tableName + </span>
             &quot; (customer_id, order_number, total_amount, status, payment_method, &quot; +
@@ -175,7 +175,7 @@ public class PartitionedTableRepository&lt;T&gt; {
 <span class="nc" id="L175">            stmt.setString(4, order.getStatus());</span>
 <span class="nc" id="L176">            stmt.setString(5, order.getPaymentMethod());</span>
 <span class="nc" id="L177">            stmt.setString(6, order.getShippingAddress());</span>
-<span class="nc" id="L178">            stmt.setTimestamp(7, Timestamp.valueOf(order.getCreatedAt()));</span>
+<span class="nc" id="L178">            stmt.setTimestamp(7, Timestamp.valueOf(order.getPartitionColValue()));</span>
 <span class="nc bnc" id="L179" title="All 2 branches missed.">            stmt.setTimestamp(8, order.getShippedAt() != null ? </span>
 <span class="nc" id="L180">                Timestamp.valueOf(order.getShippedAt()) : null);</span>
 <span class="nc bnc" id="L181" title="All 2 branches missed.">            stmt.setTimestamp(9, order.getDeliveredAt() != null ? </span>
@@ -736,7 +736,7 @@ public class PartitionedTableRepository&lt;T&gt; {
 <span class="nc" id="L736">        order.setStatus(rs.getString(&quot;status&quot;));</span>
 <span class="nc" id="L737">        order.setPaymentMethod(rs.getString(&quot;payment_method&quot;));</span>
 <span class="nc" id="L738">        order.setShippingAddress(rs.getString(&quot;shipping_address&quot;));</span>
-<span class="nc" id="L739">        order.setCreatedAt(rs.getTimestamp(&quot;created_at&quot;).toLocalDateTime());</span>
+<span class="nc" id="L739">        order.setPartitionColValue(rs.getTimestamp(&quot;created_at&quot;).toLocalDateTime());</span>
         
 <span class="nc" id="L741">        Timestamp shipped = rs.getTimestamp(&quot;shipped_at&quot;);</span>
 <span class="nc bnc" id="L742" title="All 2 branches missed.">        order.setShippedAt(shipped != null ? shipped.toLocalDateTime() : null);</span>
