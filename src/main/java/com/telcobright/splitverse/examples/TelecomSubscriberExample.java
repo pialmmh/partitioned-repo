@@ -51,8 +51,8 @@ public class TelecomSubscriberExample {
             .build();
         
         // Create Split-Verse repository with single shard
-        SplitVerseRepository<SubscriberEntity> repository = 
-            SplitVerseRepository.<SubscriberEntity>builder()
+        SplitVerseRepository<SubscriberEntity, LocalDateTime> repository =
+            SplitVerseRepository.builder()
                 .withSingleShard(singleShard)
                 .withEntityClass(SubscriberEntity.class)
                 .build();
@@ -180,8 +180,8 @@ public class TelecomSubscriberExample {
         );
         
         // Create Split-Verse repository with multiple shards
-        SplitVerseRepository<SubscriberEntity> repository = 
-            SplitVerseRepository.<SubscriberEntity>builder()
+        SplitVerseRepository<SubscriberEntity, LocalDateTime> repository =
+            SplitVerseRepository.builder()
                 .withShardConfigs(shards)
                 .withEntityClass(SubscriberEntity.class)
                 .build();

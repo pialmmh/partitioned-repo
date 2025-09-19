@@ -65,7 +65,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         for (ShardConfig config : shardConfigs) {
             if (config.isEnabled()) {
                 try {
-                    ShardingRepository<T> shardRepo = createShardRepository(config, builder);
+                    ShardingRepository<T, P> shardRepo = createShardRepository(config, builder);
                     shardRepositories.put(config.getShardId(), shardRepo);
                     activeShardIds.add(config.getShardId());
                     System.out.println("[SplitVerse] Initialized shard: " + config.getShardId());
@@ -156,7 +156,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         }
         
         String shardId = router.getShardId(key, shardIds);
-        ShardingRepository<T> repo = shardRepositories.get(shardId);
+        ShardingRepository<T, P> repo = shardRepositories.get(shardId);
         
         if (repo == null) {
             throw new IllegalStateException("Shard not available: " + shardId);
@@ -172,7 +172,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
             throw new IllegalArgumentException("Entity ID cannot be null. IDs must be generated externally.");
         }
         
-        ShardingRepository<T> targetShard = getShardForKey(id);
+        ShardingRepository<T, P> targetShard = getShardForKey(id);
         targetShard.insert(entity);
     }
     
@@ -196,7 +196,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         
         // Insert into each shard (can be parallelized in future)
         for (Map.Entry<String, List<T>> entry : entitiesByShard.entrySet()) {
-            ShardingRepository<T> shard = shardRepositories.get(entry.getKey());
+            ShardingRepository<T, P> shard = shardRepositories.get(entry.getKey());
             shard.insertMultiple(entry.getValue());
         }
     }
@@ -207,7 +207,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
             return null;
         }
         
-        ShardingRepository<T> targetShard = getShardForKey(id);
+        ShardingRepository<T, P> targetShard = getShardForKey(id);
         return targetShard.findById(id);
     }
     
@@ -246,7 +246,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     @Override
     public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
         // Fan-out to all shards, return first found
-        for (ShardingRepository<T> shard : shardRepositories.values()) {
+        for (ShardingRepository<T, P> shard : shardRepositories.values()) {
             T result = shard.findByIdAndPartitionRange(id, startValue, endValue);
             if (result != null) {
                 return result;
@@ -272,7 +272,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         // Query each shard with its IDs
         List<T> results = new ArrayList<>();
         for (Map.Entry<String, List<String>> entry : idsByShard.entrySet()) {
-            ShardingRepository<T> shard = shardRepositories.get(entry.getKey());
+            ShardingRepository<T, P> shard = shardRepositories.get(entry.getKey());
             results.addAll(shard.findAllByIdsAndPartitionRange(entry.getValue(), startValue, endValue));
         }
         
@@ -297,7 +297,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
             throw new IllegalArgumentException("ID cannot be null");
         }
         
-        ShardingRepository<T> targetShard = getShardForKey(id);
+        ShardingRepository<T, P> targetShard = getShardForKey(id);
         targetShard.updateById(id, entity);
     }
     
@@ -308,7 +308,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
             throw new IllegalArgumentException("ID cannot be null");
         }
         
-        ShardingRepository<T> targetShard = getShardForKey(id);
+        ShardingRepository<T, P> targetShard = getShardForKey(id);
         targetShard.updateByIdAndPartitionRange(id, entity, startValue, endValue);
     }
     
@@ -321,7 +321,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         
         // For multiple shards, need to query all and find minimum
         T result = null;
-        for (ShardingRepository<T> shard : shardRepositories.values()) {
+        for (ShardingRepository<T, P> shard : shardRepositories.values()) {
             T candidate = shard.findOneByIdGreaterThan(id);
             if (candidate != null) {
                 if (result == null || compareIds(candidate.getId(), result.getId()) < 0) {
@@ -342,7 +342,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         
         // For multiple shards, need to merge results
         List<T> results = new ArrayList<>();
-        for (ShardingRepository<T> shard : shardRepositories.values()) {
+        for (ShardingRepository<T, P> shard : shardRepositories.values()) {
             if (results.size() >= batchSize) {
                 break;
             }
@@ -364,7 +364,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
             throw new IllegalArgumentException("ID cannot be null");
         }
 
-        ShardingRepository<T> targetShard = getShardForKey(id);
+        ShardingRepository<T, P> targetShard = getShardForKey(id);
         targetShard.deleteById(id);
     }
 
@@ -374,14 +374,14 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
             throw new IllegalArgumentException("ID cannot be null");
         }
 
-        ShardingRepository<T> targetShard = getShardForKey(id);
+        ShardingRepository<T, P> targetShard = getShardForKey(id);
         targetShard.deleteByIdAndPartitionRange(id, startValue, endValue);
     }
 
     @Override
     public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
         // Fan-out delete to all shards
-        for (ShardingRepository<T> shard : shardRepositories.values()) {
+        for (ShardingRepository<T, P> shard : shardRepositories.values()) {
             shard.deleteAllByPartitionRange(startValue, endValue);
         }
     }
@@ -391,7 +391,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         System.out.println("[SplitVerse] Shutting down...");
         
         // Shutdown all shard repositories
-        for (Map.Entry<String, ShardingRepository<T>> entry : shardRepositories.entrySet()) {
+        for (Map.Entry<String, ShardingRepository<T, P>> entry : shardRepositories.entrySet()) {
             try {
                 entry.getValue().shutdown();
                 System.out.println("[SplitVerse] Shut down shard: " + entry.getKey());

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Disabled("Temporarily disabled due to Maven classpath issues with MySQL driver")
 public class PartitionRangeTest {
 
-    public static class Event implements ShardingEntity {
+    public static class Event implements ShardingEntity<LocalDateTime> {
         private String id;
         private LocalDateTime createdAt;
         private Long sequenceNumber;
@@ -51,7 +51,7 @@ public class PartitionRangeTest {
     @Test
     public void testValueBasedPartitioning1Million() {
         // Test creating new table every 1 million records
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
@@ -73,7 +73,7 @@ public class PartitionRangeTest {
     @Test
     public void testValueBasedPartitioning100K() {
         // Test creating new table every 100K records
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
@@ -95,7 +95,7 @@ public class PartitionRangeTest {
     @Test
     public void testHashBasedPartitioning16Buckets() {
         // Test hash-based partitioning with 16 buckets
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_HASH)
@@ -118,7 +118,7 @@ public class PartitionRangeTest {
     @Test
     public void testTimeBasedPartitioningHourly() {
         // Test hourly partitioning for high-volume data
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
@@ -142,7 +142,7 @@ public class PartitionRangeTest {
     @Test
     public void testTimeBasedPartitioningMonthly() {
         // Test monthly partitioning for long-term storage
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
@@ -166,7 +166,7 @@ public class PartitionRangeTest {
     @Test
     public void testIntegerBasedPartitioning() {
         // Test partitioning with integer column
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("events")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
@@ -184,7 +184,7 @@ public class PartitionRangeTest {
     @Test
     public void testDoubleBasedPartitioning() {
         // Test partitioning with double column (e.g., for measurement data)
-        ShardingRepository<Event> repository = SplitVerseRepository.<Event>builder()
+        ShardingRepository<Event, LocalDateTime> repository = SplitVerseRepository.<Event, LocalDateTime>builder()
             .withEntityClass(Event.class)
             .withTableName("measurements")
             .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)

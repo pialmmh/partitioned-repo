@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class ApiValidationTest {
 
-    public static class TestEntity implements ShardingEntity {
+    public static class TestEntity implements ShardingEntity<LocalDateTime> {
         private String id;
         private LocalDateTime createdAt;
 
@@ -37,7 +37,7 @@ public class ApiValidationTest {
     public void testRequiredFieldValidation() {
         // Test missing entity class
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
                 .withDataSources(Arrays.asList(
@@ -48,7 +48,7 @@ public class ApiValidationTest {
 
         // Test missing data sources
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -57,7 +57,7 @@ public class ApiValidationTest {
 
         // Test empty data sources
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -70,7 +70,7 @@ public class ApiValidationTest {
     public void testDualKeyStrategyValidation() {
         // Test missing partition column for DUAL_KEY_HASH_RANGE
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_RANGE)
@@ -83,7 +83,7 @@ public class ApiValidationTest {
 
         // Test missing partition range for DUAL_KEY_HASH_HASH
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.DUAL_KEY_HASH_HASH)
@@ -99,7 +99,7 @@ public class ApiValidationTest {
     public void testIdSizeValidation() {
         // Test ID size too small
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -112,7 +112,7 @@ public class ApiValidationTest {
 
         // Test ID size too large
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -166,7 +166,7 @@ public class ApiValidationTest {
     public void testRetentionDaysValidation() {
         // Test invalid retention days (0)
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -179,7 +179,7 @@ public class ApiValidationTest {
 
         // Test invalid retention days (negative)
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("test")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -195,7 +195,7 @@ public class ApiValidationTest {
     public void testTableNameValidation() {
         // Test null table name
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName(null)
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -207,7 +207,7 @@ public class ApiValidationTest {
 
         // Test empty table name
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)
@@ -219,7 +219,7 @@ public class ApiValidationTest {
 
         // Test whitespace-only table name
         assertThrows(IllegalArgumentException.class, () -> {
-            SplitVerseRepository.<TestEntity>builder()
+            SplitVerseRepository.<TestEntity, LocalDateTime>builder()
                 .withEntityClass(TestEntity.class)
                 .withTableName("   ")
                 .withShardingStrategy(ShardingStrategy.SINGLE_KEY_HASH)

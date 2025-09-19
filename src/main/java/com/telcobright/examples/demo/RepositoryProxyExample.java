@@ -29,14 +29,14 @@ public class RepositoryProxyExample {
             .enabled(true)
             .build();
         
-        SplitVerseRepository<SmsEntity> smsRepo = 
-            SplitVerseRepository.<SmsEntity>builder()
+        SplitVerseRepository<SmsEntity, LocalDateTime> smsRepo =
+            SplitVerseRepository.builder()
                 .withSingleShard(smsShardConfig)
                 .withEntityClass(SmsEntity.class)
                 .build();
         
         // SplitVerseRepository implements ShardingRepository, so can be used directly
-        ShardingRepository<SmsEntity> smsProxy = smsRepo;
+        ShardingRepository<SmsEntity, LocalDateTime> smsProxy = smsRepo;
         
         // Example 2: Order Repository via Split-Verse Proxy
         ShardConfig orderShardConfig = ShardConfig.builder()
@@ -50,14 +50,14 @@ public class RepositoryProxyExample {
             .enabled(true)
             .build();
         
-        SplitVerseRepository<OrderEntity> orderRepo = 
-            SplitVerseRepository.<OrderEntity>builder()
+        SplitVerseRepository<OrderEntity, LocalDateTime> orderRepo = 
+            SplitVerseRepository.builder()
                 .withSingleShard(orderShardConfig)
                 .withEntityClass(OrderEntity.class)
                 .build();
         
         // SplitVerseRepository implements ShardingRepository, so can be used directly
-        ShardingRepository<OrderEntity> orderProxy = orderRepo;
+        ShardingRepository<OrderEntity, LocalDateTime> orderProxy = orderRepo;
         
         // Both repositories can now be used through the same ShardingRepository interface
         demonstrateCommonOperations(smsProxy, "SMS Repository");
@@ -78,7 +78,7 @@ public class RepositoryProxyExample {
      * Demonstrate common operations that work with any ShardingRepository
      */
     private static <T extends com.telcobright.core.entity.ShardingEntity> 
-            void demonstrateCommonOperations(ShardingRepository<T> repo, String repoName) {
+            void demonstrateCommonOperations(ShardingRepository<T, LocalDateTime> repo, String repoName) {
         
         try {
             System.out.println("\n=== " + repoName + " ===");

@@ -55,7 +55,7 @@ public class OrderPartitionedConsoleExample {
             .build();
         
         // Create Order repository with console monitoring using Split-Verse
-        SplitVerseRepository<OrderEntity> orderRepo = null;
+        SplitVerseRepository<OrderEntity, LocalDateTime> orderRepo = null;
         try {
             // Configure shard
             ShardConfig shardConfig = ShardConfig.builder()
@@ -69,7 +69,7 @@ public class OrderPartitionedConsoleExample {
                 .enabled(true)
                 .build();
             
-            orderRepo = SplitVerseRepository.<OrderEntity>builder()
+            orderRepo = SplitVerseRepository.builder()
                 .withSingleShard(shardConfig)
                 .withEntityClass(OrderEntity.class)
                 .build();

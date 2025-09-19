@@ -65,8 +65,8 @@ public class RepositoryModeTest {
             .enabled(true)
             .build();
 
-        SplitVerseRepository<SubscriberEntity> repository =
-            SplitVerseRepository.<SubscriberEntity>builder()
+        SplitVerseRepository<SubscriberEntity, LocalDateTime> repository =
+            SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                 .withSingleShard(config)
                 .withEntityClass(SubscriberEntity.class)
                 .withPartitionType(PartitionType.DATE_BASED)
@@ -109,8 +109,8 @@ public class RepositoryModeTest {
             .enabled(true)
             .build();
 
-        SplitVerseRepository<SubscriberEntity> repository =
-            SplitVerseRepository.<SubscriberEntity>builder()
+        SplitVerseRepository<SubscriberEntity, LocalDateTime> repository =
+            SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                 .withSingleShard(config)
                 .withEntityClass(SubscriberEntity.class)
                 .withRepositoryMode(RepositoryMode.MULTI_TABLE)  // Specify multi-table mode
@@ -156,8 +156,8 @@ public class RepositoryModeTest {
             .enabled(true)
             .build();
 
-        SplitVerseRepository<SubscriberEntity> repository =
-            SplitVerseRepository.<SubscriberEntity>builder()
+        SplitVerseRepository<SubscriberEntity, LocalDateTime> repository =
+            SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                 .withSingleShard(config)
                 .withEntityClass(SubscriberEntity.class)
                 .withRepositoryMode(RepositoryMode.MULTI_TABLE)

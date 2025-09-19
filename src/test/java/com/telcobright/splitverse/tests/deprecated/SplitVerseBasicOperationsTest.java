@@ -25,7 +25,7 @@ public class SplitVerseBasicOperationsTest {
     private static final String DB_PASSWORD = "123456";
     private static final String LOG_FILE = "SplitVerseBasicOperationsTest_report.log";
     
-    private SplitVerseRepository<SubscriberEntity> repository;
+    private SplitVerseRepository<SubscriberEntity, LocalDateTime> repository;
     private Connection directConnection;
     private PrintWriter logWriter;
     private int passedTests = 0;
@@ -70,7 +70,7 @@ public class SplitVerseBasicOperationsTest {
             .build();
         
         // Create Split-Verse repository - ONLY way to access the functionality
-        repository = SplitVerseRepository.<SubscriberEntity>builder()
+        repository = SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
             .withSingleShard(config)
             .withEntityClass(SubscriberEntity.class)
             .withPartitionType(PartitionType.DATE_BASED)
@@ -468,8 +468,8 @@ public class SplitVerseBasicOperationsTest {
                 .password(DB_PASSWORD)
                 .build();
                 
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.DATE_BASED)

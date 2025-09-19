@@ -23,7 +23,7 @@ public class SplitVerseMultiShardTest {
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "123456";
     
-    private SplitVerseRepository<SubscriberEntity> repository;
+    private SplitVerseRepository<SubscriberEntity, LocalDateTime> repository;
     private List<Connection> shardConnections = new ArrayList<>();
     private List<String> shardDatabases = Arrays.asList(
         "splitverse_shard1",
@@ -75,7 +75,7 @@ public class SplitVerseMultiShardTest {
         }
         
         // Create multi-shard Split-Verse repository
-        repository = SplitVerseRepository.<SubscriberEntity>builder()
+        repository = SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
             .withShardConfigs(shardConfigs)
             .withEntityClass(SubscriberEntity.class)
             .withPartitionType(PartitionType.DATE_BASED)
@@ -467,8 +467,8 @@ public class SplitVerseMultiShardTest {
                 .build();
                 
             // Repository should still work with available shards
-            SplitVerseRepository<SubscriberEntity> partialRepo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> partialRepo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withShardConfigs(Arrays.asList(shard1, shard2))
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.DATE_BASED)

@@ -43,7 +43,7 @@ public class SmsMultiTableConsoleExample {
             .build();
         
         // Create SMS repository with console monitoring using Split-Verse
-        SplitVerseRepository<SmsEntity> smsRepo = null;
+        SplitVerseRepository<SmsEntity, LocalDateTime> smsRepo = null;
         try {
             // Configure shard
             ShardConfig shardConfig = ShardConfig.builder()

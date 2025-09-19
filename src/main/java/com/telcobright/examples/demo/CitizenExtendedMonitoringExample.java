@@ -40,7 +40,7 @@ public class CitizenExtendedMonitoringExample {
             .build();
         
         // Create Citizen repository with extended monitoring using Split-Verse
-        SplitVerseRepository<CitizenEntity> citizenRepo = null;
+        SplitVerseRepository<CitizenEntity, LocalDateTime> citizenRepo = null;
         try {
             // Configure shard with monitoring
             ShardConfig shardConfig = ShardConfig.builder()
@@ -54,7 +54,7 @@ public class CitizenExtendedMonitoringExample {
                 .enabled(true)
                 .build();
             
-            citizenRepo = SplitVerseRepository.<CitizenEntity>builder()
+            citizenRepo = SplitVerseRepository.builder()
                 .withSingleShard(shardConfig)
                 .withEntityClass(CitizenEntity.class)
                 .build();

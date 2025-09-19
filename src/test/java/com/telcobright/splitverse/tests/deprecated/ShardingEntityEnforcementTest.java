@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class ShardingEntityEnforcementTest {
     
     // Valid entity that implements ShardingEntity
-    static class ValidEntity implements ShardingEntity {
+    static class ValidEntity implements ShardingEntity<LocalDateTime> {
         private String id;
         private LocalDateTime createdAt;
         
@@ -71,8 +71,8 @@ public class ShardingEntityEnforcementTest {
                 .build();
             
             // This compiles fine - ValidEntity implements ShardingEntity
-            SplitVerseRepository<ValidEntity> validRepo = 
-                SplitVerseRepository.<ValidEntity>builder()
+            SplitVerseRepository<ValidEntity, LocalDateTime> validRepo = 
+                SplitVerseRepository.<ValidEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(ValidEntity.class)
                     .withPartitionType(PartitionType.DATE_BASED)
@@ -100,8 +100,8 @@ public class ShardingEntityEnforcementTest {
         
         // The following would NOT compile:
         /*
-        SplitVerseRepository<InvalidEntity> invalidRepo = 
-            SplitVerseRepository.<InvalidEntity>builder()
+        SplitVerseRepository<InvalidEntity, LocalDateTime> invalidRepo = 
+            SplitVerseRepository.<InvalidEntity, LocalDateTime>builder()
                 .withSingleShard(config)
                 .withEntityClass(InvalidEntity.class)
                 .build();

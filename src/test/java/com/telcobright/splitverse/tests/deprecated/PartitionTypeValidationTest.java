@@ -31,8 +31,8 @@ public class PartitionTypeValidationTest {
         // Test 1: DATE_BASED should work (it's implemented)
         System.out.println("Test 1: DATE_BASED partition type (implemented)");
         try {
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.DATE_BASED)
@@ -54,8 +54,8 @@ public class PartitionTypeValidationTest {
         // Test 2: HASH_BASED should throw UnsupportedOperationException
         System.out.println("\nTest 2: HASH_BASED partition type (not implemented)");
         try {
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.HASH_BASED)
@@ -75,8 +75,8 @@ public class PartitionTypeValidationTest {
         // Test 3: RANGE_BASED should throw UnsupportedOperationException
         System.out.println("\nTest 3: RANGE_BASED partition type (not implemented)");
         try {
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.RANGE_BASED)
@@ -96,8 +96,8 @@ public class PartitionTypeValidationTest {
         // Test 4: LIST_BASED should throw UnsupportedOperationException
         System.out.println("\nTest 4: LIST_BASED partition type (not implemented)");
         try {
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.LIST_BASED)
@@ -117,8 +117,8 @@ public class PartitionTypeValidationTest {
         // Test 5: COMPOSITE should throw UnsupportedOperationException
         System.out.println("\nTest 5: COMPOSITE partition type (not implemented)");
         try {
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     .withPartitionType(PartitionType.COMPOSITE)
@@ -138,8 +138,8 @@ public class PartitionTypeValidationTest {
         // Test 6: Default (no partition type specified) should use DATE_BASED
         System.out.println("\nTest 6: Default partition type (should be DATE_BASED)");
         try {
-            SplitVerseRepository<SubscriberEntity> repo = 
-                SplitVerseRepository.<SubscriberEntity>builder()
+            SplitVerseRepository<SubscriberEntity, LocalDateTime> repo = 
+                SplitVerseRepository.<SubscriberEntity, LocalDateTime>builder()
                     .withSingleShard(config)
                     .withEntityClass(SubscriberEntity.class)
                     // Not specifying partition type - should default to DATE_BASED
