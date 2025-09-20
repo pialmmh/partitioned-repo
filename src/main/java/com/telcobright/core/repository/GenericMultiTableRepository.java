@@ -347,52 +347,42 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                 continue;
             }
 
-            // First try to find by ID only within the relevant table
+            // Query by both ID and date range for optimal partition pruning
             String sql = String.format(
-                "SELECT * FROM %s WHERE %s = ?",
-                tableName, idColumn
+                "SELECT * FROM %s WHERE %s = ? AND %s >= ? AND %s < ?",
+                tableName, idColumn, shardingColumn, shardingColumn
             );
 
             // logger.info("Executing SQL: " + sql);
-            // logger.info("Parameters: id=" + id);
+            // logger.info("Parameters: id=" + id + ", startValue=" + startValue + ", endValue=" + endValue);
 
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
 
                 stmt.setString(1, id);
 
+                // Set date range parameters based on partition column type
+                if (startValue instanceof LocalDateTime) {
+                    stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) startValue));
+                    stmt.setTimestamp(3, Timestamp.valueOf((LocalDateTime) endValue));
+                } else if (startValue instanceof Long) {
+                    stmt.setLong(2, (Long) startValue);
+                    stmt.setLong(3, (Long) endValue);
+                } else if (startValue instanceof Integer) {
+                    stmt.setInt(2, (Integer) startValue);
+                    stmt.setInt(3, (Integer) endValue);
+                } else if (startValue instanceof String) {
+                    stmt.setString(2, (String) startValue);
+                    stmt.setString(3, (String) endValue);
+                } else {
+                    throw new SQLException("Unsupported partition column type: " + startValue.getClass().getName());
+                }
+
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         T result = metadata.mapResultSet(rs);
-
-                        // Now verify if the result falls within the date range
-                        Object partitionValue = metadata.getPartitionColValue(result);
-                        LocalDateTime recordDate = null;
-
-                        if (partitionValue instanceof LocalDateTime) {
-                            recordDate = (LocalDateTime) partitionValue;
-                        } else if (partitionValue instanceof String) {
-                            try {
-                                recordDate = LocalDateTime.parse((String) partitionValue);
-                            } catch (Exception e) {
-                                // If parsing fails, include the record anyway
-                                logger.warn("Could not parse partition value: " + partitionValue);
-                                return result;
-                            }
-                        }
-
-                        if (recordDate != null) {
-                            LocalDateTime start = (LocalDateTime) startValue;
-                            LocalDateTime end = (LocalDateTime) endValue;
-
-                            if (recordDate.compareTo(start) >= 0 && recordDate.compareTo(end) < 0) {
-                                // logger.info("Found result within date range: " + result);
-                                return result;
-                            } else {
-                                // logger.info("Found record but outside date range. Record date: " + recordDate +
-                                //           ", Range: " + startValue + " to " + endValue);
-                            }
-                        }
+                        // logger.info("Found result within date range: " + result);
+                        return result;
                     } else {
                         // logger.info("No results found in table " + tableName);
                     }
