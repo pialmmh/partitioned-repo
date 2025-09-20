@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PostgreSQLSqlGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.sql.postgresql</a> &gt; <span class="el_source">PostgreSQLSqlGenerator.java</span></div><h1>PostgreSQLSqlGenerator.java</h1><pre class="source lang-java linenums">package com.telcobright.core.sql.postgresql;
+
+import com.telcobright.core.sql.BaseSqlGenerator;
+import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * PostgreSQL SQL Generator
+ * Optimized SQL generation for PostgreSQL database with support for:
+ * - Declarative partitioning (RANGE, LIST, HASH)
+ * - PostgreSQL-specific features and optimizations
+ * - Advanced indexing strategies
+ */
+<span class="nc" id="L17">public class PostgreSQLSqlGenerator extends BaseSqlGenerator {</span>
+
+    @Override
+    public String generateCreateTableWithPartitions(String tableName, EntityMetadata metadata,
+                                                   String partitionColumn, String partitionType) {
+<span class="nc" id="L22">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE &quot;);</span>
+<span class="nc bnc" id="L23" title="All 2 branches missed.">        if (supportsIfNotExists()) {</span>
+<span class="nc" id="L24">            sql.append(&quot;IF NOT EXISTS &quot;);</span>
+        }
+<span class="nc" id="L26">        sql.append(escapeIdentifier(tableName)).append(&quot; (\n&quot;);</span>
+
+        // Add columns
+<span class="nc" id="L29">        List&lt;FieldMetadata&gt; fields = metadata.getFields();</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        for (int i = 0; i &lt; fields.size(); i++) {</span>
+<span class="nc" id="L31">            FieldMetadata field = fields.get(i);</span>
+<span class="nc" id="L32">            sql.append(&quot;  &quot;).append(escapeIdentifier(field.getColumnName()))</span>
+<span class="nc" id="L33">               .append(&quot; &quot;).append(getSqlType(field));</span>
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">            if (field.equals(metadata.getIdField())) {</span>
+<span class="nc" id="L36">                sql.append(&quot; PRIMARY KEY&quot;);</span>
+            }
+
+<span class="nc bnc" id="L39" title="All 2 branches missed.">            if (i &lt; fields.size() - 1) {</span>
+<span class="nc" id="L40">                sql.append(&quot;,&quot;);</span>
+            }
+<span class="nc" id="L42">            sql.append(&quot;\n&quot;);</span>
+        }
+
+<span class="nc" id="L45">        sql.append(&quot;) PARTITION BY &quot;);</span>
+
+        // PostgreSQL declarative partitioning
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (&quot;RANGE&quot;.equalsIgnoreCase(partitionType)) {</span>
+<span class="nc" id="L49">            sql.append(&quot;RANGE (&quot;);</span>
+<span class="nc" id="L50">            FieldMetadata partitionField = getFieldByColumnName(metadata, partitionColumn);</span>
+<span class="nc bnc" id="L51" title="All 4 branches missed.">            if (partitionField != null &amp;&amp; partitionField.getType() == java.time.LocalDateTime.class) {</span>
+<span class="nc" id="L52">                sql.append(&quot;DATE(&quot;).append(escapeIdentifier(partitionColumn)).append(&quot;)&quot;);</span>
+            } else {
+<span class="nc" id="L54">                sql.append(escapeIdentifier(partitionColumn));</span>
+            }
+<span class="nc" id="L56">            sql.append(&quot;)&quot;);</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        } else if (&quot;HASH&quot;.equalsIgnoreCase(partitionType)) {</span>
+<span class="nc" id="L58">            sql.append(&quot;HASH (&quot;).append(escapeIdentifier(partitionColumn)).append(&quot;)&quot;);</span>
+        } else {
+<span class="nc" id="L60">            sql.append(&quot;LIST (&quot;).append(escapeIdentifier(partitionColumn)).append(&quot;)&quot;);</span>
+        }
+
+<span class="nc" id="L63">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateAlterTableAddPartition(String tableName, String partitionName,
+                                                String partitionDefinition) {
+        // PostgreSQL uses CREATE TABLE for adding partitions
+<span class="nc" id="L70">        return String.format(&quot;CREATE TABLE %s PARTITION OF %s FOR VALUES FROM (%s) TO (%s)&quot;,</span>
+<span class="nc" id="L71">                escapeIdentifier(partitionName),</span>
+<span class="nc" id="L72">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L73">                partitionDefinition.split(&quot;,&quot;)[0],</span>
+<span class="nc" id="L74">                partitionDefinition.split(&quot;,&quot;)[1]);</span>
+    }
+
+    @Override
+    public String generateCreateIndex(String tableName, String indexName, List&lt;String&gt; columns) {
+<span class="nc" id="L79">        String columnList = columns.stream()</span>
+<span class="nc" id="L80">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L81">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+        // PostgreSQL supports various index types
+<span class="nc" id="L84">        return String.format(&quot;CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s USING btree (%s)&quot;,</span>
+<span class="nc" id="L85">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L86">                escapeIdentifier(tableName),</span>
+                columnList);
+    }
+
+    @Override
+    public String generateBatchInsert(String tableName, List&lt;Map&lt;String, Object&gt;&gt; records) {
+        // PostgreSQL supports COPY for efficient bulk insert, but we'll use multi-row INSERT
+<span class="nc" id="L93">        String baseInsert = super.generateBatchInsert(tableName, records);</span>
+
+        // Add ON CONFLICT for upsert behavior
+<span class="nc" id="L96">        Map&lt;String, Object&gt; firstRecord = records.get(0);</span>
+<span class="nc" id="L97">        String updateClause = firstRecord.keySet().stream()</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                .filter(col -&gt; !col.equals(&quot;id&quot;))</span>
+<span class="nc" id="L99">                .map(col -&gt; escapeIdentifier(col) + &quot; = EXCLUDED.&quot; + escapeIdentifier(col))</span>
+<span class="nc" id="L100">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L102">        return baseInsert + &quot; ON CONFLICT (id) DO UPDATE SET &quot; + updateClause;</span>
+    }
+
+    @Override
+    public String generateSelectWithPagination(String baseQuery, int limit, int offset) {
+        // PostgreSQL supports standard LIMIT/OFFSET
+<span class="nc" id="L108">        return baseQuery + &quot; LIMIT &quot; + limit + &quot; OFFSET &quot; + offset;</span>
+    }
+
+    @Override
+    public String generateSelectBatchByIdGreaterThan(String tableName, String idColumn,
+                                                    String lastId, int batchSize) {
+        // PostgreSQL with index-only scan optimization
+<span class="nc" id="L115">        return String.format(&quot;SELECT * FROM %s WHERE %s &gt; ? ORDER BY %s LIMIT %d&quot;,</span>
+<span class="nc" id="L116">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L117">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L118">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L119">                batchSize);</span>
+    }
+
+    @Override
+    public String generateExistsQuery(String tableName, String idColumn) {
+        // PostgreSQL-optimized EXISTS
+<span class="nc" id="L125">        return String.format(&quot;SELECT EXISTS(SELECT 1 FROM %s WHERE %s = ?) AS exists&quot;,</span>
+<span class="nc" id="L126">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L127">                escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String escapeIdentifier(String identifier) {
+        // PostgreSQL uses double quotes for identifiers
+<span class="nc" id="L133">        return &quot;\&quot;&quot; + identifier + &quot;\&quot;&quot;;</span>
+    }
+
+    @Override
+    public String getCurrentTimestamp() {
+        // PostgreSQL current timestamp
+<span class="nc" id="L139">        return &quot;CURRENT_TIMESTAMP&quot;;</span>
+    }
+
+    @Override
+    public boolean supportsIfNotExists() {
+<span class="nc" id="L144">        return true;</span>
+    }
+
+    @Override
+    public boolean supportsNativePartitioning() {
+<span class="nc" id="L149">        return true;</span>
+    }
+
+    @Override
+    protected String getSqlType(FieldMetadata field) {
+<span class="nc" id="L154">        Class&lt;?&gt; type = field.getType();</span>
+<span class="nc" id="L155">        String columnName = field.getColumnName();</span>
+
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (type == String.class) {</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">            if (columnName.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L159">                return &quot;VARCHAR(255) NOT NULL&quot;;</span>
+<span class="nc bnc" id="L160" title="All 4 branches missed.">            } else if (columnName.contains(&quot;email&quot;) || columnName.contains(&quot;name&quot;)) {</span>
+<span class="nc" id="L161">                return &quot;VARCHAR(255)&quot;;</span>
+            } else {
+<span class="nc" id="L163">                return &quot;TEXT&quot;;</span>
+            }
+<span class="nc bnc" id="L165" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="nc" id="L166">            return &quot;INTEGER&quot;;</span>
+<span class="nc bnc" id="L167" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="nc" id="L168">            return &quot;BIGINT&quot;;</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        } else if (type == java.time.LocalDateTime.class) {</span>
+<span class="nc" id="L170">            return &quot;TIMESTAMP WITHOUT TIME ZONE&quot;;</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        } else if (type == java.time.LocalDate.class) {</span>
+<span class="nc" id="L172">            return &quot;DATE&quot;;</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        } else if (type == java.time.LocalTime.class) {</span>
+<span class="nc" id="L174">            return &quot;TIME WITHOUT TIME ZONE&quot;;</span>
+<span class="nc bnc" id="L175" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="nc" id="L176">            return &quot;BOOLEAN&quot;;</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="nc" id="L178">            return &quot;DOUBLE PRECISION&quot;;</span>
+<span class="nc bnc" id="L179" title="All 4 branches missed.">        } else if (type == Float.class || type == float.class) {</span>
+<span class="nc" id="L180">            return &quot;REAL&quot;;</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        } else if (type == java.math.BigDecimal.class) {</span>
+<span class="nc" id="L182">            return &quot;NUMERIC(19, 4)&quot;;</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        } else if (type == byte[].class) {</span>
+<span class="nc" id="L184">            return &quot;BYTEA&quot;;</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">        } else if (type == java.util.UUID.class) {</span>
+<span class="nc" id="L186">            return &quot;UUID&quot;;</span>
+        } else {
+<span class="nc" id="L188">            return &quot;TEXT&quot;;</span>
+        }
+    }
+
+    // PostgreSQL-specific methods
+
+    /**
+     * Generate SQL for creating a partitioned table with automatic partition management
+     */
+    public String generateAutoPartitionedTable(String tableName, EntityMetadata metadata,
+                                              String partitionColumn, String interval) {
+<span class="nc" id="L199">        StringBuilder sql = new StringBuilder(generateCreateTableWithPartitions(</span>
+            tableName, metadata, partitionColumn, &quot;RANGE&quot;));
+
+        // Add comment for pg_partman extension if available
+<span class="nc" id="L203">        sql.append(&quot;;\n-- For automatic partition management, use pg_partman extension&quot;);</span>
+<span class="nc" id="L204">        sql.append(&quot;\n-- SELECT partman.create_parent('public.&quot;).append(tableName)</span>
+<span class="nc" id="L205">           .append(&quot;', '&quot;).append(partitionColumn).append(&quot;', 'native', '&quot;)</span>
+<span class="nc" id="L206">           .append(interval).append(&quot;');&quot;);</span>
+
+<span class="nc" id="L208">        return sql.toString();</span>
+    }
+
+    /**
+     * Generate SQL for BRIN index (Block Range INdex) for time-series data
+     */
+    public String generateBrinIndex(String tableName, String indexName, String column) {
+<span class="nc" id="L215">        return String.format(&quot;CREATE INDEX %s ON %s USING brin (%s)&quot;,</span>
+<span class="nc" id="L216">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L217">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L218">                escapeIdentifier(column));</span>
+    }
+
+    /**
+     * Generate SQL for checking partition information
+     */
+    public String generateShowPartitions(String tableName) {
+<span class="nc" id="L225">        return String.format(</span>
+            &quot;SELECT &quot; +
+            &quot;    nmsp_parent.nspname AS parent_schema, &quot; +
+            &quot;    parent.relname AS parent_table, &quot; +
+            &quot;    nmsp_child.nspname AS child_schema, &quot; +
+            &quot;    child.relname AS child_table &quot; +
+            &quot;FROM pg_inherits &quot; +
+            &quot;JOIN pg_class parent ON pg_inherits.inhparent = parent.oid &quot; +
+            &quot;JOIN pg_class child ON pg_inherits.inhrelid = child.oid &quot; +
+            &quot;JOIN pg_namespace nmsp_parent ON parent.relnamespace = nmsp_parent.oid &quot; +
+            &quot;JOIN pg_namespace nmsp_child ON child.relnamespace = nmsp_child.oid &quot; +
+            &quot;WHERE parent.relname = '%s'&quot;,
+            tableName
+        );
+    }
+
+    /**
+     * Generate SQL for parallel query hint
+     */
+    public String generateParallelQuery(String baseQuery, int parallelWorkers) {
+<span class="nc" id="L245">        return String.format(&quot;/*+ parallel(%d) */ %s&quot;, parallelWorkers, baseQuery);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

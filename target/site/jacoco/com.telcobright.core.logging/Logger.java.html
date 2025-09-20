@@ -13,12 +13,12 @@ public interface Logger {
     /**
      * Log level enumeration
      */
-<span class="nc" id="L16">    enum Level {</span>
-<span class="nc" id="L17">        TRACE,</span>
-<span class="nc" id="L18">        DEBUG,</span>
-<span class="nc" id="L19">        INFO,</span>
-<span class="nc" id="L20">        WARN,</span>
-<span class="nc" id="L21">        ERROR</span>
+<span class="fc" id="L16">    enum Level {</span>
+<span class="fc" id="L17">        TRACE,</span>
+<span class="fc" id="L18">        DEBUG,</span>
+<span class="fc" id="L19">        INFO,</span>
+<span class="fc" id="L20">        WARN,</span>
+<span class="fc" id="L21">        ERROR</span>
     }
     
     /**
@@ -52,16 +52,16 @@ public interface Logger {
 <span class="nc" id="L52">    }</span>
     
     default void debug(String message) {
-<span class="nc" id="L55">        log(Level.DEBUG, message);</span>
-<span class="nc" id="L56">    }</span>
+<span class="fc" id="L55">        log(Level.DEBUG, message);</span>
+<span class="fc" id="L56">    }</span>
     
     default void info(String message) {
-<span class="nc" id="L59">        log(Level.INFO, message);</span>
-<span class="nc" id="L60">    }</span>
+<span class="fc" id="L59">        log(Level.INFO, message);</span>
+<span class="fc" id="L60">    }</span>
     
     default void warn(String message) {
-<span class="nc" id="L63">        log(Level.WARN, message);</span>
-<span class="nc" id="L64">    }</span>
+<span class="fc" id="L63">        log(Level.WARN, message);</span>
+<span class="fc" id="L64">    }</span>
     
     default void warn(String message, Throwable throwable) {
 <span class="nc" id="L67">        log(Level.WARN, message, throwable);</span>
@@ -72,7 +72,7 @@ public interface Logger {
 <span class="nc" id="L72">    }</span>
     
     default void error(String message, Throwable throwable) {
-<span class="nc" id="L75">        log(Level.ERROR, message, throwable);</span>
-<span class="nc" id="L76">    }</span>
+<span class="fc" id="L75">        log(Level.ERROR, message, throwable);</span>
+<span class="fc" id="L76">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -74,13 +74,13 @@ public class RepositoryProxy&lt;T extends ShardingEntity&lt;P&gt;, P extends Com
     }
     
     @Override
-    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-<span class="nc" id="L78">        return delegate.findByIdAndPartitionRange(id, startValue, endValue);</span>
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L78">        return delegate.findByIdAndPartitionColRange(id, startValue, endValue);</span>
     }
     
     @Override
-    public List&lt;T&gt; findAllByIdsAndPartitionRange(List&lt;String&gt; ids, P startValue, P endValue) throws SQLException {
-<span class="nc" id="L83">        return delegate.findAllByIdsAndPartitionRange(ids, startValue, endValue);</span>
+    public List&lt;T&gt; findAllByIdsAndPartitionColRange(List&lt;String&gt; ids, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L83">        return delegate.findAllByIdsAndPartitionColRange(ids, startValue, endValue);</span>
     }
     
     @Override
@@ -99,8 +99,8 @@ public class RepositoryProxy&lt;T extends ShardingEntity&lt;P&gt;, P extends Com
 <span class="nc" id="L99">    }</span>
     
     @Override
-    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
-<span class="nc" id="L103">        delegate.updateByIdAndPartitionRange(id, entity, startValue, endValue);</span>
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L103">        delegate.updateByIdAndPartitionColRange(id, entity, startValue, endValue);</span>
 <span class="nc" id="L104">    }</span>
     
     @Override
@@ -119,8 +119,8 @@ public class RepositoryProxy&lt;T extends ShardingEntity&lt;P&gt;, P extends Com
 <span class="nc" id="L119">    }</span>
 
     @Override
-    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-<span class="nc" id="L123">        delegate.deleteByIdAndPartitionRange(id, startValue, endValue);</span>
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L123">        delegate.deleteByIdAndPartitionColRange(id, startValue, endValue);</span>
 <span class="nc" id="L124">    }</span>
 
     @Override

@@ -27,9 +27,9 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
 <span class="nc" id="L27">        this.sqlCache = null;</span>
 <span class="nc" id="L28">    }</span>
 
-<span class="nc" id="L30">    public MySQLPersistenceProvider(SqlStatementCache cache) {</span>
-<span class="nc" id="L31">        this.sqlCache = cache;</span>
-<span class="nc" id="L32">    }</span>
+<span class="fc" id="L30">    public MySQLPersistenceProvider(SqlStatementCache cache) {</span>
+<span class="fc" id="L31">        this.sqlCache = cache;</span>
+<span class="fc" id="L32">    }</span>
 
     @Override
     public DatabaseType getDatabaseType() {
@@ -39,32 +39,32 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
     @Override
     public String generateCreateTableSQL(String tableName, EntityMetadata&lt;?&gt; metadata,
                                         String charset, String collation) {
-<span class="nc" id="L42">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE IF NOT EXISTS &quot;).append(tableName).append(&quot; (&quot;);</span>
+<span class="fc" id="L42">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE IF NOT EXISTS &quot;).append(tableName).append(&quot; (&quot;);</span>
 
         // Add columns
-<span class="nc" id="L45">        metadata.getFields().forEach(field -&gt; {</span>
-<span class="nc" id="L46">            sql.append(&quot;\n  &quot;).append(field.getColumnName()).append(&quot; &quot;);</span>
+<span class="fc" id="L45">        metadata.getFields().forEach(field -&gt; {</span>
+<span class="fc" id="L46">            sql.append(&quot;\n  &quot;).append(field.getColumnName()).append(&quot; &quot;);</span>
 
             // Map Java types to MySQL types
-<span class="nc" id="L49">            Class&lt;?&gt; type = field.getType();</span>
-<span class="nc bnc" id="L50" title="All 2 branches missed.">            if (type == String.class) {</span>
-<span class="nc bnc" id="L51" title="All 2 branches missed.">                if (field.isId()) {</span>
-<span class="nc" id="L52">                    sql.append(&quot;VARCHAR(255)&quot;);</span>
+<span class="fc" id="L49">            Class&lt;?&gt; type = field.getType();</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">            if (type == String.class) {</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">                if (field.isId()) {</span>
+<span class="fc" id="L52">                    sql.append(&quot;VARCHAR(255)&quot;);</span>
                 } else {
-<span class="nc" id="L54">                    sql.append(&quot;TEXT&quot;);</span>
+<span class="fc" id="L54">                    sql.append(&quot;TEXT&quot;);</span>
                 }
-<span class="nc bnc" id="L56" title="All 4 branches missed.">            } else if (type == Long.class || type == long.class) {</span>
-<span class="nc" id="L57">                sql.append(&quot;BIGINT&quot;);</span>
-<span class="nc bnc" id="L58" title="All 4 branches missed.">            } else if (type == Integer.class || type == int.class) {</span>
-<span class="nc" id="L59">                sql.append(&quot;INT&quot;);</span>
-<span class="nc bnc" id="L60" title="All 4 branches missed.">            } else if (type == Double.class || type == double.class) {</span>
-<span class="nc" id="L61">                sql.append(&quot;DOUBLE&quot;);</span>
-<span class="nc bnc" id="L62" title="All 4 branches missed.">            } else if (type == Float.class || type == float.class) {</span>
+<span class="pc bpc" id="L56" title="1 of 4 branches missed.">            } else if (type == Long.class || type == long.class) {</span>
+<span class="fc" id="L57">                sql.append(&quot;BIGINT&quot;);</span>
+<span class="pc bpc" id="L58" title="1 of 4 branches missed.">            } else if (type == Integer.class || type == int.class) {</span>
+<span class="fc" id="L59">                sql.append(&quot;INT&quot;);</span>
+<span class="pc bpc" id="L60" title="1 of 4 branches missed.">            } else if (type == Double.class || type == double.class) {</span>
+<span class="fc" id="L61">                sql.append(&quot;DOUBLE&quot;);</span>
+<span class="pc bpc" id="L62" title="2 of 4 branches missed.">            } else if (type == Float.class || type == float.class) {</span>
 <span class="nc" id="L63">                sql.append(&quot;FLOAT&quot;);</span>
-<span class="nc bnc" id="L64" title="All 4 branches missed.">            } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="pc bpc" id="L64" title="2 of 4 branches missed.">            } else if (type == Boolean.class || type == boolean.class) {</span>
 <span class="nc" id="L65">                sql.append(&quot;BOOLEAN&quot;);</span>
-<span class="nc bnc" id="L66" title="All 2 branches missed.">            } else if (type == LocalDateTime.class) {</span>
-<span class="nc" id="L67">                sql.append(&quot;DATETIME(6)&quot;);</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">            } else if (type == LocalDateTime.class) {</span>
+<span class="fc" id="L67">                sql.append(&quot;DATETIME(6)&quot;);</span>
 <span class="nc bnc" id="L68" title="All 2 branches missed.">            } else if (type == java.time.LocalDate.class) {</span>
 <span class="nc" id="L69">                sql.append(&quot;DATE&quot;);</span>
 <span class="nc bnc" id="L70" title="All 2 branches missed.">            } else if (type == java.time.LocalTime.class) {</span>
@@ -76,55 +76,55 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
             }
 
             // Add constraints
-<span class="nc bnc" id="L79" title="All 2 branches missed.">            if (field.isId()) {</span>
-<span class="nc" id="L80">                sql.append(&quot; PRIMARY KEY&quot;);</span>
-<span class="nc bnc" id="L81" title="All 2 branches missed.">            } else if (!field.isNullable()) {</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">            if (field.isId()) {</span>
+<span class="fc" id="L80">                sql.append(&quot; PRIMARY KEY&quot;);</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">            } else if (!field.isNullable()) {</span>
 <span class="nc" id="L82">                sql.append(&quot; NOT NULL&quot;);</span>
             }
 
-<span class="nc" id="L85">            sql.append(&quot;,&quot;);</span>
-<span class="nc" id="L86">        });</span>
+<span class="fc" id="L85">            sql.append(&quot;,&quot;);</span>
+<span class="fc" id="L86">        });</span>
 
         // Add indexes for sharding key
-<span class="nc bnc" id="L89" title="All 2 branches missed.">        if (metadata.getShardingKeyField() != null) {</span>
-<span class="nc" id="L90">            sql.append(&quot;\n  INDEX idx_&quot;).append(metadata.getShardingKeyField().getColumnName())</span>
-<span class="nc" id="L91">               .append(&quot; (&quot;).append(metadata.getShardingKeyField().getColumnName()).append(&quot;),&quot;);</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (metadata.getShardingKeyField() != null) {</span>
+<span class="fc" id="L90">            sql.append(&quot;\n  INDEX idx_&quot;).append(metadata.getShardingKeyField().getColumnName())</span>
+<span class="fc" id="L91">               .append(&quot; (&quot;).append(metadata.getShardingKeyField().getColumnName()).append(&quot;),&quot;);</span>
         }
 
         // Remove trailing comma
-<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (sql.charAt(sql.length() - 1) == ',') {</span>
-<span class="nc" id="L96">            sql.setLength(sql.length() - 1);</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">        if (sql.charAt(sql.length() - 1) == ',') {</span>
+<span class="fc" id="L96">            sql.setLength(sql.length() - 1);</span>
         }
 
-<span class="nc" id="L99">        sql.append(&quot;\n) ENGINE=InnoDB&quot;);</span>
+<span class="fc" id="L99">        sql.append(&quot;\n) ENGINE=InnoDB&quot;);</span>
 
         // Add charset and collation
-<span class="nc bnc" id="L102" title="All 4 branches missed.">        if (charset != null &amp;&amp; !charset.isEmpty()) {</span>
-<span class="nc" id="L103">            sql.append(&quot; DEFAULT CHARSET=&quot;).append(charset);</span>
+<span class="pc bpc" id="L102" title="2 of 4 branches missed.">        if (charset != null &amp;&amp; !charset.isEmpty()) {</span>
+<span class="fc" id="L103">            sql.append(&quot; DEFAULT CHARSET=&quot;).append(charset);</span>
         }
-<span class="nc bnc" id="L105" title="All 4 branches missed.">        if (collation != null &amp;&amp; !collation.isEmpty()) {</span>
-<span class="nc" id="L106">            sql.append(&quot; COLLATE=&quot;).append(collation);</span>
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">        if (collation != null &amp;&amp; !collation.isEmpty()) {</span>
+<span class="fc" id="L106">            sql.append(&quot; COLLATE=&quot;).append(collation);</span>
         }
 
-<span class="nc" id="L109">        return sql.toString();</span>
+<span class="fc" id="L109">        return sql.toString();</span>
     }
 
     @Override
     public String generateInsertSQL(String tableName, EntityMetadata&lt;?&gt; metadata) {
-<span class="nc" id="L114">        StringBuilder sql = new StringBuilder(&quot;INSERT INTO &quot;).append(tableName).append(&quot; (&quot;);</span>
-<span class="nc" id="L115">        StringBuilder values = new StringBuilder(&quot; VALUES (&quot;);</span>
+<span class="fc" id="L114">        StringBuilder sql = new StringBuilder(&quot;INSERT INTO &quot;).append(tableName).append(&quot; (&quot;);</span>
+<span class="fc" id="L115">        StringBuilder values = new StringBuilder(&quot; VALUES (&quot;);</span>
 
-<span class="nc" id="L117">        metadata.getFields().forEach(field -&gt; {</span>
-<span class="nc" id="L118">            sql.append(field.getColumnName()).append(&quot;, &quot;);</span>
-<span class="nc" id="L119">            values.append(&quot;?, &quot;);</span>
-<span class="nc" id="L120">        });</span>
+<span class="fc" id="L117">        metadata.getFields().forEach(field -&gt; {</span>
+<span class="fc" id="L118">            sql.append(field.getColumnName()).append(&quot;, &quot;);</span>
+<span class="fc" id="L119">            values.append(&quot;?, &quot;);</span>
+<span class="fc" id="L120">        });</span>
 
         // Remove trailing commas
-<span class="nc" id="L123">        sql.setLength(sql.length() - 2);</span>
-<span class="nc" id="L124">        values.setLength(values.length() - 2);</span>
+<span class="fc" id="L123">        sql.setLength(sql.length() - 2);</span>
+<span class="fc" id="L124">        values.setLength(values.length() - 2);</span>
 
-<span class="nc" id="L126">        sql.append(&quot;)&quot;).append(values).append(&quot;)&quot;);</span>
-<span class="nc" id="L127">        return sql.toString();</span>
+<span class="fc" id="L126">        sql.append(&quot;)&quot;).append(values).append(&quot;)&quot;);</span>
+<span class="fc" id="L127">        return sql.toString();</span>
     }
 
     @Override
@@ -282,19 +282,19 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
     public &lt;T extends ShardingEntity&gt; String executeInsert(Connection connection, T entity,
                                                           String tableName, EntityMetadata&lt;T&gt; metadata)
                                                           throws SQLException {
-<span class="nc" id="L285">        String sql = generateInsertSQL(tableName, metadata);</span>
+<span class="fc" id="L285">        String sql = generateInsertSQL(tableName, metadata);</span>
 
-<span class="nc" id="L287">        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
+<span class="fc" id="L287">        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
             // Set parameters
-<span class="nc" id="L289">            metadata.setInsertParameters(stmt, entity);</span>
+<span class="fc" id="L289">            metadata.setInsertParameters(stmt, entity);</span>
 
-<span class="nc" id="L291">            int affectedRows = stmt.executeUpdate();</span>
-<span class="nc bnc" id="L292" title="All 2 branches missed.">            if (affectedRows == 0) {</span>
+<span class="fc" id="L291">            int affectedRows = stmt.executeUpdate();</span>
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">            if (affectedRows == 0) {</span>
 <span class="nc" id="L293">                throw new SQLException(&quot;Creating entity failed, no rows affected.&quot;);</span>
             }
 
             // Return the ID (which should already be set on the entity for String IDs)
-<span class="nc" id="L297">            return entity.getId();</span>
+<span class="fc" id="L297">            return entity.getId();</span>
         }
     }
 

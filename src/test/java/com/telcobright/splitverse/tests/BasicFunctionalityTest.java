@@ -16,7 +16,39 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Basic functionality test to verify core operations work correctly
+ * Basic Functionality Test Suite
+ * ===============================
+ *
+ * TEST GOALS:
+ * - Verify core CRUD operations work correctly
+ * - Test basic single-shard functionality
+ * - Validate MULTI_TABLE mode with daily partitions
+ * - Ensure proper table creation and data persistence
+ *
+ * COVERAGE:
+ * - Single shard configuration
+ * - MULTI_TABLE repository mode (separate tables per day)
+ * - Basic CRUD operations (Create, Read, Update, Delete)
+ * - Entity annotation processing
+ * - Automatic table creation
+ * - ID generation and retrieval
+ *
+ * DESCRIPTION:
+ * This test suite validates the basic functionality of Split-Verse with minimal
+ * setup. It uses a single shard with MULTI_TABLE mode, creating separate tables
+ * for each day's data. This is the simplest configuration and serves as a smoke
+ * test for the framework's core features.
+ *
+ * PREREQUISITES:
+ * - MySQL running on 127.0.0.1:3306
+ * - Root access with password "123456"
+ * - Ability to create/drop databases
+ *
+ * TESTS:
+ * 1. testInsertAndRetrieve - Basic insert and findById operations
+ * 2. testMultipleInserts - Batch insert operations
+ * 3. testUpdate - Update existing records
+ * 4. testDelete - Delete records by ID
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class BasicFunctionalityTest {

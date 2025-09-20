@@ -61,10 +61,10 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     /**
      * Find first entity within a partition value range
      */
-    T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
+    T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Find first entity within a date range     * @deprecated Use findByIdAndPartitionRange for generic support
+     * Find first entity within a date range     * @deprecated Use findByIdAndPartitionColRange for generic support
      */
     @Deprecated
     default T findByIdAndDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -73,7 +73,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
             P start = (P) startDate;
             @SuppressWarnings("unchecked")
             P end = (P) endDate;
-            return findByIdAndPartitionRange(null, start, end);
+            return findByIdAndPartitionColRange(null, start, end);
         } catch (ClassCastException e) {
             throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
         }
@@ -82,10 +82,10 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     /**
      * Find all entities with specific IDs within a partition value range
      */
-    List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException;
+    List<T> findAllByIdsAndPartitionColRange(List<String> ids, P startValue, P endValue) throws SQLException;
 
     /**
-     * Find all entities with specific IDs within a date range     * @deprecated Use findAllByIdsAndPartitionRange for generic support
+     * Find all entities with specific IDs within a date range     * @deprecated Use findAllByIdsAndPartitionColRange for generic support
      */
     @Deprecated
     default List<T> findAllByIdsAndDateRange(List<String> ids, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -94,7 +94,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
             P start = (P) startDate;
             @SuppressWarnings("unchecked")
             P end = (P) endDate;
-            return findAllByIdsAndPartitionRange(ids, start, end);
+            return findAllByIdsAndPartitionColRange(ids, start, end);
         } catch (ClassCastException e) {
             throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
         }
@@ -146,10 +146,10 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     /**
      * Update entity by primary key within a specific partition value range
      */
-    void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException;
+    void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException;
 
     /**
-     * Update entity by primary key within a specific date range     * @deprecated Use updateByIdAndPartitionRange for generic support
+     * Update entity by primary key within a specific date range     * @deprecated Use updateByIdAndPartitionColRange for generic support
      */
     @Deprecated
     default void updateByIdAndDateRange(String id, T entity, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -158,7 +158,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
             P start = (P) startDate;
             @SuppressWarnings("unchecked")
             P end = (P) endDate;
-            updateByIdAndPartitionRange(id, entity, start, end);
+            updateByIdAndPartitionColRange(id, entity, start, end);
         } catch (ClassCastException e) {
             throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
         }
@@ -195,10 +195,10 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
     /**
      * Delete entity by primary key within a specific partition value range
      */
-    void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException;
+    void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException;
 
     /**
-     * Delete entity by primary key within a specific date range     * @deprecated Use deleteByIdAndPartitionRange for generic support
+     * Delete entity by primary key within a specific date range     * @deprecated Use deleteByIdAndPartitionColRange for generic support
      */
     @Deprecated
     default void deleteByIdAndDateRange(String id, LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
@@ -207,7 +207,7 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
             P start = (P) startDate;
             @SuppressWarnings("unchecked")
             P end = (P) endDate;
-            deleteByIdAndPartitionRange(id, start, end);
+            deleteByIdAndPartitionColRange(id, start, end);
         } catch (ClassCastException e) {
             throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
         }

@@ -12,12 +12,12 @@ public class HashRouter {
     
     private final int totalShards;
     
-<span class="nc" id="L15">    public HashRouter(int totalShards) {</span>
-<span class="nc bnc" id="L16" title="All 2 branches missed.">        if (totalShards &lt;= 0) {</span>
+<span class="fc" id="L15">    public HashRouter(int totalShards) {</span>
+<span class="pc bpc" id="L16" title="1 of 2 branches missed.">        if (totalShards &lt;= 0) {</span>
 <span class="nc" id="L17">            throw new IllegalArgumentException(&quot;Total shards must be positive&quot;);</span>
         }
-<span class="nc" id="L19">        this.totalShards = totalShards;</span>
-<span class="nc" id="L20">    }</span>
+<span class="fc" id="L19">        this.totalShards = totalShards;</span>
+<span class="fc" id="L20">    }</span>
     
     /**
      * Get shard index for a given key using hash-based routing.

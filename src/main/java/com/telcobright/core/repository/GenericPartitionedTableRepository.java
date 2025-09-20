@@ -238,7 +238,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
      * Find entity by ID within a date range
      */
     @Override
-    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
         // Returns the first entity found in the date range
         List<T> entities = findAllByPartitionRange(startValue, endValue);
         return entities.isEmpty() ? null : entities.get(0);
@@ -248,7 +248,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
      * Find all entities by IDs within a date range
      */
     @Override
-    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException {
+    public List<T> findAllByIdsAndPartitionColRange(List<String> ids, P startValue, P endValue) throws SQLException {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
@@ -381,7 +381,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
      * Update entity by primary key within a specific date range
      */
     @Override
-    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException {
         String fullTableName = database + "." + tableName;
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         String idColumn = metadata.getIdField().getColumnName();
@@ -528,25 +528,35 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
                     LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);
                     LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);
 
-                    // Build partition clause with single initial partition
+                    // Build partition clause with ALL partitions for the retention period
                     // Use TO_DAYS function for simpler partition definition
                     StringBuilder partitionClause = new StringBuilder();
                     partitionClause.append("\nPARTITION BY RANGE (TO_DAYS(").append(shardingColumn).append("))\n(");
 
-                    // Create just one partition for today
-                    // Additional partitions will be created on demand
-                    LocalDateTime tomorrow = LocalDateTime.now().plusDays(1);
-                    String partitionName = "p" + LocalDateTime.now().format(DATE_FORMAT);
+                    // Create all partitions from start date to end date
+                    // This ensures all required partitions exist upfront
+                    boolean first = true;
+                    int partitionCount = 0;
+                    for (LocalDateTime date = startDate; date.isBefore(endDate); date = date.plusDays(1)) {
+                        String partitionName = "p" + date.format(DATE_FORMAT);
+                        LocalDateTime nextDay = date.plusDays(1);
 
-                    partitionClause.append("\n  PARTITION ").append(partitionName)
-                                  .append(" VALUES LESS THAN (TO_DAYS('")
-                                  .append(tomorrow.toLocalDate().toString())
-                                  .append("'))");
+                        if (!first) {
+                            partitionClause.append(",");
+                        }
+                        first = false;
+
+                        partitionClause.append("\n  PARTITION ").append(partitionName)
+                                      .append(" VALUES LESS THAN (TO_DAYS('")
+                                      .append(nextDay.toLocalDate().toString())
+                                      .append("'))");
+                        partitionCount++;
+                    }
 
                     partitionClause.append("\n)");
                     createSQL += partitionClause.toString();
 
-                    logger.info("Creating partitioned table with " + (partitionRetentionPeriod * 2 + 1) + " partitions");
+                    logger.info("Creating partitioned table with " + partitionCount + " partitions");
                     logger.info("Executing CREATE TABLE SQL: " + createSQL);
                     stmt.execute(createSQL);
                     logger.info("Created partitioned table: " + fullTableName + " with partitions from " +
@@ -853,7 +863,7 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
     }
 
     @Override
-    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
         String idColumn = metadata.getIdField().getColumnName();
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         String fullTableName = database + "." + tableName;

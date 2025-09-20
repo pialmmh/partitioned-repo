@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  * During maintenance operations, all CRUD operations are blocked.
  */
 public class ConnectionProvider {
-<span class="nc" id="L15">    private static final Logger LOGGER = Logger.getLogger(ConnectionProvider.class.getName());</span>
+<span class="fc" id="L15">    private static final Logger LOGGER = Logger.getLogger(ConnectionProvider.class.getName());</span>
     
     private final String jdbcUrl;
     private final String username;
@@ -21,32 +21,32 @@ public class ConnectionProvider {
     // Read-write lock for maintenance operations
     // Read lock: Normal CRUD operations can proceed concurrently
     // Write lock: Maintenance operations have exclusive access
-<span class="nc" id="L24">    private final ReadWriteLock maintenanceLock = new ReentrantReadWriteLock(true);</span>
-<span class="nc" id="L25">    private volatile boolean maintenanceInProgress = false;</span>
-<span class="nc" id="L26">    private volatile String maintenanceReason = &quot;&quot;;</span>
+<span class="fc" id="L24">    private final ReadWriteLock maintenanceLock = new ReentrantReadWriteLock(true);</span>
+<span class="fc" id="L25">    private volatile boolean maintenanceInProgress = false;</span>
+<span class="fc" id="L26">    private volatile String maintenanceReason = &quot;&quot;;</span>
     
     /**
      * Create a new ConnectionProvider
      */
-<span class="nc" id="L31">    public ConnectionProvider(String host, int port, String database, String username, String password) {</span>
-<span class="nc" id="L32">        this.username = username;</span>
-<span class="nc" id="L33">        this.password = password;</span>
+<span class="fc" id="L31">    public ConnectionProvider(String host, int port, String database, String username, String password) {</span>
+<span class="fc" id="L32">        this.username = username;</span>
+<span class="fc" id="L33">        this.password = password;</span>
         
         // Build JDBC URL with timezone settings to prevent LocalDateTime conversion issues
-<span class="nc" id="L36">        this.jdbcUrl = String.format(</span>
+<span class="fc" id="L36">        this.jdbcUrl = String.format(</span>
             &quot;jdbc:mysql://%s:%d/%s?useSSL=false&amp;serverTimezone=UTC&amp;useLegacyDatetimeCode=false&amp;preserveInstants=true&quot;,
-<span class="nc" id="L38">            host, port, database</span>
+<span class="fc" id="L38">            host, port, database</span>
         );
         
         // Load MySQL driver
         try {
-<span class="nc" id="L43">            Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;);</span>
+<span class="fc" id="L43">            Class.forName(&quot;com.mysql.cj.jdbc.Driver&quot;);</span>
 <span class="nc" id="L44">        } catch (ClassNotFoundException e) {</span>
 <span class="nc" id="L45">            throw new RuntimeException(&quot;MySQL JDBC driver not found&quot;, e);</span>
-<span class="nc" id="L46">        }</span>
+<span class="fc" id="L46">        }</span>
         
-<span class="nc" id="L48">        LOGGER.info(&quot;ConnectionProvider initialized for: &quot; + jdbcUrl);</span>
-<span class="nc" id="L49">    }</span>
+<span class="fc" id="L48">        LOGGER.info(&quot;ConnectionProvider initialized for: &quot; + jdbcUrl);</span>
+<span class="fc" id="L49">    }</span>
     
     /**
      * Get a connection for normal CRUD operations.
@@ -58,17 +58,17 @@ public class ConnectionProvider {
      */
     public Connection getConnection() throws SQLException {
         // Try to acquire read lock (will block if maintenance has write lock)
-<span class="nc" id="L61">        maintenanceLock.readLock().lock();</span>
+<span class="fc" id="L61">        maintenanceLock.readLock().lock();</span>
         try {
-<span class="nc bnc" id="L63" title="All 2 branches missed.">            if (maintenanceInProgress) {</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">            if (maintenanceInProgress) {</span>
 <span class="nc" id="L64">                throw new MaintenanceInProgressException(</span>
                     &quot;Database connections are blocked for maintenance: &quot; + maintenanceReason
                 );
             }
             
-<span class="nc" id="L69">            return createConnection();</span>
+<span class="fc" id="L69">            return createConnection();</span>
         } finally {
-<span class="nc" id="L71">            maintenanceLock.readLock().unlock();</span>
+<span class="fc" id="L71">            maintenanceLock.readLock().unlock();</span>
         }
     }
     
@@ -101,7 +101,7 @@ public class ConnectionProvider {
      * Create a new JDBC connection
      */
     private Connection createConnection() throws SQLException {
-<span class="nc" id="L104">        return DriverManager.getConnection(jdbcUrl, username, password);</span>
+<span class="fc" id="L104">        return DriverManager.getConnection(jdbcUrl, username, password);</span>
     }
     
     /**
@@ -138,43 +138,43 @@ public class ConnectionProvider {
     /**
      * Builder for ConnectionProvider
      */
-<span class="nc" id="L141">    public static class Builder {</span>
-<span class="nc" id="L142">        private String host = &quot;localhost&quot;;</span>
-<span class="nc" id="L143">        private int port = 3306;</span>
+<span class="fc" id="L141">    public static class Builder {</span>
+<span class="fc" id="L142">        private String host = &quot;localhost&quot;;</span>
+<span class="fc" id="L143">        private int port = 3306;</span>
         private String database;
         private String username;
         private String password;
         
         public Builder host(String host) {
-<span class="nc" id="L149">            this.host = host;</span>
-<span class="nc" id="L150">            return this;</span>
+<span class="fc" id="L149">            this.host = host;</span>
+<span class="fc" id="L150">            return this;</span>
         }
         
         public Builder port(int port) {
-<span class="nc" id="L154">            this.port = port;</span>
-<span class="nc" id="L155">            return this;</span>
+<span class="fc" id="L154">            this.port = port;</span>
+<span class="fc" id="L155">            return this;</span>
         }
         
         public Builder database(String database) {
-<span class="nc" id="L159">            this.database = database;</span>
-<span class="nc" id="L160">            return this;</span>
+<span class="fc" id="L159">            this.database = database;</span>
+<span class="fc" id="L160">            return this;</span>
         }
         
         public Builder username(String username) {
-<span class="nc" id="L164">            this.username = username;</span>
-<span class="nc" id="L165">            return this;</span>
+<span class="fc" id="L164">            this.username = username;</span>
+<span class="fc" id="L165">            return this;</span>
         }
         
         public Builder password(String password) {
-<span class="nc" id="L169">            this.password = password;</span>
-<span class="nc" id="L170">            return this;</span>
+<span class="fc" id="L169">            this.password = password;</span>
+<span class="fc" id="L170">            return this;</span>
         }
         
         public ConnectionProvider build() {
-<span class="nc bnc" id="L174" title="All 6 branches missed.">            if (database == null || username == null || password == null) {</span>
+<span class="pc bpc" id="L174" title="3 of 6 branches missed.">            if (database == null || username == null || password == null) {</span>
 <span class="nc" id="L175">                throw new IllegalArgumentException(&quot;Database, username, and password are required&quot;);</span>
             }
-<span class="nc" id="L177">            return new ConnectionProvider(host, port, database, username, password);</span>
+<span class="fc" id="L177">            return new ConnectionProvider(host, port, database, username, password);</span>
         }
     }
     

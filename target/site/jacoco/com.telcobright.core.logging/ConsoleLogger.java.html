@@ -10,8 +10,8 @@ import java.util.Map;
  */
 public class ConsoleLogger implements Logger {
     
-<span class="nc" id="L13">    private static final DateTimeFormatter TIMESTAMP_FORMAT = </span>
-<span class="nc" id="L14">        DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss.SSS&quot;);</span>
+<span class="fc" id="L13">    private static final DateTimeFormatter TIMESTAMP_FORMAT = </span>
+<span class="fc" id="L14">        DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss.SSS&quot;);</span>
     
     private final String name;
     private final Level minimumLevel;
@@ -20,51 +20,51 @@ public class ConsoleLogger implements Logger {
      * Create a console logger with default INFO level
      */
     public ConsoleLogger(String name) {
-<span class="nc" id="L23">        this(name, Level.INFO);</span>
-<span class="nc" id="L24">    }</span>
+<span class="fc" id="L23">        this(name, Level.INFO);</span>
+<span class="fc" id="L24">    }</span>
     
     /**
      * Create a console logger with specified minimum level
      */
-<span class="nc" id="L29">    public ConsoleLogger(String name, Level minimumLevel) {</span>
-<span class="nc" id="L30">        this.name = name;</span>
-<span class="nc" id="L31">        this.minimumLevel = minimumLevel;</span>
-<span class="nc" id="L32">    }</span>
+<span class="fc" id="L29">    public ConsoleLogger(String name, Level minimumLevel) {</span>
+<span class="fc" id="L30">        this.name = name;</span>
+<span class="fc" id="L31">        this.minimumLevel = minimumLevel;</span>
+<span class="fc" id="L32">    }</span>
     
     @Override
     public boolean isLevelEnabled(Level level) {
-<span class="nc bnc" id="L36" title="All 2 branches missed.">        return level.ordinal() &gt;= minimumLevel.ordinal();</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        return level.ordinal() &gt;= minimumLevel.ordinal();</span>
     }
     
     @Override
     public void log(Level level, String message) {
-<span class="nc bnc" id="L41" title="All 2 branches missed.">        if (!isLevelEnabled(level)) {</span>
-<span class="nc" id="L42">            return;</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (!isLevelEnabled(level)) {</span>
+<span class="fc" id="L42">            return;</span>
         }
         
-<span class="nc" id="L45">        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);</span>
-<span class="nc" id="L46">        String output = String.format(&quot;[%s] %-5s [%s] %s&quot;, </span>
+<span class="fc" id="L45">        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);</span>
+<span class="fc" id="L46">        String output = String.format(&quot;[%s] %-5s [%s] %s&quot;, </span>
             timestamp, level, name, message);
         
-<span class="nc bnc" id="L49" title="All 4 branches missed.">        if (level == Level.ERROR || level == Level.WARN) {</span>
-<span class="nc" id="L50">            System.err.println(output);</span>
+<span class="fc bfc" id="L49" title="All 4 branches covered.">        if (level == Level.ERROR || level == Level.WARN) {</span>
+<span class="fc" id="L50">            System.err.println(output);</span>
         } else {
-<span class="nc" id="L52">            System.out.println(output);</span>
+<span class="fc" id="L52">            System.out.println(output);</span>
         }
-<span class="nc" id="L54">    }</span>
+<span class="fc" id="L54">    }</span>
     
     @Override
     public void log(Level level, String message, Throwable throwable) {
-<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (!isLevelEnabled(level)) {</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        if (!isLevelEnabled(level)) {</span>
 <span class="nc" id="L59">            return;</span>
         }
         
-<span class="nc" id="L62">        log(level, message);</span>
-<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (throwable != null) {</span>
-<span class="nc bnc" id="L64" title="All 4 branches missed.">            throwable.printStackTrace(level == Level.ERROR || level == Level.WARN ? </span>
-<span class="nc" id="L65">                System.err : System.out);</span>
+<span class="fc" id="L62">        log(level, message);</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (throwable != null) {</span>
+<span class="pc bpc" id="L64" title="3 of 4 branches missed.">            throwable.printStackTrace(level == Level.ERROR || level == Level.WARN ? </span>
+<span class="pc" id="L65">                System.err : System.out);</span>
         }
-<span class="nc" id="L67">    }</span>
+<span class="fc" id="L67">    }</span>
     
     @Override
     public void logEvent(Level level, String eventType, String message, Map&lt;String, Object&gt; context) {

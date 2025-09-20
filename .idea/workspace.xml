@@ -4,7 +4,104 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="" />
+    <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/doc/test-documentation/SingleShardMultiTableNestedPartition.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/doc/test-documentation/SipCallIdhashText.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericMultiTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericMultiTableRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericPartitionedTableRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/GenericPartitionedTableRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SplitVerseRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SplitVerseRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/DbUtilIntegrationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ApiValidationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ApiValidationTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/BasicFunctionalityTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/BasicFunctionalityTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ComprehensiveStrategyTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/CrudOperationsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/CrudOperationsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/DatewiseMultiTableTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/DebugTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/MultiShardTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/PartitionRangeTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/PerformanceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/PerformanceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ShardingStrategyTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/SingleShardPaginationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/SqlPregenerationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/TestDatabaseSetup.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/ThreeShardNestedPartitioningTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/deprecated/AnnotationEnforcementTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/deprecated/PartitionTypeValidationTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/deprecated/RepositoryModeTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/deprecated/ShardingEntityEnforcementTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/deprecated/SplitVerseBasicOperationsTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/telcobright/splitverse/tests/deprecated/SplitVerseMultiShardTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/jacoco.exec" beforeDir="false" afterPath="$PROJECT_DIR$/target/jacoco.exec" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/DataSourceConfig.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/DataSourceConfig.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/DataSourceConfig.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/DataSourceConfig.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.config/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/ConnectionProvider$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/ConnectionProvider$Builder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/ConnectionProvider.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/ConnectionProvider.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/ConnectionProvider.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/ConnectionProvider.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.connection/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/ConsoleLogger.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/ConsoleLogger.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/ConsoleLogger.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/ConsoleLogger.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/Logger$Level.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/Logger$Level.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/Logger.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/Logger.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/Logger.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/Logger.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.logging/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.pagination/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.pagination/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.pagination/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.pagination/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/PartitionType.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/PartitionType.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/PartitionType.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/PartitionType.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.partition/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/MySQLPersistenceProvider.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/MySQLPersistenceProvider.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/MySQLPersistenceProvider.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/MySQLPersistenceProvider.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.persistence/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.query/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.query/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.query/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.query/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository$Builder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository$TableGranularity.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository$TableGranularity.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericMultiTableRepository.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository$Builder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SplitVerseRepository$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SplitVerseRepository$Builder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SplitVerseRepository.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SplitVerseRepository.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SplitVerseRepository.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SplitVerseRepository.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/SqlStatementCache.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/SqlStatementCache.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/SqlStatementCache.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/SqlStatementCache.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.sql/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/ShardConfig.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/ShardConfig.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/ShardConfig.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/ShardConfig.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.config/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/HashRouter.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/HashRouter.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/HashRouter.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/HashRouter.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.splitverse.routing/index.source.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-sessions.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco-sessions.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/surefire-reports/TEST-com.telcobright.splitverse.tests.ApiValidationTest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/surefire-reports/com.telcobright.splitverse.tests.ApiValidationTest.txt" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -37,7 +134,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/mustafa/telcobright-projects/routesphere/split-verse",
+    "last_opened_file_path": "/home/mustafa/telcobright-projects/routesphere/split-verse/doc/test-documentation",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -48,6 +145,11 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/doc/test-documentation" />
+    </key>
+  </component>
   <component name="RunManager" selected="Application.GenericOrderPartitionedTableExample">
     <configuration name="CompilationTestExample" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.telcobright.db.example.CompilationTestExample" />
@@ -121,6 +223,8 @@
       <workItem from="1757328039953" duration="598000" />
       <workItem from="1757592093366" duration="1293000" />
       <workItem from="1757781538826" duration="4132000" />
+      <workItem from="1758329420641" duration="1317000" />
+      <workItem from="1758338798609" duration="7237000" />
     </task>
     <servers />
   </component>

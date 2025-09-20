@@ -28,94 +28,94 @@ public class EntityMetadata&lt;T&gt; {
     private final Map&lt;String, Integer&gt; insertParameterIndex;
     private final Map&lt;String, Integer&gt; updateParameterIndex;
 
-<span class="nc" id="L31">    public EntityMetadata(Class&lt;T&gt; entityClass) {</span>
-<span class="nc" id="L32">        this.entityClass = entityClass;</span>
-<span class="nc" id="L33">        this.fields = new ArrayList&lt;&gt;();</span>
-<span class="nc" id="L34">        this.insertParameterIndex = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L35">        this.updateParameterIndex = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L31">    public EntityMetadata(Class&lt;T&gt; entityClass) {</span>
+<span class="fc" id="L32">        this.entityClass = entityClass;</span>
+<span class="fc" id="L33">        this.fields = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L34">        this.insertParameterIndex = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L35">        this.updateParameterIndex = new HashMap&lt;&gt;();</span>
         
         // Parse class annotations
-<span class="nc" id="L38">        Table tableAnnotation = entityClass.getAnnotation(Table.class);</span>
-<span class="nc bnc" id="L39" title="All 2 branches missed.">        if (tableAnnotation == null) {</span>
+<span class="fc" id="L38">        Table tableAnnotation = entityClass.getAnnotation(Table.class);</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (tableAnnotation == null) {</span>
             // Use simple class name if no annotation
 <span class="nc" id="L41">            this.tableName = entityClass.getSimpleName().toLowerCase().replace(&quot;entity&quot;, &quot;&quot;);</span>
         } else {
-<span class="nc" id="L43">            this.tableName = tableAnnotation.name();</span>
+<span class="fc" id="L43">            this.tableName = tableAnnotation.name();</span>
         }
         
         // Parse fields
-<span class="nc" id="L47">        FieldMetadata tempIdField = null;</span>
-<span class="nc" id="L48">        FieldMetadata tempShardingField = null;</span>
-<span class="nc" id="L49">        int idFieldCount = 0;</span>
-<span class="nc" id="L50">        int shardingKeyCount = 0;</span>
-<span class="nc" id="L51">        int paramIndex = 1;</span>
+<span class="fc" id="L47">        FieldMetadata tempIdField = null;</span>
+<span class="fc" id="L48">        FieldMetadata tempShardingField = null;</span>
+<span class="fc" id="L49">        int idFieldCount = 0;</span>
+<span class="fc" id="L50">        int shardingKeyCount = 0;</span>
+<span class="fc" id="L51">        int paramIndex = 1;</span>
         
-<span class="nc bnc" id="L53" title="All 2 branches missed.">        for (Field field : entityClass.getDeclaredFields()) {</span>
-<span class="nc" id="L54">            field.setAccessible(true);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (Field field : entityClass.getDeclaredFields()) {</span>
+<span class="fc" id="L54">            field.setAccessible(true);</span>
             
             // Skip static or transient fields
-<span class="nc bnc" id="L57" title="All 2 branches missed.">            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) || </span>
-<span class="nc bnc" id="L58" title="All 2 branches missed.">                java.lang.reflect.Modifier.isTransient(field.getModifiers())) {</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) || </span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">                java.lang.reflect.Modifier.isTransient(field.getModifiers())) {</span>
 <span class="nc" id="L59">                continue;</span>
             }
             
-<span class="nc" id="L62">            FieldMetadata fieldMeta = new FieldMetadata(field);</span>
-<span class="nc" id="L63">            fields.add(fieldMeta);</span>
+<span class="fc" id="L62">            FieldMetadata fieldMeta = new FieldMetadata(field);</span>
+<span class="fc" id="L63">            fields.add(fieldMeta);</span>
             
-<span class="nc bnc" id="L65" title="All 2 branches missed.">            if (fieldMeta.isId()) {</span>
-<span class="nc" id="L66">                idFieldCount++;</span>
-<span class="nc" id="L67">                tempIdField = fieldMeta;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            if (fieldMeta.isId()) {</span>
+<span class="fc" id="L66">                idFieldCount++;</span>
+<span class="fc" id="L67">                tempIdField = fieldMeta;</span>
             }
-<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (fieldMeta.isShardingKey()) {</span>
-<span class="nc" id="L70">                shardingKeyCount++;</span>
-<span class="nc" id="L71">                tempShardingField = fieldMeta;</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            if (fieldMeta.isShardingKey()) {</span>
+<span class="fc" id="L70">                shardingKeyCount++;</span>
+<span class="fc" id="L71">                tempShardingField = fieldMeta;</span>
             }
             
             // Build parameter index for insert
-<span class="nc bnc" id="L75" title="All 4 branches missed.">            if (fieldMeta.isInsertable() &amp;&amp; !fieldMeta.isAutoGenerated()) {</span>
-<span class="nc" id="L76">                insertParameterIndex.put(fieldMeta.getFieldName(), paramIndex++);</span>
+<span class="pc bpc" id="L75" title="1 of 4 branches missed.">            if (fieldMeta.isInsertable() &amp;&amp; !fieldMeta.isAutoGenerated()) {</span>
+<span class="fc" id="L76">                insertParameterIndex.put(fieldMeta.getFieldName(), paramIndex++);</span>
             }
         }
         
-<span class="nc" id="L80">        this.idField = tempIdField;</span>
-<span class="nc" id="L81">        this.shardingKeyField = tempShardingField;</span>
+<span class="fc" id="L80">        this.idField = tempIdField;</span>
+<span class="fc" id="L81">        this.shardingKeyField = tempShardingField;</span>
 
         // Cache partition column name from @ShardingKey field
-<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (tempShardingField != null) {</span>
-<span class="nc" id="L85">            this.partitionColumnName = tempShardingField.getColumnName();</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (tempShardingField != null) {</span>
+<span class="fc" id="L85">            this.partitionColumnName = tempShardingField.getColumnName();</span>
         } else {
 <span class="nc" id="L87">            this.partitionColumnName = null;</span>
         }
 
         // Enforce required columns
-<span class="nc" id="L91">        validateRequiredColumns();</span>
+<span class="fc" id="L91">        validateRequiredColumns();</span>
         
         // Generate SQL statements
-<span class="nc" id="L94">        this.insertSQL = generateInsertSQL();</span>
-<span class="nc" id="L95">        this.selectByIdSQL = generateSelectByIdSQL();</span>
-<span class="nc" id="L96">        this.updateByIdSQL = generateUpdateByIdSQL();</span>
-<span class="nc" id="L97">        this.createTableSQL = generateCreateTableSQL();</span>
-<span class="nc" id="L98">    }</span>
+<span class="fc" id="L94">        this.insertSQL = generateInsertSQL();</span>
+<span class="fc" id="L95">        this.selectByIdSQL = generateSelectByIdSQL();</span>
+<span class="fc" id="L96">        this.updateByIdSQL = generateUpdateByIdSQL();</span>
+<span class="fc" id="L97">        this.createTableSQL = generateCreateTableSQL();</span>
+<span class="fc" id="L98">    }</span>
     
     /**
      * Validates that the entity has required fields for repository operations
      */
     private void validateRequiredColumns() {
         // Count annotations for validation
-<span class="nc" id="L105">        int idCount = 0;</span>
-<span class="nc" id="L106">        int shardingCount = 0;</span>
-<span class="nc bnc" id="L107" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
-<span class="nc bnc" id="L108" title="All 2 branches missed.">            if (field.isId()) idCount++;</span>
-<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (field.isShardingKey()) shardingCount++;</span>
-<span class="nc" id="L110">        }</span>
+<span class="fc" id="L105">        int idCount = 0;</span>
+<span class="fc" id="L106">        int shardingCount = 0;</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">            if (field.isId()) idCount++;</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            if (field.isShardingKey()) shardingCount++;</span>
+<span class="fc" id="L110">        }</span>
         
         // Validate exactly ONE @Id field
-<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (idField == null) {</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">        if (idField == null) {</span>
 <span class="nc" id="L114">            throw new IllegalArgumentException(</span>
 <span class="nc" id="L115">                String.format(&quot;Entity %s must have exactly ONE field annotated with @Id&quot;, entityClass.getSimpleName())</span>
             );
         }
-<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (idCount &gt; 1) {</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (idCount &gt; 1) {</span>
 <span class="nc" id="L119">            throw new IllegalArgumentException(</span>
 <span class="nc" id="L120">                String.format(&quot;Entity %s has %d fields annotated with @Id, but only ONE is allowed&quot;, </span>
 <span class="nc" id="L121">                    entityClass.getSimpleName(), idCount)</span>
@@ -123,7 +123,7 @@ public class EntityMetadata&lt;T&gt; {
         }
         
         // Validate ID field is String type
-<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (!String.class.equals(idField.getType())) {</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (!String.class.equals(idField.getType())) {</span>
 <span class="nc" id="L127">            throw new IllegalArgumentException(</span>
 <span class="nc" id="L128">                String.format(&quot;Entity %s @Id field '%s' must be of type String for Split-Verse (found: %s). &quot; +</span>
                     &quot;Split-Verse requires String IDs for consistent hash-based sharding.&quot;, 
@@ -132,13 +132,13 @@ public class EntityMetadata&lt;T&gt; {
         }
         
         // Validate exactly ONE @ShardingKey field
-<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if (shardingKeyField == null) {</span>
 <span class="nc" id="L136">            throw new IllegalArgumentException(</span>
 <span class="nc" id="L137">                String.format(&quot;Entity %s must have exactly ONE field annotated with @ShardingKey for date-based partitioning&quot;, </span>
 <span class="nc" id="L138">                    entityClass.getSimpleName())</span>
             );
         }
-<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (shardingCount &gt; 1) {</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">        if (shardingCount &gt; 1) {</span>
 <span class="nc" id="L142">            throw new IllegalArgumentException(</span>
 <span class="nc" id="L143">                String.format(&quot;Entity %s has %d fields annotated with @ShardingKey, but only ONE is allowed&quot;, </span>
 <span class="nc" id="L144">                    entityClass.getSimpleName(), shardingCount)</span>
@@ -146,7 +146,7 @@ public class EntityMetadata&lt;T&gt; {
         }
         
         // Validate sharding key is a Comparable type for range queries
-<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (!Comparable.class.isAssignableFrom(shardingKeyField.getType())) {</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">        if (!Comparable.class.isAssignableFrom(shardingKeyField.getType())) {</span>
 <span class="nc" id="L150">            throw new IllegalArgumentException(</span>
 <span class="nc" id="L151">                String.format(&quot;Entity %s @ShardingKey field '%s' must implement Comparable for range partitioning (found: %s)&quot;,</span>
 <span class="nc" id="L152">                    entityClass.getSimpleName(), shardingKeyField.getFieldName(), shardingKeyField.getType().getSimpleName())</span>
@@ -154,145 +154,145 @@ public class EntityMetadata&lt;T&gt; {
         }
         
         // Validate that @Id is not auto-generated
-<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (idField.isAutoGenerated()) {</span>
-<span class="nc" id="L158">            throw new IllegalArgumentException(</span>
-<span class="nc" id="L159">                String.format(&quot;Entity %s @Id field '%s' must have autoGenerated=false. &quot; +</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (idField.isAutoGenerated()) {</span>
+<span class="fc" id="L158">            throw new IllegalArgumentException(</span>
+<span class="fc" id="L159">                String.format(&quot;Entity %s @Id field '%s' must have autoGenerated=false. &quot; +</span>
                     &quot;Split-Verse requires externally generated String IDs (UUID, ULID, etc.)&quot;, 
-<span class="nc" id="L161">                    entityClass.getSimpleName(), idField.getFieldName())</span>
+<span class="fc" id="L161">                    entityClass.getSimpleName(), idField.getFieldName())</span>
             );
         }
-<span class="nc" id="L164">    }</span>
+<span class="fc" id="L164">    }</span>
     
     private String generateInsertSQL() {
-<span class="nc" id="L167">        StringBuilder columns = new StringBuilder();</span>
-<span class="nc" id="L168">        StringBuilder values = new StringBuilder();</span>
-<span class="nc" id="L169">        boolean first = true;</span>
+<span class="fc" id="L167">        StringBuilder columns = new StringBuilder();</span>
+<span class="fc" id="L168">        StringBuilder values = new StringBuilder();</span>
+<span class="fc" id="L169">        boolean first = true;</span>
         
-<span class="nc bnc" id="L171" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
-<span class="nc bnc" id="L172" title="All 4 branches missed.">            if (field.isInsertable() &amp;&amp; !field.isAutoGenerated()) {</span>
-<span class="nc bnc" id="L173" title="All 2 branches missed.">                if (!first) {</span>
-<span class="nc" id="L174">                    columns.append(&quot;, &quot;);</span>
-<span class="nc" id="L175">                    values.append(&quot;, &quot;);</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="pc bpc" id="L172" title="2 of 4 branches missed.">            if (field.isInsertable() &amp;&amp; !field.isAutoGenerated()) {</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">                if (!first) {</span>
+<span class="fc" id="L174">                    columns.append(&quot;, &quot;);</span>
+<span class="fc" id="L175">                    values.append(&quot;, &quot;);</span>
                 }
-<span class="nc" id="L177">                columns.append(field.getColumnName());</span>
-<span class="nc" id="L178">                values.append(&quot;?&quot;);</span>
-<span class="nc" id="L179">                first = false;</span>
+<span class="fc" id="L177">                columns.append(field.getColumnName());</span>
+<span class="fc" id="L178">                values.append(&quot;?&quot;);</span>
+<span class="fc" id="L179">                first = false;</span>
             }
-<span class="nc" id="L181">        }</span>
+<span class="fc" id="L181">        }</span>
         
-<span class="nc" id="L183">        return String.format(&quot;INSERT INTO %%s (%s) VALUES (%s)&quot;, </span>
-<span class="nc" id="L184">            columns.toString(), values.toString());</span>
+<span class="fc" id="L183">        return String.format(&quot;INSERT INTO %%s (%s) VALUES (%s)&quot;, </span>
+<span class="fc" id="L184">            columns.toString(), values.toString());</span>
     }
     
     private String generateSelectByIdSQL() {
-<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (idField == null) {</span>
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">        if (idField == null) {</span>
 <span class="nc" id="L189">            return null;</span>
         }
         
-<span class="nc" id="L192">        StringBuilder columns = new StringBuilder();</span>
-<span class="nc" id="L193">        boolean first = true;</span>
+<span class="fc" id="L192">        StringBuilder columns = new StringBuilder();</span>
+<span class="fc" id="L193">        boolean first = true;</span>
         
-<span class="nc bnc" id="L195" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
-<span class="nc bnc" id="L196" title="All 2 branches missed.">            if (!first) {</span>
-<span class="nc" id="L197">                columns.append(&quot;, &quot;);</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L196" title="All 2 branches covered.">            if (!first) {</span>
+<span class="fc" id="L197">                columns.append(&quot;, &quot;);</span>
             }
-<span class="nc" id="L199">            columns.append(field.getColumnName());</span>
-<span class="nc" id="L200">            first = false;</span>
-<span class="nc" id="L201">        }</span>
+<span class="fc" id="L199">            columns.append(field.getColumnName());</span>
+<span class="fc" id="L200">            first = false;</span>
+<span class="fc" id="L201">        }</span>
         
-<span class="nc" id="L203">        return String.format(&quot;SELECT %s FROM %%s WHERE %s = ?&quot;, </span>
-<span class="nc" id="L204">            columns.toString(), idField.getColumnName());</span>
+<span class="fc" id="L203">        return String.format(&quot;SELECT %s FROM %%s WHERE %s = ?&quot;, </span>
+<span class="fc" id="L204">            columns.toString(), idField.getColumnName());</span>
     }
     
     private String generateUpdateByIdSQL() {
-<span class="nc" id="L208">        StringBuilder setClause = new StringBuilder();</span>
-<span class="nc" id="L209">        boolean first = true;</span>
-<span class="nc" id="L210">        int paramIndex = 1;</span>
+<span class="fc" id="L208">        StringBuilder setClause = new StringBuilder();</span>
+<span class="fc" id="L209">        boolean first = true;</span>
+<span class="fc" id="L210">        int paramIndex = 1;</span>
         
-<span class="nc bnc" id="L212" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
             // Skip ID field and non-updatable fields
-<span class="nc bnc" id="L214" title="All 4 branches missed.">            if (field.isId() || !field.isUpdatable()) {</span>
+<span class="pc bpc" id="L214" title="1 of 4 branches missed.">            if (field.isId() || !field.isUpdatable()) {</span>
 <span class="nc" id="L215">                continue;</span>
             }
             
-<span class="nc bnc" id="L218" title="All 2 branches missed.">            if (!first) {</span>
-<span class="nc" id="L219">                setClause.append(&quot;, &quot;);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">            if (!first) {</span>
+<span class="fc" id="L219">                setClause.append(&quot;, &quot;);</span>
             }
-<span class="nc" id="L221">            setClause.append(field.getColumnName()).append(&quot; = ?&quot;);</span>
-<span class="nc" id="L222">            updateParameterIndex.put(field.getFieldName(), paramIndex++);</span>
-<span class="nc" id="L223">            first = false;</span>
-<span class="nc" id="L224">        }</span>
+<span class="fc" id="L221">            setClause.append(field.getColumnName()).append(&quot; = ?&quot;);</span>
+<span class="fc" id="L222">            updateParameterIndex.put(field.getFieldName(), paramIndex++);</span>
+<span class="fc" id="L223">            first = false;</span>
+<span class="fc" id="L224">        }</span>
         
         // ID field is the last parameter for WHERE clause
-<span class="nc" id="L227">        updateParameterIndex.put(idField.getFieldName(), paramIndex);</span>
+<span class="fc" id="L227">        updateParameterIndex.put(idField.getFieldName(), paramIndex);</span>
         
-<span class="nc" id="L229">        return String.format(&quot;UPDATE %%s SET %s WHERE %s = ?&quot;,</span>
-<span class="nc" id="L230">            setClause.toString(), idField.getColumnName());</span>
+<span class="fc" id="L229">        return String.format(&quot;UPDATE %%s SET %s WHERE %s = ?&quot;,</span>
+<span class="fc" id="L230">            setClause.toString(), idField.getColumnName());</span>
     }
     
     private String generateCreateTableSQL() {
-<span class="nc" id="L234">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE IF NOT EXISTS %s (&quot;);</span>
-<span class="nc" id="L235">        boolean first = true;</span>
+<span class="fc" id="L234">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE IF NOT EXISTS %s (&quot;);</span>
+<span class="fc" id="L235">        boolean first = true;</span>
         
-<span class="nc bnc" id="L237" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
-<span class="nc bnc" id="L238" title="All 2 branches missed.">            if (!first) {</span>
-<span class="nc" id="L239">                sql.append(&quot;, &quot;);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">            if (!first) {</span>
+<span class="fc" id="L239">                sql.append(&quot;, &quot;);</span>
             }
-<span class="nc" id="L241">            sql.append(field.getColumnName()).append(&quot; &quot;).append(field.getSqlType());</span>
+<span class="fc" id="L241">            sql.append(field.getColumnName()).append(&quot; &quot;).append(field.getSqlType());</span>
             
-<span class="nc bnc" id="L243" title="All 2 branches missed.">            if (field.isId()) {</span>
-<span class="nc" id="L244">                sql.append(&quot; PRIMARY KEY&quot;);</span>
-<span class="nc bnc" id="L245" title="All 2 branches missed.">                if (field.isAutoGenerated()) {</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">            if (field.isId()) {</span>
+<span class="fc" id="L244">                sql.append(&quot; PRIMARY KEY&quot;);</span>
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">                if (field.isAutoGenerated()) {</span>
 <span class="nc" id="L246">                    sql.append(&quot; AUTO_INCREMENT&quot;);</span>
                 }
             }
             
-<span class="nc bnc" id="L250" title="All 2 branches missed.">            if (!field.isNullable()) {</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">            if (!field.isNullable()) {</span>
 <span class="nc" id="L251">                sql.append(&quot; NOT NULL&quot;);</span>
             }
             
-<span class="nc" id="L254">            first = false;</span>
-<span class="nc" id="L255">        }</span>
+<span class="fc" id="L254">            first = false;</span>
+<span class="fc" id="L255">        }</span>
         
         // Add automatic indexes - ID already has PRIMARY KEY, but add explicit index for sharding key
-<span class="nc bnc" id="L258" title="All 2 branches missed.">        if (shardingKeyField != null) {</span>
-<span class="nc" id="L259">            sql.append(&quot;, KEY idx_&quot;).append(shardingKeyField.getColumnName())</span>
-<span class="nc" id="L260">               .append(&quot; (&quot;).append(shardingKeyField.getColumnName()).append(&quot;)&quot;);</span>
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">        if (shardingKeyField != null) {</span>
+<span class="fc" id="L259">            sql.append(&quot;, KEY idx_&quot;).append(shardingKeyField.getColumnName())</span>
+<span class="fc" id="L260">               .append(&quot; (&quot;).append(shardingKeyField.getColumnName()).append(&quot;)&quot;);</span>
         }
         
         // No composite index needed - single String ID only
         
         // Add custom indexes from @Index annotations
-<span class="nc bnc" id="L266" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
-<span class="nc bnc" id="L267" title="All 2 branches missed.">            if (field.hasIndex()) {</span>
-<span class="nc bnc" id="L268" title="All 2 branches missed.">                String indexKeyword = field.getIndexAnnotation().unique() ? &quot;UNIQUE KEY&quot; : &quot;KEY&quot;;</span>
-<span class="nc" id="L269">                String indexName = field.getIndexName();</span>
-<span class="nc" id="L270">                String comment = field.getIndexAnnotation().comment();</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L267" title="All 2 branches covered.">            if (field.hasIndex()) {</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">                String indexKeyword = field.getIndexAnnotation().unique() ? &quot;UNIQUE KEY&quot; : &quot;KEY&quot;;</span>
+<span class="fc" id="L269">                String indexName = field.getIndexName();</span>
+<span class="fc" id="L270">                String comment = field.getIndexAnnotation().comment();</span>
                 
-<span class="nc" id="L272">                sql.append(&quot;, &quot;).append(indexKeyword).append(&quot; &quot;).append(indexName)</span>
-<span class="nc" id="L273">                   .append(&quot; (&quot;).append(field.getColumnName()).append(&quot;)&quot;);</span>
+<span class="fc" id="L272">                sql.append(&quot;, &quot;).append(indexKeyword).append(&quot; &quot;).append(indexName)</span>
+<span class="fc" id="L273">                   .append(&quot; (&quot;).append(field.getColumnName()).append(&quot;)&quot;);</span>
                 
-<span class="nc bnc" id="L275" title="All 2 branches missed.">                if (!comment.isEmpty()) {</span>
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">                if (!comment.isEmpty()) {</span>
 <span class="nc" id="L276">                    sql.append(&quot; COMMENT '&quot;).append(comment).append(&quot;'&quot;);</span>
                 }
             }
-<span class="nc" id="L279">        }</span>
+<span class="fc" id="L279">        }</span>
         
-<span class="nc" id="L281">        sql.append(&quot;) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);</span>
+<span class="fc" id="L281">        sql.append(&quot;) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);</span>
         
-<span class="nc" id="L283">        return sql.toString();</span>
+<span class="fc" id="L283">        return sql.toString();</span>
     }
     
     public void setInsertParameters(PreparedStatement stmt, T entity) throws SQLException {
-<span class="nc bnc" id="L287" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
-<span class="nc bnc" id="L288" title="All 4 branches missed.">            if (field.isInsertable() &amp;&amp; !field.isAutoGenerated()) {</span>
-<span class="nc" id="L289">                Integer index = insertParameterIndex.get(field.getFieldName());</span>
-<span class="nc bnc" id="L290" title="All 2 branches missed.">                if (index != null) {</span>
-<span class="nc" id="L291">                    setParameter(stmt, index, field.getValue(entity), field.getType());</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="pc bpc" id="L288" title="2 of 4 branches missed.">            if (field.isInsertable() &amp;&amp; !field.isAutoGenerated()) {</span>
+<span class="fc" id="L289">                Integer index = insertParameterIndex.get(field.getFieldName());</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">                if (index != null) {</span>
+<span class="fc" id="L291">                    setParameter(stmt, index, field.getValue(entity), field.getType());</span>
                 }
             }
-<span class="nc" id="L294">        }</span>
-<span class="nc" id="L295">    }</span>
+<span class="fc" id="L294">        }</span>
+<span class="fc" id="L295">    }</span>
     
     public void setUpdateParameters(PreparedStatement stmt, T entity, String id) throws SQLException {
         // Set all updatable field values
@@ -314,64 +314,64 @@ public class EntityMetadata&lt;T&gt; {
     
     public T mapResultSet(ResultSet rs) throws SQLException {
         try {
-<span class="nc" id="L317">            T entity = entityClass.getDeclaredConstructor().newInstance();</span>
+<span class="fc" id="L317">            T entity = entityClass.getDeclaredConstructor().newInstance();</span>
             
-<span class="nc bnc" id="L319" title="All 2 branches missed.">            for (FieldMetadata field : fields) {</span>
-<span class="nc" id="L320">                Object value = getResultSetValue(rs, field.getColumnName(), field.getType());</span>
-<span class="nc" id="L321">                field.setValue(entity, value);</span>
-<span class="nc" id="L322">            }</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">            for (FieldMetadata field : fields) {</span>
+<span class="fc" id="L320">                Object value = getResultSetValue(rs, field.getColumnName(), field.getType());</span>
+<span class="fc" id="L321">                field.setValue(entity, value);</span>
+<span class="fc" id="L322">            }</span>
             
-<span class="nc" id="L324">            return entity;</span>
+<span class="fc" id="L324">            return entity;</span>
 <span class="nc" id="L325">        } catch (Exception e) {</span>
 <span class="nc" id="L326">            throw new SQLException(&quot;Failed to map result set to entity&quot;, e);</span>
         }
     }
     
     private void setParameter(PreparedStatement stmt, int index, Object value, Class&lt;?&gt; type) throws SQLException {
-<span class="nc bnc" id="L331" title="All 2 branches missed.">        if (value == null) {</span>
-<span class="nc" id="L332">            stmt.setNull(index, java.sql.Types.NULL);</span>
-<span class="nc bnc" id="L333" title="All 2 branches missed.">        } else if (type == String.class) {</span>
-<span class="nc" id="L334">            stmt.setString(index, (String) value);</span>
-<span class="nc bnc" id="L335" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
-<span class="nc" id="L336">            stmt.setLong(index, (Long) value);</span>
-<span class="nc bnc" id="L337" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
-<span class="nc" id="L338">            stmt.setInt(index, (Integer) value);</span>
-<span class="nc bnc" id="L339" title="All 2 branches missed.">        } else if (type == LocalDateTime.class) {</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L332">            stmt.setNull(index, java.sql.Types.NULL);</span>
+<span class="fc bfc" id="L333" title="All 2 branches covered.">        } else if (type == String.class) {</span>
+<span class="fc" id="L334">            stmt.setString(index, (String) value);</span>
+<span class="pc bpc" id="L335" title="1 of 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="fc" id="L336">            stmt.setLong(index, (Long) value);</span>
+<span class="pc bpc" id="L337" title="1 of 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="fc" id="L338">            stmt.setInt(index, (Integer) value);</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">        } else if (type == LocalDateTime.class) {</span>
             // Create Timestamp from LocalDateTime and explicitly set with local Calendar
             // to prevent MySQL JDBC driver from applying timezone conversion
-<span class="nc" id="L342">            Timestamp timestamp = Timestamp.valueOf((LocalDateTime) value);</span>
-<span class="nc" id="L343">            stmt.setTimestamp(index, timestamp, java.util.Calendar.getInstance());</span>
-<span class="nc bnc" id="L344" title="All 2 branches missed.">        } else if (type == BigDecimal.class) {</span>
+<span class="fc" id="L342">            Timestamp timestamp = Timestamp.valueOf((LocalDateTime) value);</span>
+<span class="fc" id="L343">            stmt.setTimestamp(index, timestamp, java.util.Calendar.getInstance());</span>
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">        } else if (type == BigDecimal.class) {</span>
 <span class="nc" id="L345">            stmt.setBigDecimal(index, (BigDecimal) value);</span>
-<span class="nc bnc" id="L346" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="pc bpc" id="L346" title="2 of 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
 <span class="nc" id="L347">            stmt.setBoolean(index, (Boolean) value);</span>
-<span class="nc bnc" id="L348" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
-<span class="nc" id="L349">            stmt.setDouble(index, (Double) value);</span>
+<span class="pc bpc" id="L348" title="3 of 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="fc" id="L349">            stmt.setDouble(index, (Double) value);</span>
         } else {
 <span class="nc" id="L351">            stmt.setObject(index, value);</span>
         }
-<span class="nc" id="L353">    }</span>
+<span class="fc" id="L353">    }</span>
     
     private Object getResultSetValue(ResultSet rs, String columnName, Class&lt;?&gt; type) throws SQLException {
-<span class="nc bnc" id="L356" title="All 2 branches missed.">        if (type == String.class) {</span>
-<span class="nc" id="L357">            return rs.getString(columnName);</span>
-<span class="nc bnc" id="L358" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
-<span class="nc" id="L359">            long value = rs.getLong(columnName);</span>
-<span class="nc bnc" id="L360" title="All 2 branches missed.">            return rs.wasNull() ? null : value;</span>
-<span class="nc bnc" id="L361" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
-<span class="nc" id="L362">            int value = rs.getInt(columnName);</span>
-<span class="nc bnc" id="L363" title="All 2 branches missed.">            return rs.wasNull() ? null : value;</span>
-<span class="nc bnc" id="L364" title="All 2 branches missed.">        } else if (type == LocalDateTime.class) {</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">        if (type == String.class) {</span>
+<span class="fc" id="L357">            return rs.getString(columnName);</span>
+<span class="pc bpc" id="L358" title="1 of 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="fc" id="L359">            long value = rs.getLong(columnName);</span>
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">            return rs.wasNull() ? null : value;</span>
+<span class="pc bpc" id="L361" title="1 of 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="fc" id="L362">            int value = rs.getInt(columnName);</span>
+<span class="fc bfc" id="L363" title="All 2 branches covered.">            return rs.wasNull() ? null : value;</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">        } else if (type == LocalDateTime.class) {</span>
             // Get timestamp with local Calendar to prevent timezone conversion
-<span class="nc" id="L366">            Timestamp ts = rs.getTimestamp(columnName, java.util.Calendar.getInstance());</span>
-<span class="nc bnc" id="L367" title="All 2 branches missed.">            return ts != null ? ts.toLocalDateTime() : null;</span>
-<span class="nc bnc" id="L368" title="All 2 branches missed.">        } else if (type == BigDecimal.class) {</span>
+<span class="fc" id="L366">            Timestamp ts = rs.getTimestamp(columnName, java.util.Calendar.getInstance());</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">            return ts != null ? ts.toLocalDateTime() : null;</span>
+<span class="pc bpc" id="L368" title="1 of 2 branches missed.">        } else if (type == BigDecimal.class) {</span>
 <span class="nc" id="L369">            return rs.getBigDecimal(columnName);</span>
-<span class="nc bnc" id="L370" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="pc bpc" id="L370" title="2 of 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
 <span class="nc" id="L371">            return rs.getBoolean(columnName);</span>
-<span class="nc bnc" id="L372" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
-<span class="nc" id="L373">            double value = rs.getDouble(columnName);</span>
-<span class="nc bnc" id="L374" title="All 2 branches missed.">            return rs.wasNull() ? null : value;</span>
+<span class="pc bpc" id="L372" title="3 of 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="fc" id="L373">            double value = rs.getDouble(columnName);</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">            return rs.wasNull() ? null : value;</span>
         } else {
 <span class="nc" id="L376">            return rs.getObject(columnName);</span>
         }
@@ -379,13 +379,13 @@ public class EntityMetadata&lt;T&gt; {
     
     // Getters
 <span class="nc" id="L381">    public String getTableName() { return tableName; }</span>
-<span class="nc" id="L382">    public String getInsertSQL() { return insertSQL; }</span>
-<span class="nc" id="L383">    public String getSelectByIdSQL() { return selectByIdSQL; }</span>
+<span class="fc" id="L382">    public String getInsertSQL() { return insertSQL; }</span>
+<span class="fc" id="L383">    public String getSelectByIdSQL() { return selectByIdSQL; }</span>
 <span class="nc" id="L384">    public String getUpdateByIdSQL() { return updateByIdSQL; }</span>
-<span class="nc" id="L385">    public String getCreateTableSQL() { return createTableSQL; }</span>
-<span class="nc" id="L386">    public FieldMetadata getIdField() { return idField; }</span>
-<span class="nc" id="L387">    public FieldMetadata getShardingKeyField() { return shardingKeyField; }</span>
-<span class="nc" id="L388">    public List&lt;FieldMetadata&gt; getFields() { return fields; }</span>
+<span class="fc" id="L385">    public String getCreateTableSQL() { return createTableSQL; }</span>
+<span class="fc" id="L386">    public FieldMetadata getIdField() { return idField; }</span>
+<span class="fc" id="L387">    public FieldMetadata getShardingKeyField() { return shardingKeyField; }</span>
+<span class="fc" id="L388">    public List&lt;FieldMetadata&gt; getFields() { return fields; }</span>
 <span class="nc" id="L389">    public String getPartitionColumnName() { return partitionColumnName; }</span>
     
     public String getId(T entity) {
@@ -402,12 +402,12 @@ public class EntityMetadata&lt;T&gt; {
 <span class="nc" id="L402">    }</span>
     
     public LocalDateTime getShardingKeyValue(T entity) {
-<span class="nc bnc" id="L405" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="pc bpc" id="L405" title="1 of 2 branches missed.">        if (shardingKeyField == null) {</span>
 <span class="nc" id="L406">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
         }
-<span class="nc" id="L408">        Object value = shardingKeyField.getValue(entity);</span>
-<span class="nc bnc" id="L409" title="All 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
-<span class="nc" id="L410">            return (LocalDateTime) value;</span>
+<span class="fc" id="L408">        Object value = shardingKeyField.getValue(entity);</span>
+<span class="pc bpc" id="L409" title="1 of 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
+<span class="fc" id="L410">            return (LocalDateTime) value;</span>
         }
         // Use the interface method if available
 <span class="nc bnc" id="L413" title="All 2 branches missed.">        if (entity instanceof ShardingEntity) {</span>
@@ -424,17 +424,17 @@ public class EntityMetadata&lt;T&gt; {
      */
     @SuppressWarnings(&quot;unchecked&quot;)
     public &lt;V extends Comparable&lt;V&gt;&gt; V getPartitionColValue(T entity) {
-<span class="nc bnc" id="L427" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">        if (shardingKeyField == null) {</span>
 <span class="nc" id="L428">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
         }
-<span class="nc" id="L430">        Object value = shardingKeyField.getValue(entity);</span>
-<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="fc" id="L430">        Object value = shardingKeyField.getValue(entity);</span>
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">        if (value == null) {</span>
 <span class="nc" id="L432">            return null;</span>
         }
-<span class="nc bnc" id="L434" title="All 2 branches missed.">        if (!Comparable.class.isAssignableFrom(value.getClass())) {</span>
+<span class="pc bpc" id="L434" title="1 of 2 branches missed.">        if (!Comparable.class.isAssignableFrom(value.getClass())) {</span>
 <span class="nc" id="L435">            throw new ClassCastException(&quot;Partition column value must be Comparable: &quot; + value.getClass());</span>
         }
-<span class="nc" id="L437">        return (V) value;</span>
+<span class="fc" id="L437">        return (V) value;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

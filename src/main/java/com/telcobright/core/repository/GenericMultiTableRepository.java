@@ -83,9 +83,17 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     private final PartitionColumnType partitionColumnType;
     private final PersistenceProvider persistenceProvider;
 
+    // Nested partition support
+    private final boolean nestedPartitionsEnabled;
+    private final int nestedPartitionCount;
+
     private ScheduledExecutorService scheduler;
     private volatile long lastMaintenanceRun = 0;
     private static final long MAINTENANCE_COOLDOWN_MS = 60000; // 1 minute minimum between maintenance runs
+
+    // Track min/max partition boundaries for range validation
+    private volatile LocalDateTime minPartitionDate;
+    private volatile LocalDateTime maxPartitionDate;
     
     private GenericMultiTableRepository(Builder<T, P> builder) {
         this.database = builder.database;
@@ -100,7 +108,11 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         this.partitionRange = builder.partitionRange;
         this.partitionColumn = builder.partitionColumn;
         this.partitionColumnType = builder.partitionColumnType;
-        
+
+        // Initialize nested partition configuration
+        this.nestedPartitionsEnabled = builder.nestedPartitionsEnabled;
+        this.nestedPartitionCount = builder.nestedPartitionCount;
+
         // Initialize entity metadata (performs reflection once)
         this.metadata = new EntityMetadata<>(entityClass);
         
@@ -163,10 +175,18 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     
     /**
      * Insert entity into appropriate daily table
-     * Note: Target table must exist (created during startup), otherwise SQLException will be thrown
+     * Follows MySQL partition behavior:
+     * - Values below minimum range go into the lowest table
+     * - Values above maximum range throw an exception
      */
     @Override
     public void insert(T entity) throws SQLException {
+        // Validate partition boundaries for time-based partitioning
+        if (partitionRange == null || isTimeBased(partitionRange)) {
+            LocalDateTime entityDate = metadata.getShardingKeyValue(entity);
+            validateAndAdjustPartitionValue(entityDate);
+        }
+
         String tableName = getTableNameForEntity(entity);
 
         // Ensure table exists for non-time-based partitioning
@@ -187,6 +207,14 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     public void insertMultiple(List<T> entities) throws SQLException {
         if (entities == null || entities.isEmpty()) {
             return;
+        }
+
+        // Validate partition boundaries for all entities first
+        if (partitionRange == null || isTimeBased(partitionRange)) {
+            for (T entity : entities) {
+                LocalDateTime entityDate = metadata.getShardingKeyValue(entity);
+                validateAndAdjustPartitionValue(entityDate);
+            }
         }
 
         // Group entities by table for batch insertion
@@ -233,8 +261,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
         // Query each table
         for (String tableName : relevantTables) {
-            String sql = String.format("SELECT * FROM %s WHERE %s BETWEEN ? AND ?",
-                tableName, shardingColumn);
+            String sql = String.format("SELECT * FROM %s WHERE %s >= ? AND %s < ?",
+                tableName, shardingColumn, shardingColumn);
 
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -294,17 +322,98 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
      * Find entity by ID within a date range
      */
     @Override
-    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-        // This method returns the first entity found in the date range
-        List<T> entities = findAllByPartitionRange(startValue, endValue);
-        return entities.isEmpty() ? null : entities.get(0);
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+        if (id == null) {
+            return null;
+        }
+
+        String idColumn = metadata.getIdField().getColumnName();
+        String shardingColumn = metadata.getShardingKeyField().getColumnName();
+
+        // Get relevant tables for the date range
+        List<String> relevantTables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);
+
+        // Log for debugging
+        // logger.info("Searching for ID " + id + " in date range " + startValue + " to " + endValue);
+        // logger.info("Relevant tables: " + relevantTables);
+
+        // Search each table for the entity with matching ID
+        for (String tableName : relevantTables) {
+            // tableName already includes database prefix from getTablesForDateRange
+
+            // Check if the table exists
+            if (!tableExists(tableName)) {
+                logger.warn("Table does not exist: " + tableName);
+                continue;
+            }
+
+            // First try to find by ID only within the relevant table
+            String sql = String.format(
+                "SELECT * FROM %s WHERE %s = ?",
+                tableName, idColumn
+            );
+
+            // logger.info("Executing SQL: " + sql);
+            // logger.info("Parameters: id=" + id);
+
+            try (Connection conn = connectionProvider.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                stmt.setString(1, id);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        T result = metadata.mapResultSet(rs);
+
+                        // Now verify if the result falls within the date range
+                        Object partitionValue = metadata.getPartitionColValue(result);
+                        LocalDateTime recordDate = null;
+
+                        if (partitionValue instanceof LocalDateTime) {
+                            recordDate = (LocalDateTime) partitionValue;
+                        } else if (partitionValue instanceof String) {
+                            try {
+                                recordDate = LocalDateTime.parse((String) partitionValue);
+                            } catch (Exception e) {
+                                // If parsing fails, include the record anyway
+                                logger.warn("Could not parse partition value: " + partitionValue);
+                                return result;
+                            }
+                        }
+
+                        if (recordDate != null) {
+                            LocalDateTime start = (LocalDateTime) startValue;
+                            LocalDateTime end = (LocalDateTime) endValue;
+
+                            if (recordDate.compareTo(start) >= 0 && recordDate.compareTo(end) < 0) {
+                                // logger.info("Found result within date range: " + result);
+                                return result;
+                            } else {
+                                // logger.info("Found record but outside date range. Record date: " + recordDate +
+                                //           ", Range: " + startValue + " to " + endValue);
+                            }
+                        }
+                    } else {
+                        // logger.info("No results found in table " + tableName);
+                    }
+                }
+            } catch (SQLException e) {
+                // Log and continue to next table
+                logger.warn("Error searching table " + tableName + ": " + e.getMessage());
+                if (!e.getMessage().contains("doesn't exist") && !e.getMessage().contains("Unknown column")) {
+                    throw e;
+                }
+            }
+        }
+
+        return null; // Not found in any table within the date range
     }
     
     /**
      * Find all entities by IDs within a date range
      */
     @Override
-    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException {
+    public List<T> findAllByIdsAndPartitionColRange(List<String> ids, P startValue, P endValue) throws SQLException {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
@@ -506,7 +615,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
      * Update entity by primary key within a specific date range
      */
     @Override
-    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException {
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         String idColumn = metadata.getIdField().getColumnName();
 
@@ -532,7 +641,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                 }
             }
             sqlBuilder.append(" WHERE ").append(idColumn).append(" = ?");
-            sqlBuilder.append(" AND ").append(shardingColumn).append(" BETWEEN ? AND ?");
+            sqlBuilder.append(" AND ").append(shardingColumn).append(" >= ? AND ").append(shardingColumn).append(" < ?");
 
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sqlBuilder.toString())) {
@@ -701,9 +810,35 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         return getTableNameForDate(date);
     }
 
+    /**
+     * Validates partition value and throws exception if above maximum.
+     * Values below minimum are allowed (will use minimum table).
+     */
+    private void validateAndAdjustPartitionValue(LocalDateTime entityDate) throws SQLException {
+        if (maxPartitionDate != null && entityDate.isAfter(maxPartitionDate)) {
+            throw new SQLException(String.format(
+                "Partition value %s is beyond maximum partition boundary %s. " +
+                "Cannot insert data beyond the configured retention period.",
+                entityDate, maxPartitionDate
+            ));
+        }
+        // Values below minimum are allowed - they'll be inserted into the minimum table
+    }
+
     private String getTableNameForEntity(T entity) throws SQLException {
         if (partitionRange == null || isTimeBased(partitionRange)) {
-            return getTableNameForDate(metadata.getShardingKeyValue(entity));
+            LocalDateTime entityDate = metadata.getShardingKeyValue(entity);
+
+            // Handle values below minimum partition - use the minimum table
+            if (minPartitionDate != null && entityDate.isBefore(minPartitionDate)) {
+                logger.debug(String.format(
+                    "Entity date %s is before minimum partition %s, using minimum table",
+                    entityDate, minPartitionDate
+                ));
+                return getTableNameForDate(minPartitionDate);
+            }
+
+            return getTableNameForDate(entityDate);
         } else if (isHashBased(partitionRange)) {
             // Hash the ID to determine bucket
             int buckets = getHashBuckets(partitionRange);
@@ -886,13 +1021,144 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         // Use PersistenceProvider to generate CREATE TABLE SQL
         String createSQL = persistenceProvider.generateCreateTableSQL(tableName, metadata, charset, collation);
 
+        // Add nested partitions if enabled
+        if (nestedPartitionsEnabled) {
+            createSQL = addNestedPartitions(createSQL, tableName);
+        }
+
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(createSQL);
-            logger.info("Ensured table exists: " + tableName);
+            // Only log if table was actually created (CREATE TABLE IF NOT EXISTS handles this)
+            logger.debug("Ensured table exists: " + tableName +
+                (nestedPartitionsEnabled ? " with " + nestedPartitionCount + " nested partitions" : ""));
+        } catch (SQLException e) {
+            // If it's a "table already exists" error and we're using partitions, ignore it
+            if (!e.getMessage().contains("already exists")) {
+                throw e;
+            }
         }
     }
     
+    /**
+     * Extract date from table name in format tablename_YYYYMMDD
+     */
+    private String extractDateFromTableName(String tableName) {
+        // Extract YYYYMMDD from table name like "events_20250920"
+        String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);
+
+        // Convert YYYYMMDD to YYYY-MM-DD
+        if (dateStr.length() == 8) {
+            return dateStr.substring(0, 4) + "-" +
+                   dateStr.substring(4, 6) + "-" +
+                   dateStr.substring(6, 8);
+        }
+
+        // Fallback to current date if unable to parse
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    /**
+     * Add nested native partitions to a table for better query performance
+     */
+    private String addNestedPartitions(String baseCreateSQL, String tableName) throws SQLException {
+        // First, ensure we don't already have partition syntax in the SQL
+        if (baseCreateSQL.contains("PARTITION BY")) {
+            return baseCreateSQL;
+        }
+
+        // Determine partition column - use the sharding key column
+        String partCol = metadata.getShardingKeyField().getColumnName();
+        String idCol = metadata.getIdField().getColumnName();
+
+        // For RANGE partitioning in MySQL, the partition column must be part of the primary key
+        // We need to modify the primary key to include both id and the partition column
+        String modifiedSQL = baseCreateSQL;
+        if (baseCreateSQL.contains("PRIMARY KEY")) {
+            // Replace single-column primary key with composite key
+            modifiedSQL = baseCreateSQL.replaceAll(
+                idCol + "\\s+VARCHAR\\([^)]+\\)\\s+PRIMARY KEY",
+                idCol + " VARCHAR(255)"
+            );
+        }
+
+        // Remove the closing parenthesis and ENGINE clause temporarily
+        String sqlWithoutEngine = modifiedSQL.replaceAll("\\)\\s*(ENGINE=.*)?$", "");
+        if (sqlWithoutEngine.equals(modifiedSQL)) {
+            // If nothing was removed, try other patterns
+            sqlWithoutEngine = modifiedSQL.replaceAll(";$", "");
+        }
+
+        StringBuilder partitionSQL = new StringBuilder(sqlWithoutEngine);
+
+        // Determine partition column type if not explicitly set
+        PartitionColumnType effectiveType = partitionColumnType;
+        if (effectiveType == null) {
+            // Try to infer from the field type
+            Class<?> fieldType = metadata.getShardingKeyField().getType();
+            if (fieldType == LocalDateTime.class || fieldType == java.util.Date.class || fieldType == Timestamp.class) {
+                effectiveType = PartitionColumnType.LOCAL_DATE_TIME;
+            } else if (fieldType == Long.class) {
+                effectiveType = PartitionColumnType.LONG;
+            } else if (fieldType == Integer.class) {
+                effectiveType = PartitionColumnType.INTEGER;
+            } else if (fieldType == String.class) {
+                effectiveType = PartitionColumnType.STRING;
+            }
+        }
+
+        // Add composite primary key for partition compatibility
+        // Find the last comma before the closing parenthesis and add the primary key
+        partitionSQL.append(",\n  PRIMARY KEY (").append(idCol).append(", ").append(partCol).append(")");
+
+        // Add ENGINE clause
+        partitionSQL.append("\n) ENGINE=InnoDB DEFAULT CHARSET=").append(charset)
+                   .append(" COLLATE=").append(collation);
+
+        // Add partition clause based on the partition column type
+        if (effectiveType == PartitionColumnType.LOCAL_DATE_TIME) {
+            // Extract the date from the table name (format: tablename_YYYYMMDD)
+            String tableDate = extractDateFromTableName(tableName);
+
+            // For date-based columns, create hourly partitions with actual datetime values
+            // MySQL RANGE COLUMNS partitioning allows direct datetime values
+            partitionSQL.append("\nPARTITION BY RANGE COLUMNS(").append(partCol).append(") (");
+
+            // Create 24 hourly partitions for the day
+            // Each partition covers one hour of the day
+            int maxHours = Math.min(nestedPartitionCount, 24);
+            for (int hour = 1; hour <= maxHours; hour++) {
+                if (hour > 1) partitionSQL.append(",");
+
+                // Partition p_h01 for 00:00:00 to 00:59:59 (VALUES LESS THAN 01:00:00)
+                // Partition p_h02 for 01:00:00 to 01:59:59 (VALUES LESS THAN 02:00:00)
+                // ... and so on
+                String partitionBoundary;
+
+                if (hour < 24) {
+                    // Regular hourly partitions
+                    partitionBoundary = String.format("%s %02d:00:00", tableDate, hour);
+                } else {
+                    // Last partition (p_h24) for 23:00:00 to 23:59:59 needs next day's 00:00:00
+                    LocalDateTime currentDate = LocalDateTime.parse(tableDate + " 00:00:00",
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                    LocalDateTime nextDay = currentDate.plusDays(1);
+                    partitionBoundary = nextDay.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                }
+
+                partitionSQL.append("\n  PARTITION p_h").append(String.format("%02d", hour))
+                           .append(" VALUES LESS THAN ('").append(partitionBoundary).append("')");
+            }
+            partitionSQL.append("\n)");
+        } else {
+            // For other types, create hash partitions
+            partitionSQL.append("\nPARTITION BY HASH(").append(partCol).append(")")
+                       .append("\nPARTITIONS ").append(nestedPartitionCount);
+        }
+
+        return partitionSQL.toString();
+    }
+
     /**
      * Add hourly partitioning to a daily table
      * Each daily table gets 24 hour partitions (h00, h01, h02, ..., h23)
@@ -1120,6 +1386,10 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                             partitionRetentionPeriod * 2 + 1));
             }
 
+            // Store the min/max partition boundaries
+            this.minPartitionDate = startDate;
+            this.maxPartitionDate = endDate;
+
             createTablesForDateRange(startDate, endDate);
         } else if (isHashBased(partitionRange)) {
             // Hash-based partitioning - create fixed number of buckets
@@ -1193,7 +1463,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     }
 
     @Override
-    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
         String idColumn = metadata.getIdField().getColumnName();
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
 
@@ -1207,7 +1477,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
         for (String table : tables) {
             String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ? AND " +
-                         shardingColumn + " BETWEEN ? AND ?";
+                         shardingColumn + " >= ? AND " + shardingColumn + " < ?";
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, id);
@@ -1233,7 +1503,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         }
 
         for (String table : tables) {
-            String sql = "DELETE FROM " + table + " WHERE created_at BETWEEN ? AND ?";
+            String shardingColumn = metadata.getShardingKeyField().getColumnName();
+            String sql = "DELETE FROM " + table + " WHERE " + shardingColumn + " >= ? AND " + shardingColumn + " < ?";
             try (Connection conn = connectionProvider.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(sql)) {
                 // TODO: Handle generic partition value types
@@ -1318,6 +1589,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         private PartitionColumnType partitionColumnType;
         private PersistenceProvider persistenceProvider;
 
+        // Nested partition support
+        private boolean nestedPartitionsEnabled = false;
+        private int nestedPartitionCount = 20; // Default for non-date types
 
         Builder(Class<T> entityClass) {
             this.entityClass = entityClass;
@@ -1439,6 +1713,28 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
         public Builder<T, P> persistenceProvider(PersistenceProvider provider) {
             this.persistenceProvider = provider;
+            return this;
+        }
+
+        /**
+         * Enable nested partitions within each table.
+         * When enabled, each table will have native database partitions for better query performance.
+         */
+        public Builder<T, P> withNestedPartitions(boolean enabled) {
+            this.nestedPartitionsEnabled = enabled;
+            return this;
+        }
+
+        /**
+         * Set the number of nested partitions per table.
+         * For date-based tables, use 24 for hourly partitions.
+         * For other types, default is 20.
+         */
+        public Builder<T, P> withNestedPartitionCount(int count) {
+            if (count < 1 || count > 1024) {
+                throw new IllegalArgumentException("Nested partition count must be between 1 and 1024");
+            }
+            this.nestedPartitionCount = count;
             return this;
         }
 

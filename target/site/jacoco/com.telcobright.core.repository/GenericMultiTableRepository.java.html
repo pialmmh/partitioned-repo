@@ -3,6 +3,7 @@ import com.telcobright.api.ShardingRepository;
 
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
 import com.telcobright.core.monitoring.*;
 import com.telcobright.core.pagination.Page;
 import com.telcobright.core.pagination.PageRequest;
@@ -43,24 +44,24 @@ import com.telcobright.core.persistence.PersistenceProviderFactory;
  */
 public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; implements ShardingRepository&lt;T, P&gt; {
     private final Logger logger;
-<span class="nc" id="L46">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
+<span class="fc" id="L47">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
 
     /**
      * Defines the granularity of table creation
      */
-<span class="fc" id="L51">    public enum TableGranularity {</span>
-<span class="fc" id="L52">        HOURLY(&quot;yyyy_MM_dd_HH&quot;),  // One table per hour</span>
-<span class="fc" id="L53">        DAILY(&quot;yyyy_MM_dd&quot;),      // One table per day (default)</span>
-<span class="fc" id="L54">        MONTHLY(&quot;yyyy_MM&quot;);       // One table per month</span>
+<span class="fc" id="L52">    public enum TableGranularity {</span>
+<span class="fc" id="L53">        HOURLY(&quot;yyyy_MM_dd_HH&quot;),  // One table per hour</span>
+<span class="fc" id="L54">        DAILY(&quot;yyyy_MM_dd&quot;),      // One table per day (default)</span>
+<span class="fc" id="L55">        MONTHLY(&quot;yyyy_MM&quot;);       // One table per month</span>
 
         private final String pattern;
 
-<span class="fc" id="L58">        TableGranularity(String pattern) {</span>
-<span class="fc" id="L59">            this.pattern = pattern;</span>
-<span class="fc" id="L60">        }</span>
+<span class="fc" id="L59">        TableGranularity(String pattern) {</span>
+<span class="fc" id="L60">            this.pattern = pattern;</span>
+<span class="fc" id="L61">        }</span>
 
         public DateTimeFormatter getFormatter() {
-<span class="nc" id="L63">            return DateTimeFormatter.ofPattern(pattern);</span>
+<span class="nc" id="L64">            return DateTimeFormatter.ofPattern(pattern);</span>
         }
     }
     
@@ -82,161 +83,213 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
     private final PartitionColumnType partitionColumnType;
     private final PersistenceProvider persistenceProvider;
 
+    // Nested partition support
+    private final boolean nestedPartitionsEnabled;
+    private final int nestedPartitionCount;
+
     private ScheduledExecutorService scheduler;
-<span class="nc" id="L86">    private volatile long lastMaintenanceRun = 0;</span>
+<span class="fc" id="L91">    private volatile long lastMaintenanceRun = 0;</span>
     private static final long MAINTENANCE_COOLDOWN_MS = 60000; // 1 minute minimum between maintenance runs
+
+    // Track min/max partition boundaries for range validation
+    private volatile LocalDateTime minPartitionDate;
+    private volatile LocalDateTime maxPartitionDate;
     
-<span class="nc" id="L89">    private GenericMultiTableRepository(Builder&lt;T, P&gt; builder) {</span>
-<span class="nc" id="L90">        this.database = builder.database;</span>
-<span class="nc" id="L91">        this.partitionRetentionPeriod = builder.partitionRetentionPeriod;</span>
-<span class="nc" id="L92">        this.autoManagePartitions = builder.autoManagePartitions;</span>
-<span class="nc" id="L93">        this.partitionAdjustmentTime = builder.partitionAdjustmentTime;</span>
-<span class="nc" id="L94">        this.initializePartitionsOnStart = builder.initializePartitionsOnStart;</span>
-<span class="nc" id="L95">        this.entityClass = builder.entityClass;</span>
-<span class="nc" id="L96">        this.tableGranularity = builder.tableGranularity;</span>
-<span class="nc" id="L97">        this.charset = builder.charset;</span>
-<span class="nc" id="L98">        this.collation = builder.collation;</span>
-<span class="nc" id="L99">        this.partitionRange = builder.partitionRange;</span>
-<span class="nc" id="L100">        this.partitionColumn = builder.partitionColumn;</span>
-<span class="nc" id="L101">        this.partitionColumnType = builder.partitionColumnType;</span>
-        
+<span class="fc" id="L98">    private GenericMultiTableRepository(Builder&lt;T, P&gt; builder) {</span>
+<span class="fc" id="L99">        this.database = builder.database;</span>
+<span class="fc" id="L100">        this.partitionRetentionPeriod = builder.partitionRetentionPeriod;</span>
+<span class="fc" id="L101">        this.autoManagePartitions = builder.autoManagePartitions;</span>
+<span class="fc" id="L102">        this.partitionAdjustmentTime = builder.partitionAdjustmentTime;</span>
+<span class="fc" id="L103">        this.initializePartitionsOnStart = builder.initializePartitionsOnStart;</span>
+<span class="fc" id="L104">        this.entityClass = builder.entityClass;</span>
+<span class="fc" id="L105">        this.tableGranularity = builder.tableGranularity;</span>
+<span class="fc" id="L106">        this.charset = builder.charset;</span>
+<span class="fc" id="L107">        this.collation = builder.collation;</span>
+<span class="fc" id="L108">        this.partitionRange = builder.partitionRange;</span>
+<span class="fc" id="L109">        this.partitionColumn = builder.partitionColumn;</span>
+<span class="fc" id="L110">        this.partitionColumnType = builder.partitionColumnType;</span>
+
+        // Initialize nested partition configuration
+<span class="fc" id="L113">        this.nestedPartitionsEnabled = builder.nestedPartitionsEnabled;</span>
+<span class="fc" id="L114">        this.nestedPartitionCount = builder.nestedPartitionCount;</span>
+
         // Initialize entity metadata (performs reflection once)
-<span class="nc" id="L104">        this.metadata = new EntityMetadata&lt;&gt;(entityClass);</span>
+<span class="fc" id="L117">        this.metadata = new EntityMetadata&lt;&gt;(entityClass);</span>
         
         // Use provided table prefix or derive from entity
-<span class="nc bnc" id="L107" title="All 2 branches missed.">        this.tablePrefix = builder.tablePrefix != null ? builder.tablePrefix : metadata.getTableName();</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        this.tablePrefix = builder.tablePrefix != null ? builder.tablePrefix : metadata.getTableName();</span>
         
         // Initialize logger
-<span class="nc bnc" id="L110" title="All 2 branches missed.">        this.logger = builder.logger != null ? builder.logger : </span>
-<span class="nc" id="L111">            new ConsoleLogger(&quot;MultiTableRepo.&quot; + tablePrefix);</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        this.logger = builder.logger != null ? builder.logger : </span>
+<span class="fc" id="L124">            new ConsoleLogger(&quot;MultiTableRepo.&quot; + tablePrefix);</span>
         
         // Create ConnectionProvider
-<span class="nc" id="L114">        this.connectionProvider = new ConnectionProvider.Builder()</span>
-<span class="nc" id="L115">            .host(builder.host)</span>
-<span class="nc" id="L116">            .port(builder.port)</span>
-<span class="nc" id="L117">            .database(builder.database)</span>
-<span class="nc" id="L118">            .username(builder.username)</span>
-<span class="nc" id="L119">            .password(builder.password)</span>
-<span class="nc" id="L120">            .build();</span>
+<span class="fc" id="L127">        this.connectionProvider = new ConnectionProvider.Builder()</span>
+<span class="fc" id="L128">            .host(builder.host)</span>
+<span class="fc" id="L129">            .port(builder.port)</span>
+<span class="fc" id="L130">            .database(builder.database)</span>
+<span class="fc" id="L131">            .username(builder.username)</span>
+<span class="fc" id="L132">            .password(builder.password)</span>
+<span class="fc" id="L133">            .build();</span>
 
         // Initialize PersistenceProvider (defaults to MySQL)
-<span class="nc bnc" id="L123" title="All 2 branches missed.">        this.persistenceProvider = builder.persistenceProvider != null ?</span>
-<span class="nc" id="L124">            builder.persistenceProvider :</span>
-<span class="nc" id="L125">            PersistenceProviderFactory.getProvider(PersistenceProvider.DatabaseType.MYSQL);</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        this.persistenceProvider = builder.persistenceProvider != null ?</span>
+<span class="fc" id="L137">            builder.persistenceProvider :</span>
+<span class="pc" id="L138">            PersistenceProviderFactory.getProvider(PersistenceProvider.DatabaseType.MYSQL);</span>
         
         // Initialize monitoring if enabled
-<span class="nc bnc" id="L128" title="All 4 branches missed.">        if (builder.monitoringConfig != null &amp;&amp; builder.monitoringConfig.isEnabled()) {</span>
-<span class="nc" id="L129">            RepositoryMetrics metrics = new RepositoryMetrics(&quot;MultiTable&quot;, tablePrefix, </span>
-<span class="nc" id="L130">                    builder.monitoringConfig.getInstanceId());</span>
-<span class="nc" id="L131">            MetricsCollector metricsCollector = new MetricsCollector(connectionProvider, database);</span>
-<span class="nc" id="L132">            this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);</span>
-<span class="nc" id="L133">            this.monitoringService.start();</span>
-<span class="nc" id="L134">        } else {</span>
-<span class="nc" id="L135">            this.monitoringService = null;</span>
+<span class="pc bpc" id="L141" title="3 of 4 branches missed.">        if (builder.monitoringConfig != null &amp;&amp; builder.monitoringConfig.isEnabled()) {</span>
+<span class="nc" id="L142">            RepositoryMetrics metrics = new RepositoryMetrics(&quot;MultiTable&quot;, tablePrefix, </span>
+<span class="nc" id="L143">                    builder.monitoringConfig.getInstanceId());</span>
+<span class="nc" id="L144">            MetricsCollector metricsCollector = new MetricsCollector(connectionProvider, database);</span>
+<span class="nc" id="L145">            this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);</span>
+<span class="nc" id="L146">            this.monitoringService.start();</span>
+<span class="nc" id="L147">        } else {</span>
+<span class="fc" id="L148">            this.monitoringService = null;</span>
         }
         
         // Initialize tables for the retention period on startup
-<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (initializePartitionsOnStart) {</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        if (initializePartitionsOnStart) {</span>
             try {
-<span class="nc" id="L141">                initializeTablesForRetentionPeriod();</span>
-<span class="nc" id="L142">            } catch (SQLException e) {</span>
-<span class="nc" id="L143">                throw new RuntimeException(&quot;Failed to initialize tables for retention period&quot;, e);</span>
-<span class="nc" id="L144">            }</span>
+<span class="fc" id="L154">                initializeTablesForRetentionPeriod();</span>
+<span class="nc" id="L155">            } catch (SQLException e) {</span>
+<span class="nc" id="L156">                throw new RuntimeException(&quot;Failed to initialize tables for retention period&quot;, e);</span>
+<span class="fc" id="L157">            }</span>
         }
         
         // Initialize scheduler for maintenance tasks
-<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (autoManagePartitions) {</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (autoManagePartitions) {</span>
             // Create scheduler for both scheduled and on-demand maintenance
-<span class="nc" id="L150">            scheduler = Executors.newSingleThreadScheduledExecutor(r -&gt; {</span>
-<span class="nc" id="L151">                Thread thread = new Thread(r, &quot;MultiTableRepository-Maintenance-&quot; + tablePrefix);</span>
-<span class="nc" id="L152">                thread.setDaemon(true);</span>
-<span class="nc" id="L153">                return thread;</span>
+<span class="fc" id="L163">            scheduler = Executors.newSingleThreadScheduledExecutor(r -&gt; {</span>
+<span class="fc" id="L164">                Thread thread = new Thread(r, &quot;MultiTableRepository-Maintenance-&quot; + tablePrefix);</span>
+<span class="fc" id="L165">                thread.setDaemon(true);</span>
+<span class="fc" id="L166">                return thread;</span>
             });
             
             // Only schedule periodic runs if a specific time is configured
-<span class="nc bnc" id="L157" title="All 2 branches missed.">            if (partitionAdjustmentTime != null) {</span>
-<span class="nc" id="L158">                schedulePeriodicMaintenance();</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">            if (partitionAdjustmentTime != null) {</span>
+<span class="fc" id="L171">                schedulePeriodicMaintenance();</span>
             }
         }
-<span class="nc" id="L161">    }</span>
+<span class="fc" id="L174">    }</span>
     
     /**
      * Insert entity into appropriate daily table
-     * Note: Target table must exist (created during startup), otherwise SQLException will be thrown
+     * Follows MySQL partition behavior:
+     * - Values below minimum range go into the lowest table
+     * - Values above maximum range throw an exception
      */
     @Override
     public void insert(T entity) throws SQLException {
-<span class="nc" id="L169">        String tableName = getTableNameForEntity(entity);</span>
+        // Validate partition boundaries for time-based partitioning
+<span class="pc bpc" id="L185" title="3 of 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
+<span class="fc" id="L186">            LocalDateTime entityDate = metadata.getShardingKeyValue(entity);</span>
+<span class="fc" id="L187">            validateAndAdjustPartitionValue(entityDate);</span>
+        }
+
+<span class="fc" id="L190">        String tableName = getTableNameForEntity(entity);</span>
 
         // Ensure table exists for non-time-based partitioning
-<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (!isTimeBased(partitionRange)) {</span>
-<span class="nc" id="L173">            createTableIfNotExists(tableName);</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (!isTimeBased(partitionRange)) {</span>
+<span class="fc" id="L194">            createTableIfNotExists(tableName);</span>
         }
 
         // Use PersistenceProvider for insert
-<span class="nc" id="L177">        try (Connection conn = connectionProvider.getConnection()) {</span>
-<span class="nc" id="L178">            persistenceProvider.executeInsert(conn, entity, tableName, metadata);</span>
+<span class="fc" id="L198">        try (Connection conn = connectionProvider.getConnection()) {</span>
+<span class="fc" id="L199">            persistenceProvider.executeInsert(conn, entity, tableName, metadata);</span>
         }
-<span class="nc" id="L180">    }</span>
+<span class="fc" id="L201">    }</span>
     
     /**
      * Insert multiple entities
      */
     @Override
     public void insertMultiple(List&lt;T&gt; entities) throws SQLException {
-<span class="nc bnc" id="L187" title="All 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
-<span class="nc" id="L188">            return;</span>
+<span class="nc bnc" id="L208" title="All 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
+<span class="nc" id="L209">            return;</span>
+        }
+
+        // Validate partition boundaries for all entities first
+<span class="nc bnc" id="L213" title="All 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">            for (T entity : entities) {</span>
+<span class="nc" id="L215">                LocalDateTime entityDate = metadata.getShardingKeyValue(entity);</span>
+<span class="nc" id="L216">                validateAndAdjustPartitionValue(entityDate);</span>
+<span class="nc" id="L217">            }</span>
         }
 
         // Group entities by table for batch insertion
-<span class="nc" id="L192">        Map&lt;String, List&lt;T&gt;&gt; entitiesByTable = new HashMap&lt;&gt;();</span>
-<span class="nc bnc" id="L193" title="All 2 branches missed.">        for (T entity : entities) {</span>
-<span class="nc" id="L194">            String tableName = getTableNameForEntity(entity);</span>
-<span class="nc" id="L195">            entitiesByTable.computeIfAbsent(tableName, k -&gt; new ArrayList&lt;&gt;()).add(entity);</span>
-<span class="nc" id="L196">        }</span>
+<span class="nc" id="L221">        Map&lt;String, List&lt;T&gt;&gt; entitiesByTable = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        for (T entity : entities) {</span>
+<span class="nc" id="L223">            String tableName = getTableNameForEntity(entity);</span>
+<span class="nc" id="L224">            entitiesByTable.computeIfAbsent(tableName, k -&gt; new ArrayList&lt;&gt;()).add(entity);</span>
+<span class="nc" id="L225">        }</span>
 
         // Insert batches for each table
-<span class="nc bnc" id="L199" title="All 2 branches missed.">        for (Map.Entry&lt;String, List&lt;T&gt;&gt; entry : entitiesByTable.entrySet()) {</span>
-<span class="nc" id="L200">            String tableName = entry.getKey();</span>
-<span class="nc" id="L201">            List&lt;T&gt; batchEntities = entry.getValue();</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        for (Map.Entry&lt;String, List&lt;T&gt;&gt; entry : entitiesByTable.entrySet()) {</span>
+<span class="nc" id="L229">            String tableName = entry.getKey();</span>
+<span class="nc" id="L230">            List&lt;T&gt; batchEntities = entry.getValue();</span>
 
             // Ensure table exists for non-time-based partitioning
-<span class="nc bnc" id="L204" title="All 2 branches missed.">            if (!isTimeBased(partitionRange)) {</span>
-<span class="nc" id="L205">                createTableIfNotExists(tableName);</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">            if (!isTimeBased(partitionRange)) {</span>
+<span class="nc" id="L234">                createTableIfNotExists(tableName);</span>
             }
 
             // Use PersistenceProvider for optimized bulk insert
-<span class="nc" id="L209">            try (Connection conn = connectionProvider.getConnection()) {</span>
-<span class="nc" id="L210">                int inserted = persistenceProvider.executeBulkInsert(conn, batchEntities, tableName, metadata);</span>
-<span class="nc" id="L211">                logger.debug(&quot;Bulk inserted &quot; + inserted + &quot; records into &quot; + tableName);</span>
+<span class="nc" id="L238">            try (Connection conn = connectionProvider.getConnection()) {</span>
+<span class="nc" id="L239">                int inserted = persistenceProvider.executeBulkInsert(conn, batchEntities, tableName, metadata);</span>
+<span class="nc" id="L240">                logger.debug(&quot;Bulk inserted &quot; + inserted + &quot; records into &quot; + tableName);</span>
             }
-<span class="nc" id="L213">        }</span>
-<span class="nc" id="L214">    }</span>
+<span class="nc" id="L242">        }</span>
+<span class="nc" id="L243">    }</span>
     
     /**
      * Find all entities by date range
      */
     @Override
     public List&lt;T&gt; findAllByPartitionRange(P startValue, P endValue) throws SQLException {
-<span class="nc" id="L221">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
-        
-<span class="nc" id="L223">        String query = QueryDSL.select()</span>
-<span class="nc" id="L224">            .column(&quot;*&quot;)</span>
-<span class="nc" id="L225">            .from(tablePrefix)  // QueryDSL expects just the prefix, PartitionedQueryBuilder handles full table names</span>
-            // TODO: Handle generic partition value types
-<span class="nc" id="L227">            .where(w -&gt; {</span>
-<span class="nc bnc" id="L228" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L229">                    return w.dateRange(shardingColumn, (LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+<span class="nc" id="L250">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="nc" id="L251">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+
+        // Get relevant tables for the date range
+<span class="nc" id="L254">        List&lt;String&gt; relevantTables = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L255" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L256">            relevantTables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+        } else {
+            // For non-date types, query all tables
+<span class="nc" id="L259">            relevantTables = getExistingTables();</span>
+        }
+
+        // Query each table
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        for (String tableName : relevantTables) {</span>
+<span class="nc" id="L264">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s &gt;= ? AND %s &lt; ?&quot;,</span>
+                tableName, shardingColumn, shardingColumn);
+
+<span class="nc" id="L267">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L268">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+
+                // Set parameters based on type
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L272">                    stmt.setTimestamp(1, java.sql.Timestamp.valueOf((LocalDateTime) startValue));</span>
+<span class="nc" id="L273">                    stmt.setTimestamp(2, java.sql.Timestamp.valueOf((LocalDateTime) endValue));</span>
                 } else {
-                    // For non-date types, we need to handle differently
-                    // TODO: Add generic range support to QueryDSL
-<span class="nc" id="L233">                    return w;</span>
+<span class="nc" id="L275">                    stmt.setObject(1, startValue);</span>
+<span class="nc" id="L276">                    stmt.setObject(2, endValue);</span>
                 }
-            })
-<span class="nc bnc" id="L236" title="All 2 branches missed.">            .buildPartitioned(database, startValue instanceof LocalDateTime ? (LocalDateTime) startValue : LocalDateTime.now(),</span>
-<span class="nc bnc" id="L237" title="All 2 branches missed.">                             endValue instanceof LocalDateTime ? (LocalDateTime) endValue : LocalDateTime.now());</span>
-        
-<span class="nc" id="L239">        return executeQuery(query, null, rs -&gt; metadata.mapResultSet(rs));</span>
+
+<span class="nc" id="L279">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">                    while (rs.next()) {</span>
+<span class="nc" id="L281">                        results.add(metadata.mapResultSet(rs));</span>
+                    }
+                }
+<span class="nc" id="L284">            } catch (SQLException e) {</span>
+                // Table might not exist, continue to next
+<span class="nc bnc" id="L286" title="All 2 branches missed.">                if (!e.getMessage().contains(&quot;doesn't exist&quot;)) {</span>
+<span class="nc" id="L287">                    throw e;</span>
+                }
+<span class="nc" id="L289">            }</span>
+<span class="nc" id="L290">        }</span>
+
+<span class="nc" id="L292">        return results;</span>
     }
     
     /**
@@ -244,101 +297,182 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     @Override
     public T findById(String id) throws SQLException {
-<span class="nc" id="L247">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L300">        List&lt;String&gt; tables = getExistingTables();</span>
         
-<span class="nc bnc" id="L249" title="All 2 branches missed.">        for (String table : tables) {</span>
-<span class="nc" id="L250">            String sql = String.format(metadata.getSelectByIdSQL(), table);</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">        for (String table : tables) {</span>
+<span class="nc" id="L303">            String sql = String.format(metadata.getSelectByIdSQL(), table);</span>
             
-<span class="nc" id="L252">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L253">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L305">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L306">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
                 
-<span class="nc" id="L255">                setIdParameter(stmt, 1, id);</span>
+<span class="nc" id="L308">                setIdParameter(stmt, 1, id);</span>
                 
-<span class="nc" id="L257">                try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L258" title="All 2 branches missed.">                    if (rs.next()) {</span>
-<span class="nc" id="L259">                        return metadata.mapResultSet(rs);</span>
+<span class="nc" id="L310">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">                    if (rs.next()) {</span>
+<span class="nc" id="L312">                        return metadata.mapResultSet(rs);</span>
                     }
-<span class="nc bnc" id="L261" title="All 2 branches missed.">                }</span>
-<span class="nc bnc" id="L262" title="All 4 branches missed.">            }</span>
-<span class="nc" id="L263">        }</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">                }</span>
+<span class="nc bnc" id="L315" title="All 4 branches missed.">            }</span>
+<span class="nc" id="L316">        }</span>
         
-<span class="nc" id="L265">        return null;</span>
+<span class="nc" id="L318">        return null;</span>
     }
     
     /**
      * Find entity by ID within a date range
      */
     @Override
-    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-        // This method returns the first entity found in the date range
-<span class="nc" id="L274">        List&lt;T&gt; entities = findAllByPartitionRange(startValue, endValue);</span>
-<span class="nc bnc" id="L275" title="All 2 branches missed.">        return entities.isEmpty() ? null : entities.get(0);</span>
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="pc bpc" id="L326" title="1 of 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L327">            return null;</span>
+        }
+
+<span class="fc" id="L330">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="fc" id="L331">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+
+        // Get relevant tables for the date range
+<span class="fc" id="L334">        List&lt;String&gt; relevantTables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+
+        // Log for debugging
+        // logger.info(&quot;Searching for ID &quot; + id + &quot; in date range &quot; + startValue + &quot; to &quot; + endValue);
+        // logger.info(&quot;Relevant tables: &quot; + relevantTables);
+
+        // Search each table for the entity with matching ID
+<span class="fc bfc" id="L341" title="All 2 branches covered.">        for (String tableName : relevantTables) {</span>
+            // tableName already includes database prefix from getTablesForDateRange
+
+            // Check if the table exists
+<span class="fc bfc" id="L345" title="All 2 branches covered.">            if (!tableExists(tableName)) {</span>
+<span class="fc" id="L346">                logger.warn(&quot;Table does not exist: &quot; + tableName);</span>
+<span class="fc" id="L347">                continue;</span>
+            }
+
+            // First try to find by ID only within the relevant table
+<span class="fc" id="L351">            String sql = String.format(</span>
+                &quot;SELECT * FROM %s WHERE %s = ?&quot;,
+                tableName, idColumn
+            );
+
+            // logger.info(&quot;Executing SQL: &quot; + sql);
+            // logger.info(&quot;Parameters: id=&quot; + id);
+
+<span class="fc" id="L359">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L360">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+
+<span class="fc" id="L362">                stmt.setString(1, id);</span>
+
+<span class="fc" id="L364">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">                    if (rs.next()) {</span>
+<span class="fc" id="L366">                        T result = metadata.mapResultSet(rs);</span>
+
+                        // Now verify if the result falls within the date range
+<span class="fc" id="L369">                        Object partitionValue = metadata.getPartitionColValue(result);</span>
+<span class="fc" id="L370">                        LocalDateTime recordDate = null;</span>
+
+<span class="pc bpc" id="L372" title="1 of 2 branches missed.">                        if (partitionValue instanceof LocalDateTime) {</span>
+<span class="fc" id="L373">                            recordDate = (LocalDateTime) partitionValue;</span>
+<span class="nc bnc" id="L374" title="All 2 branches missed.">                        } else if (partitionValue instanceof String) {</span>
+                            try {
+<span class="nc" id="L376">                                recordDate = LocalDateTime.parse((String) partitionValue);</span>
+<span class="nc" id="L377">                            } catch (Exception e) {</span>
+                                // If parsing fails, include the record anyway
+<span class="nc" id="L379">                                logger.warn(&quot;Could not parse partition value: &quot; + partitionValue);</span>
+<span class="nc" id="L380">                                return result;</span>
+<span class="nc" id="L381">                            }</span>
+                        }
+
+<span class="pc bpc" id="L384" title="1 of 2 branches missed.">                        if (recordDate != null) {</span>
+<span class="fc" id="L385">                            LocalDateTime start = (LocalDateTime) startValue;</span>
+<span class="fc" id="L386">                            LocalDateTime end = (LocalDateTime) endValue;</span>
+
+<span class="pc bpc" id="L388" title="2 of 4 branches missed.">                            if (recordDate.compareTo(start) &gt;= 0 &amp;&amp; recordDate.compareTo(end) &lt; 0) {</span>
+                                // logger.info(&quot;Found result within date range: &quot; + result);
+<span class="fc" id="L390">                                return result;</span>
+                            } else {
+                                // logger.info(&quot;Found record but outside date range. Record date: &quot; + recordDate +
+                                //           &quot;, Range: &quot; + startValue + &quot; to &quot; + endValue);
+                            }
+                        }
+                    } else {
+                        // logger.info(&quot;No results found in table &quot; + tableName);
+                    }
+<span class="pc bpc" id="L399" title="3 of 4 branches missed.">                }</span>
+<span class="pc bpc" id="L400" title="6 of 8 branches missed.">            } catch (SQLException e) {</span>
+                // Log and continue to next table
+<span class="nc" id="L402">                logger.warn(&quot;Error searching table &quot; + tableName + &quot;: &quot; + e.getMessage());</span>
+<span class="nc bnc" id="L403" title="All 4 branches missed.">                if (!e.getMessage().contains(&quot;doesn't exist&quot;) &amp;&amp; !e.getMessage().contains(&quot;Unknown column&quot;)) {</span>
+<span class="nc" id="L404">                    throw e;</span>
+                }
+<span class="fc" id="L406">            }</span>
+<span class="fc" id="L407">        }</span>
+
+<span class="fc" id="L409">        return null; // Not found in any table within the date range</span>
     }
     
     /**
      * Find all entities by IDs within a date range
      */
     @Override
-    public List&lt;T&gt; findAllByIdsAndPartitionRange(List&lt;String&gt; ids, P startValue, P endValue) throws SQLException {
-<span class="nc bnc" id="L283" title="All 4 branches missed.">        if (ids == null || ids.isEmpty()) {</span>
-<span class="nc" id="L284">            return new ArrayList&lt;&gt;();</span>
+    public List&lt;T&gt; findAllByIdsAndPartitionColRange(List&lt;String&gt; ids, P startValue, P endValue) throws SQLException {
+<span class="nc bnc" id="L417" title="All 4 branches missed.">        if (ids == null || ids.isEmpty()) {</span>
+<span class="nc" id="L418">            return new ArrayList&lt;&gt;();</span>
         }
         
-<span class="nc" id="L287">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
-<span class="nc" id="L288">        String idColumn = metadata.getIdField().getColumnName();</span>
-<span class="nc" id="L289">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="nc" id="L421">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L422">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="nc" id="L423">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
         
         // Build list of relevant tables based on date range
-<span class="nc" id="L292">        List&lt;String&gt; relevantTables = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L426">        List&lt;String&gt; relevantTables = new ArrayList&lt;&gt;();</span>
         // TODO: Handle generic partition value types for table iteration
-<span class="nc bnc" id="L294" title="All 2 branches missed.">        if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L295">            LocalDateTime current = ((LocalDateTime) startValue).toLocalDate().atStartOfDay();</span>
-<span class="nc bnc" id="L296" title="All 2 branches missed.">            while (!current.isAfter((LocalDateTime) endValue)) {</span>
-<span class="nc" id="L297">                String tableName = getTableName(current);</span>
-<span class="nc bnc" id="L298" title="All 2 branches missed.">                if (tableExists(tableName)) {</span>
-<span class="nc" id="L299">                    relevantTables.add(tableName);</span>
+<span class="nc bnc" id="L428" title="All 2 branches missed.">        if (startValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L429">            LocalDateTime current = ((LocalDateTime) startValue).toLocalDate().atStartOfDay();</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">            while (!current.isAfter((LocalDateTime) endValue)) {</span>
+<span class="nc" id="L431">                String tableName = getTableName(current);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">                if (tableExists(tableName)) {</span>
+<span class="nc" id="L433">                    relevantTables.add(tableName);</span>
                 }
-<span class="nc" id="L301">                current = current.plusDays(1);</span>
-<span class="nc" id="L302">            }</span>
+<span class="nc" id="L435">                current = current.plusDays(1);</span>
+<span class="nc" id="L436">            }</span>
         }
         
         // Search for IDs in relevant tables
-<span class="nc bnc" id="L306" title="All 2 branches missed.">        for (String table : relevantTables) {</span>
-<span class="nc bnc" id="L307" title="All 2 branches missed.">            if (ids.isEmpty()) break; // All IDs found</span>
+<span class="nc bnc" id="L440" title="All 2 branches missed.">        for (String table : relevantTables) {</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">            if (ids.isEmpty()) break; // All IDs found</span>
             
             // Create IN clause with placeholders
-<span class="nc" id="L310">            String placeholders = String.join(&quot;,&quot;, Collections.nCopies(ids.size(), &quot;?&quot;));</span>
-<span class="nc" id="L311">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s IN (%s) AND %s &gt;= ? AND %s &lt;= ?&quot;, </span>
+<span class="nc" id="L444">            String placeholders = String.join(&quot;,&quot;, Collections.nCopies(ids.size(), &quot;?&quot;));</span>
+<span class="nc" id="L445">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s IN (%s) AND %s &gt;= ? AND %s &lt;= ?&quot;, </span>
                                      table, idColumn, placeholders, shardingColumn, shardingColumn);
             
-<span class="nc" id="L314">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L315">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L448">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L449">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
                 
                 // Set ID parameters
-<span class="nc" id="L318">                int paramIndex = 1;</span>
-<span class="nc bnc" id="L319" title="All 2 branches missed.">                for (String id : ids) {</span>
-<span class="nc" id="L320">                    setIdParameter(stmt, paramIndex++, id);</span>
-<span class="nc" id="L321">                }</span>
+<span class="nc" id="L452">                int paramIndex = 1;</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">                for (String id : ids) {</span>
+<span class="nc" id="L454">                    setIdParameter(stmt, paramIndex++, id);</span>
+<span class="nc" id="L455">                }</span>
                 
                 // Set date range parameters
                 // TODO: Handle generic partition value types
-<span class="nc bnc" id="L325" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L326">                    stmt.setTimestamp(paramIndex++, Timestamp.valueOf((LocalDateTime) startValue));</span>
-<span class="nc" id="L327">                    stmt.setTimestamp(paramIndex, Timestamp.valueOf((LocalDateTime) endValue));</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L460">                    stmt.setTimestamp(paramIndex++, Timestamp.valueOf((LocalDateTime) startValue));</span>
+<span class="nc" id="L461">                    stmt.setTimestamp(paramIndex, Timestamp.valueOf((LocalDateTime) endValue));</span>
                 } else {
-<span class="nc" id="L329">                    stmt.setObject(paramIndex++, startValue);</span>
-<span class="nc" id="L330">                    stmt.setObject(paramIndex, endValue);</span>
+<span class="nc" id="L463">                    stmt.setObject(paramIndex++, startValue);</span>
+<span class="nc" id="L464">                    stmt.setObject(paramIndex, endValue);</span>
                 }
                 
-<span class="nc" id="L333">                try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L334" title="All 2 branches missed.">                    while (rs.next()) {</span>
-<span class="nc" id="L335">                        results.add(metadata.mapResultSet(rs));</span>
+<span class="nc" id="L467">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">                    while (rs.next()) {</span>
+<span class="nc" id="L469">                        results.add(metadata.mapResultSet(rs));</span>
                     }
                 }
             }
-<span class="nc" id="L339">        }</span>
+<span class="nc" id="L473">        }</span>
         
-<span class="nc" id="L341">        return results;</span>
+<span class="nc" id="L475">        return results;</span>
     }
     
     /**
@@ -346,52 +480,52 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     @Override
     public List&lt;T&gt; findAllBeforePartitionValue(P beforeValue) throws SQLException {
-<span class="nc" id="L349">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
-<span class="nc" id="L350">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L483">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="nc" id="L484">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
 
         // Get all existing tables
-<span class="nc" id="L353">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L487">        List&lt;String&gt; tables = getExistingTables();</span>
 
-<span class="nc bnc" id="L355" title="All 2 branches missed.">        for (String table : tables) {</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">        for (String table : tables) {</span>
             // Skip non-time-based tables
-<span class="nc bnc" id="L357" title="All 2 branches missed.">            if (!isTimeBased(partitionRange)) {</span>
-<span class="nc" id="L358">                continue;</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">            if (!isTimeBased(partitionRange)) {</span>
+<span class="nc" id="L492">                continue;</span>
             }
 
             // Extract and parse date from table name based on partition range
-<span class="nc" id="L362">            LocalDateTime tableDateTime = extractTableDateTime(table);</span>
-<span class="nc bnc" id="L363" title="All 2 branches missed.">            if (tableDateTime == null) {</span>
-<span class="nc" id="L364">                continue;</span>
+<span class="nc" id="L496">            LocalDateTime tableDateTime = extractTableDateTime(table);</span>
+<span class="nc bnc" id="L497" title="All 2 branches missed.">            if (tableDateTime == null) {</span>
+<span class="nc" id="L498">                continue;</span>
             }
 
             // Determine if we should skip this table based on partition range
             // TODO: Handle generic partition value types
-<span class="nc bnc" id="L369" title="All 4 branches missed.">            if (beforeValue instanceof LocalDateTime &amp;&amp; shouldSkipTableBefore(tableDateTime, (LocalDateTime) beforeValue)) {</span>
-<span class="nc" id="L370">                continue;</span>
+<span class="nc bnc" id="L503" title="All 4 branches missed.">            if (beforeValue instanceof LocalDateTime &amp;&amp; shouldSkipTableBefore(tableDateTime, (LocalDateTime) beforeValue)) {</span>
+<span class="nc" id="L504">                continue;</span>
             }
 
             // Query the table for records before the specified time
-<span class="nc" id="L374">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s &lt; ?&quot;, table, shardingColumn);</span>
+<span class="nc" id="L508">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s &lt; ?&quot;, table, shardingColumn);</span>
 
-<span class="nc" id="L376">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L377">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L510">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L511">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
 
                 // TODO: Handle generic partition value types
-<span class="nc bnc" id="L380" title="All 2 branches missed.">                if (beforeValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L381">                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) beforeValue));</span>
+<span class="nc bnc" id="L514" title="All 2 branches missed.">                if (beforeValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L515">                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) beforeValue));</span>
                 } else {
-<span class="nc" id="L383">                    stmt.setObject(1, beforeValue);</span>
+<span class="nc" id="L517">                    stmt.setObject(1, beforeValue);</span>
                 }
 
-<span class="nc" id="L386">                try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L387" title="All 2 branches missed.">                    while (rs.next()) {</span>
-<span class="nc" id="L388">                        results.add(metadata.mapResultSet(rs));</span>
+<span class="nc" id="L520">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">                    while (rs.next()) {</span>
+<span class="nc" id="L522">                        results.add(metadata.mapResultSet(rs));</span>
                     }
                 }
             }
-<span class="nc" id="L392">        }</span>
+<span class="nc" id="L526">        }</span>
 
-<span class="nc" id="L394">        return results;</span>
+<span class="nc" id="L528">        return results;</span>
     }
     
     /**
@@ -399,52 +533,52 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     @Override
     public List&lt;T&gt; findAllAfterPartitionValue(P afterValue) throws SQLException {
-<span class="nc" id="L402">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
-<span class="nc" id="L403">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L536">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="nc" id="L537">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
 
         // Get all existing tables
-<span class="nc" id="L406">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L540">        List&lt;String&gt; tables = getExistingTables();</span>
 
-<span class="nc bnc" id="L408" title="All 2 branches missed.">        for (String table : tables) {</span>
+<span class="nc bnc" id="L542" title="All 2 branches missed.">        for (String table : tables) {</span>
             // Skip non-time-based tables
-<span class="nc bnc" id="L410" title="All 2 branches missed.">            if (!isTimeBased(partitionRange)) {</span>
-<span class="nc" id="L411">                continue;</span>
+<span class="nc bnc" id="L544" title="All 2 branches missed.">            if (!isTimeBased(partitionRange)) {</span>
+<span class="nc" id="L545">                continue;</span>
             }
 
             // Extract and parse date from table name based on partition range
-<span class="nc" id="L415">            LocalDateTime tableDateTime = extractTableDateTime(table);</span>
-<span class="nc bnc" id="L416" title="All 2 branches missed.">            if (tableDateTime == null) {</span>
-<span class="nc" id="L417">                continue;</span>
+<span class="nc" id="L549">            LocalDateTime tableDateTime = extractTableDateTime(table);</span>
+<span class="nc bnc" id="L550" title="All 2 branches missed.">            if (tableDateTime == null) {</span>
+<span class="nc" id="L551">                continue;</span>
             }
 
             // Determine if we should skip this table based on partition range
             // TODO: Handle generic partition value types
-<span class="nc bnc" id="L422" title="All 4 branches missed.">            if (afterValue instanceof LocalDateTime &amp;&amp; shouldSkipTableAfter(tableDateTime, (LocalDateTime) afterValue)) {</span>
-<span class="nc" id="L423">                continue;</span>
+<span class="nc bnc" id="L556" title="All 4 branches missed.">            if (afterValue instanceof LocalDateTime &amp;&amp; shouldSkipTableAfter(tableDateTime, (LocalDateTime) afterValue)) {</span>
+<span class="nc" id="L557">                continue;</span>
             }
 
             // Query the table for records after the specified time
-<span class="nc" id="L427">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s &gt; ?&quot;, table, shardingColumn);</span>
+<span class="nc" id="L561">            String sql = String.format(&quot;SELECT * FROM %s WHERE %s &gt; ?&quot;, table, shardingColumn);</span>
 
-<span class="nc" id="L429">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L430">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L563">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L564">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
 
                 // TODO: Handle generic partition value types
-<span class="nc bnc" id="L433" title="All 2 branches missed.">                if (afterValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L434">                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) afterValue));</span>
+<span class="nc bnc" id="L567" title="All 2 branches missed.">                if (afterValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L568">                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) afterValue));</span>
                 } else {
-<span class="nc" id="L436">                    stmt.setObject(1, afterValue);</span>
+<span class="nc" id="L570">                    stmt.setObject(1, afterValue);</span>
                 }
 
-<span class="nc" id="L439">                try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L440" title="All 2 branches missed.">                    while (rs.next()) {</span>
-<span class="nc" id="L441">                        results.add(metadata.mapResultSet(rs));</span>
+<span class="nc" id="L573">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L574" title="All 2 branches missed.">                    while (rs.next()) {</span>
+<span class="nc" id="L575">                        results.add(metadata.mapResultSet(rs));</span>
                     }
                 }
             }
-<span class="nc" id="L445">        }</span>
+<span class="nc" id="L579">        }</span>
 
-<span class="nc" id="L447">        return results;</span>
+<span class="nc" id="L581">        return results;</span>
     }
     
     /**
@@ -453,83 +587,101 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
     @Override
     public void updateById(String id, T entity) throws SQLException {
         // First, find which table contains this ID
-<span class="nc" id="L456">        T existingEntity = findById(id);</span>
-<span class="nc bnc" id="L457" title="All 2 branches missed.">        if (existingEntity == null) {</span>
-<span class="nc" id="L458">            throw new SQLException(&quot;Entity with ID &quot; + id + &quot; not found in any table&quot;);</span>
+<span class="nc" id="L590">        T existingEntity = findById(id);</span>
+<span class="nc bnc" id="L591" title="All 2 branches missed.">        if (existingEntity == null) {</span>
+<span class="nc" id="L592">            throw new SQLException(&quot;Entity with ID &quot; + id + &quot; not found in any table&quot;);</span>
         }
         
         // Get the sharding key value from the existing entity to determine the table
-<span class="nc" id="L462">        LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(existingEntity);</span>
-<span class="nc" id="L463">        String tableName = getTableName(shardingKeyValue);</span>
+<span class="nc" id="L596">        LocalDateTime shardingKeyValue = metadata.getShardingKeyValue(existingEntity);</span>
+<span class="nc" id="L597">        String tableName = getTableName(shardingKeyValue);</span>
         
         // Generate and execute UPDATE statement
-<span class="nc" id="L466">        String sql = String.format(metadata.getUpdateByIdSQL(), tableName);</span>
+<span class="nc" id="L600">        String sql = String.format(metadata.getUpdateByIdSQL(), tableName);</span>
         
-<span class="nc" id="L468">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L469">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L602">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L603">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
             
-<span class="nc" id="L471">            metadata.setUpdateParameters(stmt, entity, id);</span>
+<span class="nc" id="L605">            metadata.setUpdateParameters(stmt, entity, id);</span>
             
-<span class="nc" id="L473">            int rowsUpdated = stmt.executeUpdate();</span>
-<span class="nc bnc" id="L474" title="All 2 branches missed.">            if (rowsUpdated == 0) {</span>
-<span class="nc" id="L475">                throw new SQLException(&quot;No rows updated for ID: &quot; + id);</span>
+<span class="nc" id="L607">            int rowsUpdated = stmt.executeUpdate();</span>
+<span class="nc bnc" id="L608" title="All 2 branches missed.">            if (rowsUpdated == 0) {</span>
+<span class="nc" id="L609">                throw new SQLException(&quot;No rows updated for ID: &quot; + id);</span>
             }
         }
-<span class="nc" id="L478">    }</span>
+<span class="nc" id="L612">    }</span>
     
     /**
      * Update entity by primary key within a specific date range
      */
     @Override
-    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
-<span class="nc" id="L485">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
-        
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L619">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="nc" id="L620">        String idColumn = metadata.getIdField().getColumnName();</span>
+
         // Get tables that could contain data in this date range
-        // TODO: Handle generic partition value types for table range
-<span class="nc" id="L489">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L490" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L491">            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+<span class="nc" id="L623">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L624" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L625">            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+        } else {
+<span class="nc" id="L627">            tables = getExistingTables();</span>
         }
-        
-<span class="nc" id="L494">        boolean updated = false;</span>
-<span class="nc bnc" id="L495" title="All 2 branches missed.">        for (String table : tables) {</span>
-            // Try to update in each relevant table
-<span class="nc" id="L497">            String sql = String.format(metadata.getUpdateByIdSQL() + &quot; AND %s &gt;= ? AND %s &lt;= ?&quot;, </span>
-                                     table, shardingColumn, shardingColumn);
-            
-<span class="nc" id="L500">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L501">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
-                
-<span class="nc" id="L503">                metadata.setUpdateParameters(stmt, entity, id);</span>
-                // Add date range parameters
-<span class="nc" id="L505">                int paramCount = stmt.getParameterMetaData().getParameterCount();</span>
-                // TODO: Handle generic partition value types
-<span class="nc bnc" id="L507" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L508">                    stmt.setTimestamp(paramCount - 1, Timestamp.valueOf((LocalDateTime) startValue));</span>
-<span class="nc" id="L509">                    stmt.setTimestamp(paramCount, Timestamp.valueOf((LocalDateTime) endValue));</span>
+
+<span class="nc" id="L630">        boolean updated = false;</span>
+<span class="nc bnc" id="L631" title="All 2 branches missed.">        for (String table : tables) {</span>
+            // Build UPDATE SQL with date range check
+<span class="nc" id="L633">            StringBuilder sqlBuilder = new StringBuilder(&quot;UPDATE &quot;).append(table).append(&quot; SET &quot;);</span>
+<span class="nc" id="L634">            List&lt;FieldMetadata&gt; fields = metadata.getFields();</span>
+<span class="nc" id="L635">            boolean first = true;</span>
+<span class="nc bnc" id="L636" title="All 2 branches missed.">            for (FieldMetadata field : fields) {</span>
+<span class="nc bnc" id="L637" title="All 2 branches missed.">                if (!field.isId()) {</span>
+<span class="nc bnc" id="L638" title="All 2 branches missed.">                    if (!first) sqlBuilder.append(&quot;, &quot;);</span>
+<span class="nc" id="L639">                    sqlBuilder.append(field.getColumnName()).append(&quot; = ?&quot;);</span>
+<span class="nc" id="L640">                    first = false;</span>
+                }
+<span class="nc" id="L642">            }</span>
+<span class="nc" id="L643">            sqlBuilder.append(&quot; WHERE &quot;).append(idColumn).append(&quot; = ?&quot;);</span>
+<span class="nc" id="L644">            sqlBuilder.append(&quot; AND &quot;).append(shardingColumn).append(&quot; &gt;= ? AND &quot;).append(shardingColumn).append(&quot; &lt; ?&quot;);</span>
+
+<span class="nc" id="L646">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L647">                 PreparedStatement stmt = conn.prepareStatement(sqlBuilder.toString())) {</span>
+
+                // Set field values
+<span class="nc" id="L650">                int paramIndex = 1;</span>
+<span class="nc bnc" id="L651" title="All 2 branches missed.">                for (FieldMetadata field : fields) {</span>
+<span class="nc bnc" id="L652" title="All 2 branches missed.">                    if (!field.isId()) {</span>
+<span class="nc" id="L653">                        Object value = field.getValue(entity);</span>
+<span class="nc" id="L654">                        stmt.setObject(paramIndex++, value);</span>
+                    }
+<span class="nc" id="L656">                }</span>
+
+                // Set WHERE clause parameters
+<span class="nc" id="L659">                stmt.setString(paramIndex++, id);</span>
+<span class="nc bnc" id="L660" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L661">                    stmt.setTimestamp(paramIndex++, Timestamp.valueOf((LocalDateTime) startValue));</span>
+<span class="nc" id="L662">                    stmt.setTimestamp(paramIndex, Timestamp.valueOf((LocalDateTime) endValue));</span>
                 } else {
-<span class="nc" id="L511">                    stmt.setObject(paramCount - 1, startValue);</span>
-<span class="nc" id="L512">                    stmt.setObject(paramCount, endValue);</span>
+<span class="nc" id="L664">                    stmt.setObject(paramIndex++, startValue);</span>
+<span class="nc" id="L665">                    stmt.setObject(paramIndex, endValue);</span>
                 }
-                
-<span class="nc" id="L515">                int rowsUpdated = stmt.executeUpdate();</span>
-<span class="nc bnc" id="L516" title="All 2 branches missed.">                if (rowsUpdated &gt; 0) {</span>
-<span class="nc" id="L517">                    updated = true;</span>
-<span class="nc" id="L518">                    break; // ID should be unique across all tables</span>
+
+<span class="nc" id="L668">                int rowsUpdated = stmt.executeUpdate();</span>
+<span class="nc bnc" id="L669" title="All 2 branches missed.">                if (rowsUpdated &gt; 0) {</span>
+<span class="nc" id="L670">                    updated = true;</span>
+<span class="nc" id="L671">                    break; // ID should be unique across all tables</span>
                 }
-<span class="nc bnc" id="L520" title="All 4 branches missed.">            } catch (SQLException e) {</span>
+<span class="nc bnc" id="L673" title="All 4 branches missed.">            } catch (SQLException e) {</span>
                 // Table might not exist, continue to next
-<span class="nc bnc" id="L522" title="All 2 branches missed.">                if (!e.getMessage().contains(&quot;doesn't exist&quot;)) {</span>
-<span class="nc" id="L523">                    throw e;</span>
+<span class="nc bnc" id="L675" title="All 2 branches missed.">                if (!e.getMessage().contains(&quot;doesn't exist&quot;)) {</span>
+<span class="nc" id="L676">                    logger.warn(&quot;Error updating in table &quot; + table + &quot;: &quot; + e.getMessage());</span>
                 }
-<span class="nc" id="L525">            }</span>
-<span class="nc" id="L526">        }</span>
-        
-<span class="nc bnc" id="L528" title="All 2 branches missed.">        if (!updated) {</span>
-<span class="nc" id="L529">            throw new SQLException(&quot;Entity with ID &quot; + id + &quot; not found in date range &quot; + </span>
-                                 startValue + &quot; to &quot; + endValue);
+<span class="nc" id="L678">            }</span>
+<span class="nc" id="L679">        }</span>
+
+<span class="nc bnc" id="L681" title="All 2 branches missed.">        if (!updated) {</span>
+<span class="nc" id="L682">            throw new SQLException(&quot;No rows updated for ID: &quot; + id);</span>
         }
-<span class="nc" id="L532">    }</span>
+<span class="nc" id="L684">    }</span>
     
     /**
      * Find one entity with ID greater than the specified ID
@@ -538,37 +690,37 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
     @Override
     public T findOneByIdGreaterThan(String id) throws SQLException {
         // Get all existing tables and sort them chronologically (oldest first)
-<span class="nc" id="L541">        List&lt;String&gt; tables = getExistingTables();</span>
-<span class="nc" id="L542">        Collections.sort(tables); // Tables are named with dates, so alphabetical sort gives chronological order</span>
+<span class="nc" id="L693">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L694">        Collections.sort(tables); // Tables are named with dates, so alphabetical sort gives chronological order</span>
         
-<span class="nc" id="L544">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="nc" id="L696">        String idColumn = metadata.getIdField().getColumnName();</span>
         
         // Scan each table chronologically to find the first entity with ID &gt; specified ID
-<span class="nc bnc" id="L547" title="All 2 branches missed.">        for (String tableName : tables) {</span>
-<span class="nc" id="L548">            String sql = String.format(</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">        for (String tableName : tables) {</span>
+<span class="nc" id="L700">            String sql = String.format(</span>
                 &quot;SELECT * FROM %s WHERE %s &gt; ? ORDER BY %s ASC LIMIT 1&quot;,
                 tableName, idColumn, idColumn
             );
             
-<span class="nc" id="L553">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L554">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L705">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L706">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
                 
-<span class="nc" id="L556">                setIdParameter(stmt, 1, id);</span>
+<span class="nc" id="L708">                setIdParameter(stmt, 1, id);</span>
                 
-<span class="nc" id="L558">                try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L559" title="All 2 branches missed.">                    if (rs.next()) {</span>
-<span class="nc" id="L560">                        return metadata.mapResultSet(rs);</span>
+<span class="nc" id="L710">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L711" title="All 2 branches missed.">                    if (rs.next()) {</span>
+<span class="nc" id="L712">                        return metadata.mapResultSet(rs);</span>
                     }
-<span class="nc bnc" id="L562" title="All 2 branches missed.">                }</span>
-<span class="nc bnc" id="L563" title="All 4 branches missed.">            } catch (SQLException e) {</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">                }</span>
+<span class="nc bnc" id="L715" title="All 4 branches missed.">            } catch (SQLException e) {</span>
                 // Table might not exist or be accessible, continue to next
-<span class="nc bnc" id="L565" title="All 2 branches missed.">                if (!e.getMessage().contains(&quot;doesn't exist&quot;)) {</span>
-<span class="nc" id="L566">                    logger.warn(&quot;Error querying table &quot; + tableName + &quot;: &quot; + e.getMessage());</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">                if (!e.getMessage().contains(&quot;doesn't exist&quot;)) {</span>
+<span class="nc" id="L718">                    logger.warn(&quot;Error querying table &quot; + tableName + &quot;: &quot; + e.getMessage());</span>
                 }
-<span class="nc" id="L568">            }</span>
-<span class="nc" id="L569">        }</span>
+<span class="nc" id="L720">            }</span>
+<span class="nc" id="L721">        }</span>
         
-<span class="nc" id="L571">        return null; // No entity found with ID greater than specified ID in any table</span>
+<span class="nc" id="L723">        return null; // No entity found with ID greater than specified ID in any table</span>
     }
     
     /**
@@ -577,151 +729,179 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     @Override
     public List&lt;T&gt; findBatchByIdGreaterThan(String id, int batchSize) throws SQLException {
-<span class="nc" id="L580">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L732">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
         
         // Get all existing tables in chronological order
-<span class="nc" id="L583">        List&lt;String&gt; tables = getExistingTables();</span>
-<span class="nc" id="L584">        Collections.sort(tables); // Sort in chronological order (oldest first)</span>
+<span class="nc" id="L735">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L736">        Collections.sort(tables); // Sort in chronological order (oldest first)</span>
         
-<span class="nc" id="L586">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="nc" id="L738">        String idColumn = metadata.getIdField().getColumnName();</span>
         
         // Iterate through tables chronologically
-<span class="nc bnc" id="L589" title="All 2 branches missed.">        for (String tableName : tables) {</span>
+<span class="nc bnc" id="L741" title="All 2 branches missed.">        for (String tableName : tables) {</span>
             // Check if we've collected enough results
-<span class="nc bnc" id="L591" title="All 2 branches missed.">            if (results.size() &gt;= batchSize) {</span>
-<span class="nc" id="L592">                break;</span>
+<span class="nc bnc" id="L743" title="All 2 branches missed.">            if (results.size() &gt;= batchSize) {</span>
+<span class="nc" id="L744">                break;</span>
             }
             
             // Calculate remaining batch size
-<span class="nc" id="L596">            int remaining = batchSize - results.size();</span>
+<span class="nc" id="L748">            int remaining = batchSize - results.size();</span>
             
             // Build query for this table with remaining limit
-<span class="nc" id="L599">            String sql = String.format(</span>
+<span class="nc" id="L751">            String sql = String.format(</span>
                 &quot;SELECT * FROM %s WHERE %s &gt; ? ORDER BY %s ASC LIMIT ?&quot;,
                 tableName, idColumn, idColumn
             );
             
-<span class="nc" id="L604">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L605">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L756">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L757">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
                 
-<span class="nc" id="L607">                setIdParameter(stmt, 1, id);</span>
-<span class="nc" id="L608">                stmt.setInt(2, remaining);</span>
+<span class="nc" id="L759">                setIdParameter(stmt, 1, id);</span>
+<span class="nc" id="L760">                stmt.setInt(2, remaining);</span>
                 
-<span class="nc" id="L610">                try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L611" title="All 2 branches missed.">                    while (rs.next()) {</span>
-<span class="nc" id="L612">                        results.add(metadata.mapResultSet(rs));</span>
+<span class="nc" id="L762">                try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L763" title="All 2 branches missed.">                    while (rs.next()) {</span>
+<span class="nc" id="L764">                        results.add(metadata.mapResultSet(rs));</span>
                         
                         // Early exit if we've collected enough results
-<span class="nc bnc" id="L615" title="All 2 branches missed.">                        if (results.size() &gt;= batchSize) {</span>
-<span class="nc" id="L616">                            break;</span>
+<span class="nc bnc" id="L767" title="All 2 branches missed.">                        if (results.size() &gt;= batchSize) {</span>
+<span class="nc" id="L768">                            break;</span>
                         }
                     }
                 }
             }
             
             // If we found results in this table and reached batchSize, stop searching
-<span class="nc bnc" id="L623" title="All 2 branches missed.">            if (results.size() &gt;= batchSize) {</span>
-<span class="nc" id="L624">                break;</span>
+<span class="nc bnc" id="L775" title="All 2 branches missed.">            if (results.size() &gt;= batchSize) {</span>
+<span class="nc" id="L776">                break;</span>
             }
-<span class="nc" id="L626">        }</span>
+<span class="nc" id="L778">        }</span>
         
-<span class="nc" id="L628">        return results;</span>
+<span class="nc" id="L780">        return results;</span>
     }
     
     private List&lt;String&gt; getTablesForDateRange(LocalDateTime startDate, LocalDateTime endDate) {
-<span class="nc" id="L632">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
-<span class="nc" id="L633">        LocalDateTime current = startDate.toLocalDate().atStartOfDay();</span>
-        
-<span class="nc bnc" id="L635" title="All 2 branches missed.">        while (!current.isAfter(endDate)) {</span>
-<span class="nc" id="L636">            String tableName = getTableName(current);</span>
-<span class="nc" id="L637">            tables.add(tableName);</span>
-<span class="nc" id="L638">            current = current.plusDays(1);</span>
-<span class="nc" id="L639">        }</span>
-        
-<span class="nc" id="L641">        return tables;</span>
+<span class="fc" id="L784">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L785">        LocalDateTime current = startDate.toLocalDate().atStartOfDay();</span>
+<span class="fc" id="L786">        LocalDateTime endDay = endDate.toLocalDate().atStartOfDay();</span>
+
+        // Include all days from start to end (inclusive)
+<span class="fc bfc" id="L789" title="All 2 branches covered.">        while (!current.isAfter(endDay)) {</span>
+<span class="fc" id="L790">            String tableName = getTableName(current);</span>
+<span class="fc" id="L791">            tables.add(tableName);</span>
+<span class="fc" id="L792">            current = current.plusDays(1);</span>
+<span class="fc" id="L793">        }</span>
+
+<span class="fc" id="L795">        return tables;</span>
     }
     
 
     private String getTableName(LocalDateTime date) {
         // For backward compatibility, if partitionRange is not set, use date-based
-<span class="nc bnc" id="L647" title="All 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
-<span class="nc" id="L648">            return getTableNameForDate(date);</span>
-<span class="nc bnc" id="L649" title="All 2 branches missed.">        } else if (isHashBased(partitionRange)) {</span>
+<span class="pc bpc" id="L801" title="3 of 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
+<span class="fc" id="L802">            return getTableNameForDate(date);</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">        } else if (isHashBased(partitionRange)) {</span>
             // For hash-based, use the entity's ID to determine bucket
-<span class="nc" id="L651">            return getTableNameForHash(date.hashCode());</span>
-<span class="nc bnc" id="L652" title="All 2 branches missed.">        } else if (isValueBased(partitionRange)) {</span>
+<span class="nc" id="L805">            return getTableNameForHash(date.hashCode());</span>
+<span class="nc bnc" id="L806" title="All 2 branches missed.">        } else if (isValueBased(partitionRange)) {</span>
             // For value-based, use sequence number if available
-<span class="nc" id="L654">            return getTableNameForValue(0L); // Will be overridden in getTableNameForEntity</span>
+<span class="nc" id="L808">            return getTableNameForValue(0L); // Will be overridden in getTableNameForEntity</span>
         }
-<span class="nc" id="L656">        return getTableNameForDate(date);</span>
+<span class="nc" id="L810">        return getTableNameForDate(date);</span>
     }
 
+    /**
+     * Validates partition value and throws exception if above maximum.
+     * Values below minimum are allowed (will use minimum table).
+     */
+    private void validateAndAdjustPartitionValue(LocalDateTime entityDate) throws SQLException {
+<span class="pc bpc" id="L818" title="2 of 4 branches missed.">        if (maxPartitionDate != null &amp;&amp; entityDate.isAfter(maxPartitionDate)) {</span>
+<span class="nc" id="L819">            throw new SQLException(String.format(</span>
+                &quot;Partition value %s is beyond maximum partition boundary %s. &quot; +
+                &quot;Cannot insert data beyond the configured retention period.&quot;,
+                entityDate, maxPartitionDate
+            ));
+        }
+        // Values below minimum are allowed - they'll be inserted into the minimum table
+<span class="fc" id="L826">    }</span>
+
     private String getTableNameForEntity(T entity) throws SQLException {
-<span class="nc bnc" id="L660" title="All 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
-<span class="nc" id="L661">            return getTableNameForDate(metadata.getShardingKeyValue(entity));</span>
-<span class="nc bnc" id="L662" title="All 2 branches missed.">        } else if (isHashBased(partitionRange)) {</span>
+<span class="pc bpc" id="L829" title="3 of 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
+<span class="fc" id="L830">            LocalDateTime entityDate = metadata.getShardingKeyValue(entity);</span>
+
+            // Handle values below minimum partition - use the minimum table
+<span class="pc bpc" id="L833" title="2 of 4 branches missed.">            if (minPartitionDate != null &amp;&amp; entityDate.isBefore(minPartitionDate)) {</span>
+<span class="nc" id="L834">                logger.debug(String.format(</span>
+                    &quot;Entity date %s is before minimum partition %s, using minimum table&quot;,
+                    entityDate, minPartitionDate
+                ));
+<span class="nc" id="L838">                return getTableNameForDate(minPartitionDate);</span>
+            }
+
+<span class="fc" id="L841">            return getTableNameForDate(entityDate);</span>
+<span class="nc bnc" id="L842" title="All 2 branches missed.">        } else if (isHashBased(partitionRange)) {</span>
             // Hash the ID to determine bucket
-<span class="nc" id="L664">            int buckets = getHashBuckets(partitionRange);</span>
-<span class="nc" id="L665">            int bucket = Math.abs(entity.getId().hashCode()) % buckets;</span>
-<span class="nc" id="L666">            return getTableNameForHash(bucket);</span>
-<span class="nc bnc" id="L667" title="All 2 branches missed.">        } else if (isValueBased(partitionRange)) {</span>
+<span class="nc" id="L844">            int buckets = getHashBuckets(partitionRange);</span>
+<span class="nc" id="L845">            int bucket = Math.abs(entity.getId().hashCode()) % buckets;</span>
+<span class="nc" id="L846">            return getTableNameForHash(bucket);</span>
+<span class="nc bnc" id="L847" title="All 2 branches missed.">        } else if (isValueBased(partitionRange)) {</span>
             // Try to extract a numeric value from the entity
             // First try to get a sequence number if the entity has one
             try {
                 // Use reflection to check for common numeric fields
-<span class="nc" id="L672">                java.lang.reflect.Method sequenceMethod = entity.getClass().getMethod(&quot;getSequenceNumber&quot;);</span>
-<span class="nc bnc" id="L673" title="All 2 branches missed.">                if (sequenceMethod != null) {</span>
-<span class="nc" id="L674">                    Object value = sequenceMethod.invoke(entity);</span>
-<span class="nc bnc" id="L675" title="All 2 branches missed.">                    if (value instanceof Number) {</span>
-<span class="nc" id="L676">                        return getTableNameForValue(((Number) value).longValue());</span>
+<span class="nc" id="L852">                java.lang.reflect.Method sequenceMethod = entity.getClass().getMethod(&quot;getSequenceNumber&quot;);</span>
+<span class="nc bnc" id="L853" title="All 2 branches missed.">                if (sequenceMethod != null) {</span>
+<span class="nc" id="L854">                    Object value = sequenceMethod.invoke(entity);</span>
+<span class="nc bnc" id="L855" title="All 2 branches missed.">                    if (value instanceof Number) {</span>
+<span class="nc" id="L856">                        return getTableNameForValue(((Number) value).longValue());</span>
                     }
                 }
-<span class="nc" id="L679">            } catch (Exception e) {</span>
+<span class="nc" id="L859">            } catch (Exception e) {</span>
                 // No sequence number method, continue to fallback
-<span class="nc" id="L681">            }</span>
+<span class="nc" id="L861">            }</span>
             // Fallback to extracting number from ID
             try {
-<span class="nc" id="L684">                String id = entity.getId();</span>
+<span class="nc" id="L864">                String id = entity.getId();</span>
                 // Extract numeric part from ID if it follows a pattern like &quot;EVT_00001234&quot;
-<span class="nc" id="L686">                String numericPart = id.replaceAll(&quot;[^0-9]&quot;, &quot;&quot;);</span>
-<span class="nc bnc" id="L687" title="All 2 branches missed.">                if (!numericPart.isEmpty()) {</span>
-<span class="nc" id="L688">                    return getTableNameForValue(Long.parseLong(numericPart));</span>
+<span class="nc" id="L866">                String numericPart = id.replaceAll(&quot;[^0-9]&quot;, &quot;&quot;);</span>
+<span class="nc bnc" id="L867" title="All 2 branches missed.">                if (!numericPart.isEmpty()) {</span>
+<span class="nc" id="L868">                    return getTableNameForValue(Long.parseLong(numericPart));</span>
                 }
-<span class="nc" id="L690">            } catch (Exception e) {</span>
+<span class="nc" id="L870">            } catch (Exception e) {</span>
                 // Fallback to hash if can't extract number
-<span class="nc" id="L692">                return getTableNameForHash(entity.getId().hashCode());</span>
-<span class="nc" id="L693">            }</span>
+<span class="nc" id="L872">                return getTableNameForHash(entity.getId().hashCode());</span>
+<span class="nc" id="L873">            }</span>
         }
-<span class="nc" id="L695">        return getTableNameForDate(metadata.getShardingKeyValue(entity));</span>
+<span class="nc" id="L875">        return getTableNameForDate(metadata.getShardingKeyValue(entity));</span>
     }
 
     private String getTableNameForDate(LocalDateTime date) {
-<span class="nc" id="L699">        DateTimeFormatter formatter = getDateFormatter();</span>
-<span class="nc" id="L700">        return database + &quot;.&quot; + tablePrefix + &quot;_&quot; + date.format(formatter);</span>
+<span class="fc" id="L879">        DateTimeFormatter formatter = getDateFormatter();</span>
+<span class="fc" id="L880">        return database + &quot;.&quot; + tablePrefix + &quot;_&quot; + date.format(formatter);</span>
     }
 
     private String getTableNameForHash(int bucket) {
-<span class="nc" id="L704">        int buckets = getHashBuckets(partitionRange);</span>
-<span class="nc" id="L705">        int actualBucket = Math.abs(bucket) % buckets;</span>
-<span class="nc" id="L706">        return database + &quot;.&quot; + tablePrefix + &quot;_hash_&quot; + actualBucket;</span>
+<span class="nc" id="L884">        int buckets = getHashBuckets(partitionRange);</span>
+<span class="nc" id="L885">        int actualBucket = Math.abs(bucket) % buckets;</span>
+<span class="nc" id="L886">        return database + &quot;.&quot; + tablePrefix + &quot;_hash_&quot; + actualBucket;</span>
     }
 
     private String getTableNameForValue(long value) {
-<span class="nc" id="L710">        long rangeSize = getValueRangeSize(partitionRange);</span>
-<span class="nc" id="L711">        long rangeStart = (value / rangeSize) * rangeSize;</span>
-<span class="nc" id="L712">        long rangeEnd = rangeStart + rangeSize - 1;</span>
-<span class="nc" id="L713">        return database + &quot;.&quot; + tablePrefix + &quot;_&quot; + rangeStart + &quot;_&quot; + rangeEnd;</span>
+<span class="nc" id="L890">        long rangeSize = getValueRangeSize(partitionRange);</span>
+<span class="nc" id="L891">        long rangeStart = (value / rangeSize) * rangeSize;</span>
+<span class="nc" id="L892">        long rangeEnd = rangeStart + rangeSize - 1;</span>
+<span class="nc" id="L893">        return database + &quot;.&quot; + tablePrefix + &quot;_&quot; + rangeStart + &quot;_&quot; + rangeEnd;</span>
     }
 
     private DateTimeFormatter getDateFormatter() {
-<span class="nc bnc" id="L717" title="All 2 branches missed.">        if (partitionRange == PartitionRange.HOURLY) {</span>
-<span class="nc" id="L718">            return DateTimeFormatter.ofPattern(&quot;yyyyMMddHH&quot;);</span>
-<span class="nc bnc" id="L719" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.MONTHLY) {</span>
-<span class="nc" id="L720">            return DateTimeFormatter.ofPattern(&quot;yyyyMM&quot;);</span>
-<span class="nc bnc" id="L721" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.YEARLY) {</span>
-<span class="nc" id="L722">            return DateTimeFormatter.ofPattern(&quot;yyyy&quot;);</span>
+<span class="pc bpc" id="L897" title="1 of 2 branches missed.">        if (partitionRange == PartitionRange.HOURLY) {</span>
+<span class="nc" id="L898">            return DateTimeFormatter.ofPattern(&quot;yyyyMMddHH&quot;);</span>
+<span class="pc bpc" id="L899" title="1 of 2 branches missed.">        } else if (partitionRange == PartitionRange.MONTHLY) {</span>
+<span class="nc" id="L900">            return DateTimeFormatter.ofPattern(&quot;yyyyMM&quot;);</span>
+<span class="pc bpc" id="L901" title="1 of 2 branches missed.">        } else if (partitionRange == PartitionRange.YEARLY) {</span>
+<span class="nc" id="L902">            return DateTimeFormatter.ofPattern(&quot;yyyy&quot;);</span>
         }
-<span class="nc" id="L724">        return DATE_FORMAT; // Default to daily</span>
+<span class="fc" id="L904">        return DATE_FORMAT; // Default to daily</span>
     }
 
     /**
@@ -729,28 +909,28 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     private LocalDateTime extractTableDateTime(String tableName) {
         try {
-<span class="nc" id="L732">            String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);</span>
+<span class="nc" id="L912">            String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);</span>
 
-<span class="nc bnc" id="L734" title="All 2 branches missed.">            if (partitionRange == PartitionRange.HOURLY) {</span>
+<span class="nc bnc" id="L914" title="All 2 branches missed.">            if (partitionRange == PartitionRange.HOURLY) {</span>
                 // Parse as yyyyMMddHH and set minutes/seconds to 0
-<span class="nc" id="L736">                return LocalDateTime.parse(dateStr + &quot;0000&quot;,</span>
-<span class="nc" id="L737">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
-<span class="nc bnc" id="L738" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.MONTHLY) {</span>
+<span class="nc" id="L916">                return LocalDateTime.parse(dateStr + &quot;0000&quot;,</span>
+<span class="nc" id="L917">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.MONTHLY) {</span>
                 // Parse as yyyyMM and set to first day of month at midnight
-<span class="nc" id="L740">                return LocalDateTime.parse(dateStr + &quot;01000000&quot;,</span>
-<span class="nc" id="L741">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
-<span class="nc bnc" id="L742" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.YEARLY) {</span>
+<span class="nc" id="L920">                return LocalDateTime.parse(dateStr + &quot;01000000&quot;,</span>
+<span class="nc" id="L921">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
+<span class="nc bnc" id="L922" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.YEARLY) {</span>
                 // Parse as yyyy and set to Jan 1st at midnight
-<span class="nc" id="L744">                return LocalDateTime.parse(dateStr + &quot;0101000000&quot;,</span>
-<span class="nc" id="L745">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
+<span class="nc" id="L924">                return LocalDateTime.parse(dateStr + &quot;0101000000&quot;,</span>
+<span class="nc" id="L925">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
             } else {
                 // Default: parse as yyyyMMdd (daily)
-<span class="nc" id="L748">                return LocalDateTime.parse(dateStr + &quot;000000&quot;,</span>
-<span class="nc" id="L749">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
+<span class="nc" id="L928">                return LocalDateTime.parse(dateStr + &quot;000000&quot;,</span>
+<span class="nc" id="L929">                    DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
             }
-<span class="nc" id="L751">        } catch (Exception e) {</span>
+<span class="nc" id="L931">        } catch (Exception e) {</span>
             // If parsing fails, return null to skip this table
-<span class="nc" id="L753">            return null;</span>
+<span class="nc" id="L933">            return null;</span>
         }
     }
 
@@ -758,21 +938,21 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      * Determine if a table should be skipped for findAllAfterDate
      */
     private boolean shouldSkipTableAfter(LocalDateTime tableDateTime, LocalDateTime afterDate) {
-<span class="nc bnc" id="L761" title="All 2 branches missed.">        if (partitionRange == PartitionRange.HOURLY) {</span>
+<span class="nc bnc" id="L941" title="All 2 branches missed.">        if (partitionRange == PartitionRange.HOURLY) {</span>
             // Skip if table hour is before the afterDate's hour
-<span class="nc bnc" id="L763" title="All 2 branches missed.">            return tableDateTime.plusHours(1).isBefore(afterDate) ||</span>
-<span class="nc bnc" id="L764" title="All 2 branches missed.">                   tableDateTime.plusHours(1).isEqual(afterDate);</span>
-<span class="nc bnc" id="L765" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.MONTHLY) {</span>
+<span class="nc bnc" id="L943" title="All 2 branches missed.">            return tableDateTime.plusHours(1).isBefore(afterDate) ||</span>
+<span class="nc bnc" id="L944" title="All 2 branches missed.">                   tableDateTime.plusHours(1).isEqual(afterDate);</span>
+<span class="nc bnc" id="L945" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.MONTHLY) {</span>
             // Skip if entire month is before afterDate
-<span class="nc bnc" id="L767" title="All 2 branches missed.">            return tableDateTime.plusMonths(1).isBefore(afterDate) ||</span>
-<span class="nc bnc" id="L768" title="All 2 branches missed.">                   tableDateTime.plusMonths(1).isEqual(afterDate);</span>
-<span class="nc bnc" id="L769" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.YEARLY) {</span>
+<span class="nc bnc" id="L947" title="All 2 branches missed.">            return tableDateTime.plusMonths(1).isBefore(afterDate) ||</span>
+<span class="nc bnc" id="L948" title="All 2 branches missed.">                   tableDateTime.plusMonths(1).isEqual(afterDate);</span>
+<span class="nc bnc" id="L949" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.YEARLY) {</span>
             // Skip if entire year is before afterDate
-<span class="nc bnc" id="L771" title="All 2 branches missed.">            return tableDateTime.plusYears(1).isBefore(afterDate) ||</span>
-<span class="nc bnc" id="L772" title="All 2 branches missed.">                   tableDateTime.plusYears(1).isEqual(afterDate);</span>
+<span class="nc bnc" id="L951" title="All 2 branches missed.">            return tableDateTime.plusYears(1).isBefore(afterDate) ||</span>
+<span class="nc bnc" id="L952" title="All 2 branches missed.">                   tableDateTime.plusYears(1).isEqual(afterDate);</span>
         } else {
             // Daily: Skip if entire day is before afterDate
-<span class="nc" id="L775">            return tableDateTime.toLocalDate().isBefore(afterDate.toLocalDate());</span>
+<span class="nc" id="L955">            return tableDateTime.toLocalDate().isBefore(afterDate.toLocalDate());</span>
         }
     }
 
@@ -780,74 +960,205 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      * Determine if a table should be skipped for findAllBeforeDate
      */
     private boolean shouldSkipTableBefore(LocalDateTime tableDateTime, LocalDateTime beforeDate) {
-<span class="nc bnc" id="L783" title="All 2 branches missed.">        if (partitionRange == PartitionRange.HOURLY) {</span>
+<span class="nc bnc" id="L963" title="All 2 branches missed.">        if (partitionRange == PartitionRange.HOURLY) {</span>
             // Skip if table hour is after or at the beforeDate's hour
-<span class="nc bnc" id="L785" title="All 2 branches missed.">            return tableDateTime.isAfter(beforeDate) ||</span>
-<span class="nc bnc" id="L786" title="All 2 branches missed.">                   tableDateTime.isEqual(beforeDate);</span>
-<span class="nc bnc" id="L787" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.MONTHLY) {</span>
+<span class="nc bnc" id="L965" title="All 2 branches missed.">            return tableDateTime.isAfter(beforeDate) ||</span>
+<span class="nc bnc" id="L966" title="All 2 branches missed.">                   tableDateTime.isEqual(beforeDate);</span>
+<span class="nc bnc" id="L967" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.MONTHLY) {</span>
             // Skip if table month starts after beforeDate
-<span class="nc" id="L789">            return tableDateTime.isAfter(beforeDate);</span>
-<span class="nc bnc" id="L790" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.YEARLY) {</span>
+<span class="nc" id="L969">            return tableDateTime.isAfter(beforeDate);</span>
+<span class="nc bnc" id="L970" title="All 2 branches missed.">        } else if (partitionRange == PartitionRange.YEARLY) {</span>
             // Skip if table year starts after beforeDate
-<span class="nc" id="L792">            return tableDateTime.isAfter(beforeDate);</span>
+<span class="nc" id="L972">            return tableDateTime.isAfter(beforeDate);</span>
         } else {
             // Daily: Skip if table day is after beforeDate's day
-<span class="nc" id="L795">            return tableDateTime.toLocalDate().isAfter(beforeDate.toLocalDate());</span>
+<span class="nc" id="L975">            return tableDateTime.toLocalDate().isAfter(beforeDate.toLocalDate());</span>
         }
     }
 
     private boolean isTimeBased(PartitionRange range) {
-<span class="nc bnc" id="L800" title="All 8 branches missed.">        return range == PartitionRange.HOURLY ||</span>
+<span class="pc bpc" id="L980" title="4 of 8 branches missed.">        return range == PartitionRange.HOURLY ||</span>
                range == PartitionRange.DAILY ||
                range == PartitionRange.MONTHLY ||
                range == PartitionRange.YEARLY;
     }
 
     private boolean isHashBased(PartitionRange range) {
-<span class="nc bnc" id="L807" title="All 4 branches missed.">        return range != null &amp;&amp; range.name().startsWith(&quot;HASH_&quot;);</span>
+<span class="nc bnc" id="L987" title="All 4 branches missed.">        return range != null &amp;&amp; range.name().startsWith(&quot;HASH_&quot;);</span>
     }
 
     private boolean isValueBased(PartitionRange range) {
-<span class="nc bnc" id="L811" title="All 4 branches missed.">        return range != null &amp;&amp; range.name().startsWith(&quot;VALUE_RANGE_&quot;);</span>
+<span class="nc bnc" id="L991" title="All 4 branches missed.">        return range != null &amp;&amp; range.name().startsWith(&quot;VALUE_RANGE_&quot;);</span>
     }
 
     private int getHashBuckets(PartitionRange range) {
-<span class="nc bnc" id="L815" title="All 4 branches missed.">        if (range == null || !isHashBased(range)) return 16;</span>
-<span class="nc bnc" id="L816" title="All 7 branches missed.">        switch (range) {</span>
-<span class="nc" id="L817">            case HASH_4: return 4;</span>
-<span class="nc" id="L818">            case HASH_8: return 8;</span>
-<span class="nc" id="L819">            case HASH_16: return 16;</span>
-<span class="nc" id="L820">            case HASH_32: return 32;</span>
-<span class="nc" id="L821">            case HASH_64: return 64;</span>
-<span class="nc" id="L822">            case HASH_128: return 128;</span>
-<span class="nc" id="L823">            default: return 16;</span>
+<span class="nc bnc" id="L995" title="All 4 branches missed.">        if (range == null || !isHashBased(range)) return 16;</span>
+<span class="nc bnc" id="L996" title="All 7 branches missed.">        switch (range) {</span>
+<span class="nc" id="L997">            case HASH_4: return 4;</span>
+<span class="nc" id="L998">            case HASH_8: return 8;</span>
+<span class="nc" id="L999">            case HASH_16: return 16;</span>
+<span class="nc" id="L1000">            case HASH_32: return 32;</span>
+<span class="nc" id="L1001">            case HASH_64: return 64;</span>
+<span class="nc" id="L1002">            case HASH_128: return 128;</span>
+<span class="nc" id="L1003">            default: return 16;</span>
         }
     }
 
     private long getValueRangeSize(PartitionRange range) {
-<span class="nc bnc" id="L828" title="All 4 branches missed.">        if (range == null || !isValueBased(range)) return 10000;</span>
-<span class="nc bnc" id="L829" title="All 7 branches missed.">        switch (range) {</span>
-<span class="nc" id="L830">            case VALUE_RANGE_1K: return 1000L;</span>
-<span class="nc" id="L831">            case VALUE_RANGE_10K: return 10000L;</span>
-<span class="nc" id="L832">            case VALUE_RANGE_100K: return 100000L;</span>
-<span class="nc" id="L833">            case VALUE_RANGE_1M: return 1000000L;</span>
-<span class="nc" id="L834">            case VALUE_RANGE_10M: return 10000000L;</span>
-<span class="nc" id="L835">            case VALUE_RANGE_100M: return 100000000L;</span>
-<span class="nc" id="L836">            default: return 10000L;</span>
+<span class="nc bnc" id="L1008" title="All 4 branches missed.">        if (range == null || !isValueBased(range)) return 10000;</span>
+<span class="nc bnc" id="L1009" title="All 7 branches missed.">        switch (range) {</span>
+<span class="nc" id="L1010">            case VALUE_RANGE_1K: return 1000L;</span>
+<span class="nc" id="L1011">            case VALUE_RANGE_10K: return 10000L;</span>
+<span class="nc" id="L1012">            case VALUE_RANGE_100K: return 100000L;</span>
+<span class="nc" id="L1013">            case VALUE_RANGE_1M: return 1000000L;</span>
+<span class="nc" id="L1014">            case VALUE_RANGE_10M: return 10000000L;</span>
+<span class="nc" id="L1015">            case VALUE_RANGE_100M: return 100000000L;</span>
+<span class="nc" id="L1016">            default: return 10000L;</span>
         }
     }
     
     private void createTableIfNotExists(String tableName) throws SQLException {
         // Use PersistenceProvider to generate CREATE TABLE SQL
-<span class="nc" id="L842">        String createSQL = persistenceProvider.generateCreateTableSQL(tableName, metadata, charset, collation);</span>
+<span class="fc" id="L1022">        String createSQL = persistenceProvider.generateCreateTableSQL(tableName, metadata, charset, collation);</span>
 
-<span class="nc" id="L844">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L845">             Statement stmt = conn.createStatement()) {</span>
-<span class="nc" id="L846">            stmt.execute(createSQL);</span>
-<span class="nc" id="L847">            logger.info(&quot;Ensured table exists: &quot; + tableName);</span>
+        // Add nested partitions if enabled
+<span class="pc bpc" id="L1025" title="1 of 2 branches missed.">        if (nestedPartitionsEnabled) {</span>
+<span class="fc" id="L1026">            createSQL = addNestedPartitions(createSQL, tableName);</span>
         }
-<span class="nc" id="L849">    }</span>
+
+<span class="fc" id="L1029">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L1030">             Statement stmt = conn.createStatement()) {</span>
+<span class="fc" id="L1031">            stmt.execute(createSQL);</span>
+            // Only log if table was actually created (CREATE TABLE IF NOT EXISTS handles this)
+<span class="fc" id="L1033">            logger.debug(&quot;Ensured table exists: &quot; + tableName +</span>
+<span class="pc bpc" id="L1034" title="1 of 2 branches missed.">                (nestedPartitionsEnabled ? &quot; with &quot; + nestedPartitionCount + &quot; nested partitions&quot; : &quot;&quot;));</span>
+<span class="nc" id="L1035">        } catch (SQLException e) {</span>
+            // If it's a &quot;table already exists&quot; error and we're using partitions, ignore it
+<span class="nc bnc" id="L1037" title="All 2 branches missed.">            if (!e.getMessage().contains(&quot;already exists&quot;)) {</span>
+<span class="nc" id="L1038">                throw e;</span>
+            }
+<span class="fc" id="L1040">        }</span>
+<span class="fc" id="L1041">    }</span>
     
+    /**
+     * Extract date from table name in format tablename_YYYYMMDD
+     */
+    private String extractDateFromTableName(String tableName) {
+        // Extract YYYYMMDD from table name like &quot;events_20250920&quot;
+<span class="fc" id="L1048">        String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);</span>
+
+        // Convert YYYYMMDD to YYYY-MM-DD
+<span class="pc bpc" id="L1051" title="1 of 2 branches missed.">        if (dateStr.length() == 8) {</span>
+<span class="fc" id="L1052">            return dateStr.substring(0, 4) + &quot;-&quot; +</span>
+<span class="fc" id="L1053">                   dateStr.substring(4, 6) + &quot;-&quot; +</span>
+<span class="fc" id="L1054">                   dateStr.substring(6, 8);</span>
+        }
+
+        // Fallback to current date if unable to parse
+<span class="nc" id="L1058">        return LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;));</span>
+    }
+
+    /**
+     * Add nested native partitions to a table for better query performance
+     */
+    private String addNestedPartitions(String baseCreateSQL, String tableName) throws SQLException {
+        // First, ensure we don't already have partition syntax in the SQL
+<span class="pc bpc" id="L1066" title="1 of 2 branches missed.">        if (baseCreateSQL.contains(&quot;PARTITION BY&quot;)) {</span>
+<span class="nc" id="L1067">            return baseCreateSQL;</span>
+        }
+
+        // Determine partition column - use the sharding key column
+<span class="fc" id="L1071">        String partCol = metadata.getShardingKeyField().getColumnName();</span>
+<span class="fc" id="L1072">        String idCol = metadata.getIdField().getColumnName();</span>
+
+        // For RANGE partitioning in MySQL, the partition column must be part of the primary key
+        // We need to modify the primary key to include both id and the partition column
+<span class="fc" id="L1076">        String modifiedSQL = baseCreateSQL;</span>
+<span class="pc bpc" id="L1077" title="1 of 2 branches missed.">        if (baseCreateSQL.contains(&quot;PRIMARY KEY&quot;)) {</span>
+            // Replace single-column primary key with composite key
+<span class="fc" id="L1079">            modifiedSQL = baseCreateSQL.replaceAll(</span>
+                idCol + &quot;\\s+VARCHAR\\([^)]+\\)\\s+PRIMARY KEY&quot;,
+                idCol + &quot; VARCHAR(255)&quot;
+            );
+        }
+
+        // Remove the closing parenthesis and ENGINE clause temporarily
+<span class="fc" id="L1086">        String sqlWithoutEngine = modifiedSQL.replaceAll(&quot;\\)\\s*(ENGINE=.*)?$&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L1087" title="1 of 2 branches missed.">        if (sqlWithoutEngine.equals(modifiedSQL)) {</span>
+            // If nothing was removed, try other patterns
+<span class="nc" id="L1089">            sqlWithoutEngine = modifiedSQL.replaceAll(&quot;;$&quot;, &quot;&quot;);</span>
+        }
+
+<span class="fc" id="L1092">        StringBuilder partitionSQL = new StringBuilder(sqlWithoutEngine);</span>
+
+        // Determine partition column type if not explicitly set
+<span class="fc" id="L1095">        PartitionColumnType effectiveType = partitionColumnType;</span>
+<span class="pc bpc" id="L1096" title="1 of 2 branches missed.">        if (effectiveType == null) {</span>
+            // Try to infer from the field type
+<span class="fc" id="L1098">            Class&lt;?&gt; fieldType = metadata.getShardingKeyField().getType();</span>
+<span class="pc bpc" id="L1099" title="5 of 6 branches missed.">            if (fieldType == LocalDateTime.class || fieldType == java.util.Date.class || fieldType == Timestamp.class) {</span>
+<span class="fc" id="L1100">                effectiveType = PartitionColumnType.LOCAL_DATE_TIME;</span>
+<span class="nc bnc" id="L1101" title="All 2 branches missed.">            } else if (fieldType == Long.class) {</span>
+<span class="nc" id="L1102">                effectiveType = PartitionColumnType.LONG;</span>
+<span class="nc bnc" id="L1103" title="All 2 branches missed.">            } else if (fieldType == Integer.class) {</span>
+<span class="nc" id="L1104">                effectiveType = PartitionColumnType.INTEGER;</span>
+<span class="nc bnc" id="L1105" title="All 2 branches missed.">            } else if (fieldType == String.class) {</span>
+<span class="nc" id="L1106">                effectiveType = PartitionColumnType.STRING;</span>
+            }
+        }
+
+        // Add composite primary key for partition compatibility
+        // Find the last comma before the closing parenthesis and add the primary key
+<span class="fc" id="L1112">        partitionSQL.append(&quot;,\n  PRIMARY KEY (&quot;).append(idCol).append(&quot;, &quot;).append(partCol).append(&quot;)&quot;);</span>
+
+        // Add ENGINE clause
+<span class="fc" id="L1115">        partitionSQL.append(&quot;\n) ENGINE=InnoDB DEFAULT CHARSET=&quot;).append(charset)</span>
+<span class="fc" id="L1116">                   .append(&quot; COLLATE=&quot;).append(collation);</span>
+
+        // Add partition clause based on the partition column type
+<span class="pc bpc" id="L1119" title="1 of 2 branches missed.">        if (effectiveType == PartitionColumnType.LOCAL_DATE_TIME) {</span>
+            // Extract the date from the table name (format: tablename_YYYYMMDD)
+<span class="fc" id="L1121">            String tableDate = extractDateFromTableName(tableName);</span>
+
+            // For date-based columns, create hourly partitions with actual datetime values
+            // MySQL RANGE COLUMNS partitioning allows direct datetime values
+<span class="fc" id="L1125">            partitionSQL.append(&quot;\nPARTITION BY RANGE COLUMNS(&quot;).append(partCol).append(&quot;) (&quot;);</span>
+
+            // Create 24 hourly partitions for the day
+            // Each partition covers one hour of the day
+<span class="fc" id="L1129">            int maxHours = Math.min(nestedPartitionCount, 24);</span>
+<span class="fc bfc" id="L1130" title="All 2 branches covered.">            for (int hour = 1; hour &lt;= maxHours; hour++) {</span>
+<span class="fc bfc" id="L1131" title="All 2 branches covered.">                if (hour &gt; 1) partitionSQL.append(&quot;,&quot;);</span>
+
+                // Partition p_h01 for 00:00:00 to 00:59:59 (VALUES LESS THAN 01:00:00)
+                // Partition p_h02 for 01:00:00 to 01:59:59 (VALUES LESS THAN 02:00:00)
+                // ... and so on
+                String partitionBoundary;
+
+<span class="fc bfc" id="L1138" title="All 2 branches covered.">                if (hour &lt; 24) {</span>
+                    // Regular hourly partitions
+<span class="fc" id="L1140">                    partitionBoundary = String.format(&quot;%s %02d:00:00&quot;, tableDate, hour);</span>
+                } else {
+                    // Last partition (p_h24) for 23:00:00 to 23:59:59 needs next day's 00:00:00
+<span class="fc" id="L1143">                    LocalDateTime currentDate = LocalDateTime.parse(tableDate + &quot; 00:00:00&quot;,</span>
+<span class="fc" id="L1144">                        DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;));</span>
+<span class="fc" id="L1145">                    LocalDateTime nextDay = currentDate.plusDays(1);</span>
+<span class="fc" id="L1146">                    partitionBoundary = nextDay.format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;));</span>
+                }
+
+<span class="fc" id="L1149">                partitionSQL.append(&quot;\n  PARTITION p_h&quot;).append(String.format(&quot;%02d&quot;, hour))</span>
+<span class="fc" id="L1150">                           .append(&quot; VALUES LESS THAN ('&quot;).append(partitionBoundary).append(&quot;')&quot;);</span>
+            }
+<span class="fc" id="L1152">            partitionSQL.append(&quot;\n)&quot;);</span>
+<span class="fc" id="L1153">        } else {</span>
+            // For other types, create hash partitions
+<span class="nc" id="L1155">            partitionSQL.append(&quot;\nPARTITION BY HASH(&quot;).append(partCol).append(&quot;)&quot;)</span>
+<span class="nc" id="L1156">                       .append(&quot;\nPARTITIONS &quot;).append(nestedPartitionCount);</span>
+        }
+
+<span class="fc" id="L1159">        return partitionSQL.toString();</span>
+    }
+
     /**
      * Add hourly partitioning to a daily table
      * Each daily table gets 24 hour partitions (h00, h01, h02, ..., h23)
@@ -862,377 +1173,386 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
         // Users can use HOURLY table granularity if they need hour-level separation
 
         // Just add charset and collation if not present
-<span class="nc bnc" id="L865" title="All 2 branches missed.">        if (!baseCreateSQL.contains(&quot;CHARSET=&quot;)) {</span>
-<span class="nc" id="L866">            baseCreateSQL = baseCreateSQL.replace(&quot;) ENGINE=InnoDB&quot;,</span>
+<span class="nc bnc" id="L1176" title="All 2 branches missed.">        if (!baseCreateSQL.contains(&quot;CHARSET=&quot;)) {</span>
+<span class="nc" id="L1177">            baseCreateSQL = baseCreateSQL.replace(&quot;) ENGINE=InnoDB&quot;,</span>
                 &quot;) ENGINE=InnoDB DEFAULT CHARSET=&quot; + charset + &quot; COLLATE=&quot; + collation);
         }
 
-<span class="nc" id="L870">        return baseCreateSQL;</span>
+<span class="nc" id="L1181">        return baseCreateSQL;</span>
     }
     
     private List&lt;String&gt; getExistingTables() throws SQLException {
-<span class="nc" id="L874">        String pattern = tablePrefix + &quot;_%&quot;;</span>
-<span class="nc" id="L875">        String sql = &quot;SELECT CONCAT(table_schema, '.', table_name) as full_name &quot; +</span>
+<span class="nc" id="L1185">        String pattern = tablePrefix + &quot;_%&quot;;</span>
+<span class="nc" id="L1186">        String sql = &quot;SELECT CONCAT(table_schema, '.', table_name) as full_name &quot; +</span>
                     &quot;FROM information_schema.tables &quot; +
                     &quot;WHERE table_schema = ? AND table_name LIKE ? &quot; +
                     &quot;ORDER BY table_name DESC&quot;;
         
-<span class="nc" id="L880">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1191">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
         
-<span class="nc" id="L882">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L883">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L1193">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L1194">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
             
-<span class="nc" id="L885">            stmt.setString(1, database);</span>
-<span class="nc" id="L886">            stmt.setString(2, pattern);</span>
+<span class="nc" id="L1196">            stmt.setString(1, database);</span>
+<span class="nc" id="L1197">            stmt.setString(2, pattern);</span>
             
-<span class="nc" id="L888">            try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L889" title="All 2 branches missed.">                while (rs.next()) {</span>
-<span class="nc" id="L890">                    tables.add(rs.getString(&quot;full_name&quot;));</span>
+<span class="nc" id="L1199">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L1200" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L1201">                    tables.add(rs.getString(&quot;full_name&quot;));</span>
                 }
             }
         }
         
-<span class="nc" id="L895">        return tables;</span>
+<span class="nc" id="L1206">        return tables;</span>
     }
     
     private boolean tableExists(String tableName) throws SQLException {
-<span class="nc" id="L899">        String sql = &quot;SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ?&quot;;</span>
-<span class="nc" id="L900">        String[] parts = tableName.split(&quot;\\.&quot;);</span>
-<span class="nc" id="L901">        String schema = parts[0];</span>
-<span class="nc" id="L902">        String table = parts[1];</span>
+<span class="fc" id="L1210">        String sql = &quot;SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ?&quot;;</span>
+<span class="fc" id="L1211">        String[] parts = tableName.split(&quot;\\.&quot;);</span>
+<span class="fc" id="L1212">        String schema = parts[0];</span>
+<span class="fc" id="L1213">        String table = parts[1];</span>
         
-<span class="nc" id="L904">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L905">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="fc" id="L1215">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L1216">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
             
-<span class="nc" id="L907">            stmt.setString(1, schema);</span>
-<span class="nc" id="L908">            stmt.setString(2, table);</span>
+<span class="fc" id="L1218">            stmt.setString(1, schema);</span>
+<span class="fc" id="L1219">            stmt.setString(2, table);</span>
             
-<span class="nc" id="L910">            try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc" id="L911">                return rs.next();</span>
+<span class="fc" id="L1221">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="fc" id="L1222">                return rs.next();</span>
             }
         }
     }
     
     private void setIdParameter(PreparedStatement stmt, int index, String id) throws SQLException {
-<span class="nc" id="L917">        stmt.setString(index, id);</span>
-<span class="nc" id="L918">    }</span>
+<span class="nc" id="L1228">        stmt.setString(index, id);</span>
+<span class="nc" id="L1229">    }</span>
     
     private &lt;R&gt; List&lt;R&gt; executeQuery(String sql, Map&lt;String, Object&gt; parameters, 
                                     ResultSetMapper&lt;R&gt; mapper) throws SQLException {
-<span class="nc" id="L922">        List&lt;R&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1233">        List&lt;R&gt; results = new ArrayList&lt;&gt;();</span>
         
-<span class="nc" id="L924">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L925">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L1235">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L1236">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
             
-<span class="nc bnc" id="L927" title="All 2 branches missed.">            if (parameters != null) {</span>
-<span class="nc" id="L928">                int index = 1;</span>
-<span class="nc bnc" id="L929" title="All 2 branches missed.">                for (Object value : parameters.values()) {</span>
-<span class="nc" id="L930">                    stmt.setObject(index++, value);</span>
-<span class="nc" id="L931">                }</span>
+<span class="nc bnc" id="L1238" title="All 2 branches missed.">            if (parameters != null) {</span>
+<span class="nc" id="L1239">                int index = 1;</span>
+<span class="nc bnc" id="L1240" title="All 2 branches missed.">                for (Object value : parameters.values()) {</span>
+<span class="nc" id="L1241">                    stmt.setObject(index++, value);</span>
+<span class="nc" id="L1242">                }</span>
             }
             
-<span class="nc" id="L934">            try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L935" title="All 2 branches missed.">                while (rs.next()) {</span>
-<span class="nc" id="L936">                    results.add(mapper.map(rs));</span>
+<span class="nc" id="L1245">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L1246" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L1247">                    results.add(mapper.map(rs));</span>
                 }
             }
         }
         
-<span class="nc" id="L941">        return results;</span>
+<span class="nc" id="L1252">        return results;</span>
     }
     
     private void performAutomaticMaintenance(LocalDateTime referenceDate) throws SQLException {
-<span class="nc" id="L945">        long startTime = System.currentTimeMillis();</span>
-<span class="nc" id="L946">        int tablesCreated = 0;</span>
-<span class="nc" id="L947">        int tablesDeleted = 0;</span>
+<span class="nc" id="L1256">        long startTime = System.currentTimeMillis();</span>
+<span class="nc" id="L1257">        int tablesCreated = 0;</span>
+<span class="nc" id="L1258">        int tablesDeleted = 0;</span>
         
         // Record maintenance job start
-<span class="nc bnc" id="L950" title="All 2 branches missed.">        if (monitoringService != null) {</span>
-<span class="nc" id="L951">            monitoringService.recordMaintenanceJobStart();</span>
+<span class="nc bnc" id="L1261" title="All 2 branches missed.">        if (monitoringService != null) {</span>
+<span class="nc" id="L1262">            monitoringService.recordMaintenanceJobStart();</span>
         }
         
         // Use MaintenanceConnection to get exclusive access during maintenance
-<span class="nc" id="L955">        try (MaintenanceConnection maintenanceConn = connectionProvider.getMaintenanceConnection(</span>
+<span class="nc" id="L1266">        try (MaintenanceConnection maintenanceConn = connectionProvider.getMaintenanceConnection(</span>
                 &quot;Automatic partition maintenance for &quot; + tablePrefix)) {
             
-<span class="nc" id="L958">            logger.info(&quot;Starting automatic maintenance for &quot; + tablePrefix);</span>
+<span class="nc" id="L1269">            logger.info(&quot;Starting automatic maintenance for &quot; + tablePrefix);</span>
             
-<span class="nc" id="L960">            LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);</span>
-<span class="nc" id="L961">            LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);</span>
+<span class="nc" id="L1271">            LocalDateTime startDate = referenceDate.minusDays(partitionRetentionPeriod);</span>
+<span class="nc" id="L1272">            LocalDateTime endDate = referenceDate.plusDays(partitionRetentionPeriod);</span>
             
             // Count existing tables before creation
-<span class="nc" id="L964">            List&lt;String&gt; beforeTables = getExistingTables();</span>
-<span class="nc" id="L965">            createTablesForDateRange(startDate, endDate);</span>
-<span class="nc" id="L966">            List&lt;String&gt; afterTables = getExistingTables();</span>
-<span class="nc" id="L967">            tablesCreated = afterTables.size() - beforeTables.size();</span>
+<span class="nc" id="L1275">            List&lt;String&gt; beforeTables = getExistingTables();</span>
+<span class="nc" id="L1276">            createTablesForDateRange(startDate, endDate);</span>
+<span class="nc" id="L1277">            List&lt;String&gt; afterTables = getExistingTables();</span>
+<span class="nc" id="L1278">            tablesCreated = afterTables.size() - beforeTables.size();</span>
             
             // Count tables before deletion
-<span class="nc" id="L970">            List&lt;String&gt; beforeDeletion = getExistingTables();</span>
-<span class="nc" id="L971">            LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);</span>
-<span class="nc" id="L972">            dropOldTables(cutoffDate);</span>
-<span class="nc" id="L973">            List&lt;String&gt; afterDeletion = getExistingTables();</span>
-<span class="nc" id="L974">            tablesDeleted = beforeDeletion.size() - afterDeletion.size();</span>
+<span class="nc" id="L1281">            List&lt;String&gt; beforeDeletion = getExistingTables();</span>
+<span class="nc" id="L1282">            LocalDateTime cutoffDate = referenceDate.minusDays(partitionRetentionPeriod);</span>
+<span class="nc" id="L1283">            dropOldTables(cutoffDate);</span>
+<span class="nc" id="L1284">            List&lt;String&gt; afterDeletion = getExistingTables();</span>
+<span class="nc" id="L1285">            tablesDeleted = beforeDeletion.size() - afterDeletion.size();</span>
             
-<span class="nc" id="L976">            long duration = System.currentTimeMillis() - startTime;</span>
+<span class="nc" id="L1287">            long duration = System.currentTimeMillis() - startTime;</span>
             
-<span class="nc" id="L978">            logger.info(String.format(&quot;Maintenance completed: created %d tables, deleted %d tables in %d ms&quot;, </span>
-<span class="nc" id="L979">                        tablesCreated, tablesDeleted, duration));</span>
+<span class="nc" id="L1289">            logger.info(String.format(&quot;Maintenance completed: created %d tables, deleted %d tables in %d ms&quot;, </span>
+<span class="nc" id="L1290">                        tablesCreated, tablesDeleted, duration));</span>
             
             // Record success
-<span class="nc bnc" id="L982" title="All 2 branches missed.">            if (monitoringService != null) {</span>
-<span class="nc" id="L983">                monitoringService.recordMaintenanceJobSuccess(duration, tablesCreated, tablesDeleted);</span>
+<span class="nc bnc" id="L1293" title="All 2 branches missed.">            if (monitoringService != null) {</span>
+<span class="nc" id="L1294">                monitoringService.recordMaintenanceJobSuccess(duration, tablesCreated, tablesDeleted);</span>
             }
             
-<span class="nc" id="L986">        } catch (SQLException e) {</span>
-<span class="nc" id="L987">            long duration = System.currentTimeMillis() - startTime;</span>
-<span class="nc" id="L988">            logger.error(&quot;Maintenance failed: &quot; + e.getMessage());</span>
-<span class="nc bnc" id="L989" title="All 2 branches missed.">            if (monitoringService != null) {</span>
-<span class="nc" id="L990">                monitoringService.recordMaintenanceJobFailure(duration, e);</span>
+<span class="nc" id="L1297">        } catch (SQLException e) {</span>
+<span class="nc" id="L1298">            long duration = System.currentTimeMillis() - startTime;</span>
+<span class="nc" id="L1299">            logger.error(&quot;Maintenance failed: &quot; + e.getMessage());</span>
+<span class="nc bnc" id="L1300" title="All 2 branches missed.">            if (monitoringService != null) {</span>
+<span class="nc" id="L1301">                monitoringService.recordMaintenanceJobFailure(duration, e);</span>
             }
-<span class="nc" id="L992">            throw e;</span>
-<span class="nc" id="L993">        }</span>
-<span class="nc" id="L994">    }</span>
+<span class="nc" id="L1303">            throw e;</span>
+<span class="nc" id="L1304">        }</span>
+<span class="nc" id="L1305">    }</span>
     
     public void createTablesForDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
-<span class="nc" id="L997">        LocalDateTime current = startDate;</span>
-<span class="nc bnc" id="L998" title="All 2 branches missed.">        while (!current.isAfter(endDate)) {</span>
-<span class="nc" id="L999">            createTableIfNotExists(getTableName(current));</span>
+<span class="fc" id="L1308">        LocalDateTime current = startDate;</span>
+<span class="fc bfc" id="L1309" title="All 2 branches covered.">        while (!current.isAfter(endDate)) {</span>
+<span class="fc" id="L1310">            createTableIfNotExists(getTableName(current));</span>
             // Increment based on partition range
-<span class="nc bnc" id="L1001" title="All 2 branches missed.">            if (partitionRange == PartitionRange.HOURLY) {</span>
-<span class="nc" id="L1002">                current = current.plusHours(1);</span>
-<span class="nc bnc" id="L1003" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.MONTHLY) {</span>
-<span class="nc" id="L1004">                current = current.plusMonths(1);</span>
-<span class="nc bnc" id="L1005" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.YEARLY) {</span>
-<span class="nc" id="L1006">                current = current.plusYears(1);</span>
+<span class="pc bpc" id="L1312" title="1 of 2 branches missed.">            if (partitionRange == PartitionRange.HOURLY) {</span>
+<span class="nc" id="L1313">                current = current.plusHours(1);</span>
+<span class="pc bpc" id="L1314" title="1 of 2 branches missed.">            } else if (partitionRange == PartitionRange.MONTHLY) {</span>
+<span class="nc" id="L1315">                current = current.plusMonths(1);</span>
+<span class="pc bpc" id="L1316" title="1 of 2 branches missed.">            } else if (partitionRange == PartitionRange.YEARLY) {</span>
+<span class="nc" id="L1317">                current = current.plusYears(1);</span>
             } else {
                 // Default to daily
-<span class="nc" id="L1009">                current = current.plusDays(1);</span>
+<span class="fc" id="L1320">                current = current.plusDays(1);</span>
             }
         }
-<span class="nc" id="L1012">    }</span>
+<span class="fc" id="L1323">    }</span>
     
     public void dropOldTables(LocalDateTime cutoffDate) throws SQLException {
-<span class="nc bnc" id="L1015" title="All 2 branches missed.">        if (!autoManagePartitions) {</span>
-<span class="nc" id="L1016">            return;</span>
+<span class="nc bnc" id="L1326" title="All 2 branches missed.">        if (!autoManagePartitions) {</span>
+<span class="nc" id="L1327">            return;</span>
         }
         
-<span class="nc" id="L1019">        String cutoffDateStr = cutoffDate.format(DATE_FORMAT);</span>
-<span class="nc" id="L1020">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L1330">        String cutoffDateStr = cutoffDate.format(DATE_FORMAT);</span>
+<span class="nc" id="L1331">        List&lt;String&gt; tables = getExistingTables();</span>
         
-<span class="nc bnc" id="L1022" title="All 2 branches missed.">        for (String tableName : tables) {</span>
-<span class="nc" id="L1023">            String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);</span>
-<span class="nc bnc" id="L1024" title="All 2 branches missed.">            if (dateStr.compareTo(cutoffDateStr) &lt; 0) {</span>
-<span class="nc" id="L1025">                dropTable(tableName);</span>
+<span class="nc bnc" id="L1333" title="All 2 branches missed.">        for (String tableName : tables) {</span>
+<span class="nc" id="L1334">            String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);</span>
+<span class="nc bnc" id="L1335" title="All 2 branches missed.">            if (dateStr.compareTo(cutoffDateStr) &lt; 0) {</span>
+<span class="nc" id="L1336">                dropTable(tableName);</span>
             }
-<span class="nc" id="L1027">        }</span>
-<span class="nc" id="L1028">    }</span>
+<span class="nc" id="L1338">        }</span>
+<span class="nc" id="L1339">    }</span>
     
     private void dropTable(String tableName) throws SQLException {
-<span class="nc" id="L1031">        String sql = &quot;DROP TABLE IF EXISTS &quot; + tableName;</span>
+<span class="nc" id="L1342">        String sql = &quot;DROP TABLE IF EXISTS &quot; + tableName;</span>
         
-<span class="nc" id="L1033">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L1034">             Statement stmt = conn.createStatement()) {</span>
-<span class="nc" id="L1035">            stmt.execute(sql);</span>
-<span class="nc" id="L1036">            logger.info(&quot;Dropped old table: &quot; + tableName);</span>
+<span class="nc" id="L1344">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L1345">             Statement stmt = conn.createStatement()) {</span>
+<span class="nc" id="L1346">            stmt.execute(sql);</span>
+<span class="nc" id="L1347">            logger.info(&quot;Dropped old table: &quot; + tableName);</span>
         }
-<span class="nc" id="L1038">    }</span>
+<span class="nc" id="L1349">    }</span>
     
     /**
      * Initialize all tables needed for the retention period at startup.
      * This ensures all tables exist before any insert operations.
      */
     private void initializeTablesForRetentionPeriod() throws SQLException {
-<span class="nc bnc" id="L1045" title="All 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
+<span class="pc bpc" id="L1356" title="3 of 4 branches missed.">        if (partitionRange == null || isTimeBased(partitionRange)) {</span>
             // Time-based partitioning - create tables for date range
-<span class="nc" id="L1047">            LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L1358">            LocalDateTime now = LocalDateTime.now();</span>
             LocalDateTime startDate, endDate;
 
             // Calculate date range based on partition type
-<span class="nc bnc" id="L1051" title="All 2 branches missed.">            if (partitionRange == PartitionRange.HOURLY) {</span>
+<span class="pc bpc" id="L1362" title="1 of 2 branches missed.">            if (partitionRange == PartitionRange.HOURLY) {</span>
                 // For hourly, create tables for +/- 48 hours
-<span class="nc" id="L1053">                startDate = now.minusHours(48);</span>
-<span class="nc" id="L1054">                endDate = now.plusHours(48);</span>
-<span class="nc" id="L1055">                logger.info(String.format(&quot;Initializing hourly tables for: %s to %s&quot;,</span>
+<span class="nc" id="L1364">                startDate = now.minusHours(48);</span>
+<span class="nc" id="L1365">                endDate = now.plusHours(48);</span>
+<span class="nc" id="L1366">                logger.info(String.format(&quot;Initializing hourly tables for: %s to %s&quot;,</span>
                             startDate, endDate));
-<span class="nc bnc" id="L1057" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.MONTHLY) {</span>
+<span class="pc bpc" id="L1368" title="1 of 2 branches missed.">            } else if (partitionRange == PartitionRange.MONTHLY) {</span>
                 // For monthly, create tables for +/- 3 months
-<span class="nc" id="L1059">                startDate = now.minusMonths(3);</span>
-<span class="nc" id="L1060">                endDate = now.plusMonths(3);</span>
-<span class="nc" id="L1061">                logger.info(String.format(&quot;Initializing monthly tables for: %s to %s&quot;,</span>
-<span class="nc" id="L1062">                            startDate.toLocalDate(), endDate.toLocalDate()));</span>
-<span class="nc bnc" id="L1063" title="All 2 branches missed.">            } else if (partitionRange == PartitionRange.YEARLY) {</span>
+<span class="nc" id="L1370">                startDate = now.minusMonths(3);</span>
+<span class="nc" id="L1371">                endDate = now.plusMonths(3);</span>
+<span class="nc" id="L1372">                logger.info(String.format(&quot;Initializing monthly tables for: %s to %s&quot;,</span>
+<span class="nc" id="L1373">                            startDate.toLocalDate(), endDate.toLocalDate()));</span>
+<span class="pc bpc" id="L1374" title="1 of 2 branches missed.">            } else if (partitionRange == PartitionRange.YEARLY) {</span>
                 // For yearly, create tables for +/- 2 years
-<span class="nc" id="L1065">                startDate = now.minusYears(2);</span>
-<span class="nc" id="L1066">                endDate = now.plusYears(2);</span>
-<span class="nc" id="L1067">                logger.info(String.format(&quot;Initializing yearly tables for: %d to %d&quot;,</span>
-<span class="nc" id="L1068">                            startDate.getYear(), endDate.getYear()));</span>
+<span class="nc" id="L1376">                startDate = now.minusYears(2);</span>
+<span class="nc" id="L1377">                endDate = now.plusYears(2);</span>
+<span class="nc" id="L1378">                logger.info(String.format(&quot;Initializing yearly tables for: %d to %d&quot;,</span>
+<span class="nc" id="L1379">                            startDate.getYear(), endDate.getYear()));</span>
             } else {
                 // Default to daily
-<span class="nc" id="L1071">                startDate = now.minusDays(partitionRetentionPeriod);</span>
-<span class="nc" id="L1072">                endDate = now.plusDays(partitionRetentionPeriod);</span>
-<span class="nc" id="L1073">                logger.info(String.format(&quot;Initializing daily tables for retention period: %s to %s (%d days)&quot;,</span>
-<span class="nc" id="L1074">                            startDate.toLocalDate(), endDate.toLocalDate(),</span>
-<span class="nc" id="L1075">                            partitionRetentionPeriod * 2 + 1));</span>
+<span class="fc" id="L1382">                startDate = now.minusDays(partitionRetentionPeriod);</span>
+<span class="fc" id="L1383">                endDate = now.plusDays(partitionRetentionPeriod);</span>
+<span class="fc" id="L1384">                logger.info(String.format(&quot;Initializing daily tables for retention period: %s to %s (%d days)&quot;,</span>
+<span class="fc" id="L1385">                            startDate.toLocalDate(), endDate.toLocalDate(),</span>
+<span class="fc" id="L1386">                            partitionRetentionPeriod * 2 + 1));</span>
             }
 
-<span class="nc" id="L1078">            createTablesForDateRange(startDate, endDate);</span>
-<span class="nc bnc" id="L1079" title="All 2 branches missed.">        } else if (isHashBased(partitionRange)) {</span>
+            // Store the min/max partition boundaries
+<span class="fc" id="L1390">            this.minPartitionDate = startDate;</span>
+<span class="fc" id="L1391">            this.maxPartitionDate = endDate;</span>
+
+<span class="fc" id="L1393">            createTablesForDateRange(startDate, endDate);</span>
+<span class="pc bnc" id="L1394" title="All 2 branches missed.">        } else if (isHashBased(partitionRange)) {</span>
             // Hash-based partitioning - create fixed number of buckets
-<span class="nc" id="L1081">            int buckets = getHashBuckets(partitionRange);</span>
-<span class="nc" id="L1082">            logger.info(&quot;Initializing &quot; + buckets + &quot; hash-based tables&quot;);</span>
+<span class="nc" id="L1396">            int buckets = getHashBuckets(partitionRange);</span>
+<span class="nc" id="L1397">            logger.info(&quot;Initializing &quot; + buckets + &quot; hash-based tables&quot;);</span>
 
-<span class="nc bnc" id="L1084" title="All 2 branches missed.">            for (int i = 0; i &lt; buckets; i++) {</span>
-<span class="nc" id="L1085">                String tableName = getTableNameForHash(i);</span>
-<span class="nc" id="L1086">                createTableIfNotExists(tableName);</span>
+<span class="nc bnc" id="L1399" title="All 2 branches missed.">            for (int i = 0; i &lt; buckets; i++) {</span>
+<span class="nc" id="L1400">                String tableName = getTableNameForHash(i);</span>
+<span class="nc" id="L1401">                createTableIfNotExists(tableName);</span>
             }
-<span class="nc bnc" id="L1088" title="All 2 branches missed.">        } else if (isValueBased(partitionRange)) {</span>
+<span class="nc bnc" id="L1403" title="All 2 branches missed.">        } else if (isValueBased(partitionRange)) {</span>
             // Value-based partitioning - create initial set of range tables
-<span class="nc" id="L1090">            long rangeSize = getValueRangeSize(partitionRange);</span>
-<span class="nc" id="L1091">            int numTables = Math.min(10, partitionRetentionPeriod); // Create up to 10 initial tables</span>
-<span class="nc" id="L1092">            logger.info(&quot;Initializing &quot; + numTables + &quot; value-range tables (size: &quot; + rangeSize + &quot;)&quot;);</span>
+<span class="nc" id="L1405">            long rangeSize = getValueRangeSize(partitionRange);</span>
+<span class="nc" id="L1406">            int numTables = Math.min(10, partitionRetentionPeriod); // Create up to 10 initial tables</span>
+<span class="nc" id="L1407">            logger.info(&quot;Initializing &quot; + numTables + &quot; value-range tables (size: &quot; + rangeSize + &quot;)&quot;);</span>
 
-<span class="nc bnc" id="L1094" title="All 2 branches missed.">            for (int i = 0; i &lt; numTables; i++) {</span>
-<span class="nc" id="L1095">                long rangeStart = i * rangeSize;</span>
-<span class="nc" id="L1096">                String tableName = getTableNameForValue(rangeStart);</span>
-<span class="nc" id="L1097">                createTableIfNotExists(tableName);</span>
+<span class="nc bnc" id="L1409" title="All 2 branches missed.">            for (int i = 0; i &lt; numTables; i++) {</span>
+<span class="nc" id="L1410">                long rangeStart = i * rangeSize;</span>
+<span class="nc" id="L1411">                String tableName = getTableNameForValue(rangeStart);</span>
+<span class="nc" id="L1412">                createTableIfNotExists(tableName);</span>
             }
         }
 
-<span class="nc" id="L1101">        logger.info(&quot;Completed table initialization&quot;);</span>
-<span class="nc" id="L1102">    }</span>
+<span class="fc" id="L1416">        logger.info(&quot;Completed table initialization&quot;);</span>
+<span class="fc" id="L1417">    }</span>
     
     private void schedulePeriodicMaintenance() {
-<span class="nc" id="L1105">        scheduleNextRun();</span>
-<span class="nc" id="L1106">    }</span>
+<span class="fc" id="L1420">        scheduleNextRun();</span>
+<span class="fc" id="L1421">    }</span>
     
     private void scheduleNextRun() {
-<span class="nc" id="L1109">        LocalDateTime now = LocalDateTime.now();</span>
-<span class="nc" id="L1110">        LocalDateTime nextRun = now.toLocalDate().plusDays(1).atTime(partitionAdjustmentTime);</span>
+<span class="fc" id="L1424">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L1425">        LocalDateTime nextRun = now.toLocalDate().plusDays(1).atTime(partitionAdjustmentTime);</span>
         
-<span class="nc bnc" id="L1112" title="All 2 branches missed.">        if (nextRun.isBefore(now)) {</span>
-<span class="nc" id="L1113">            nextRun = nextRun.plusDays(1);</span>
+<span class="pc bpc" id="L1427" title="1 of 2 branches missed.">        if (nextRun.isBefore(now)) {</span>
+<span class="nc" id="L1428">            nextRun = nextRun.plusDays(1);</span>
         }
         
-<span class="nc" id="L1116">        long delay = java.time.Duration.between(now, nextRun).toMillis();</span>
+<span class="fc" id="L1431">        long delay = java.time.Duration.between(now, nextRun).toMillis();</span>
         
-<span class="nc" id="L1118">        scheduler.schedule(() -&gt; {</span>
+<span class="fc" id="L1433">        scheduler.schedule(() -&gt; {</span>
             try {
-<span class="nc" id="L1120">                performScheduledMaintenance();</span>
-<span class="nc" id="L1121">                scheduleNextRun();</span>
-<span class="nc" id="L1122">            } catch (Exception e) {</span>
-<span class="nc" id="L1123">                logger.error(&quot;Failed to perform scheduled maintenance: &quot; + e.getMessage());</span>
-<span class="nc" id="L1124">                scheduleNextRun();</span>
-<span class="nc" id="L1125">            }</span>
-<span class="nc" id="L1126">        }, delay, TimeUnit.MILLISECONDS);</span>
-<span class="nc" id="L1127">    }</span>
+<span class="nc" id="L1435">                performScheduledMaintenance();</span>
+<span class="nc" id="L1436">                scheduleNextRun();</span>
+<span class="nc" id="L1437">            } catch (Exception e) {</span>
+<span class="nc" id="L1438">                logger.error(&quot;Failed to perform scheduled maintenance: &quot; + e.getMessage());</span>
+<span class="nc" id="L1439">                scheduleNextRun();</span>
+<span class="nc" id="L1440">            }</span>
+<span class="nc" id="L1441">        }, delay, TimeUnit.MILLISECONDS);</span>
+<span class="fc" id="L1442">    }</span>
     
     private void performScheduledMaintenance() throws SQLException {
-<span class="nc" id="L1130">        LocalDateTime now = LocalDateTime.now();</span>
-<span class="nc" id="L1131">        performAutomaticMaintenance(now);</span>
-<span class="nc" id="L1132">    }</span>
+<span class="nc" id="L1445">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L1446">        performAutomaticMaintenance(now);</span>
+<span class="nc" id="L1447">    }</span>
     
     @Override
     public void deleteById(String id) throws SQLException {
         // Need to delete from all tables as we don't know which one contains the record
-<span class="nc" id="L1137">        String idColumn = metadata.getIdField().getColumnName();</span>
-<span class="nc" id="L1138">        List&lt;String&gt; tables = getExistingTables();</span>
+<span class="nc" id="L1452">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="nc" id="L1453">        List&lt;String&gt; tables = getExistingTables();</span>
 
-<span class="nc bnc" id="L1140" title="All 2 branches missed.">        for (String table : tables) {</span>
-<span class="nc" id="L1141">            String sql = &quot;DELETE FROM &quot; + table + &quot; WHERE &quot; + idColumn + &quot; = ?&quot;;</span>
-<span class="nc" id="L1142">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L1143">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
-<span class="nc" id="L1144">                stmt.setString(1, id);</span>
-<span class="nc" id="L1145">                stmt.executeUpdate();</span>
+<span class="nc bnc" id="L1455" title="All 2 branches missed.">        for (String table : tables) {</span>
+<span class="nc" id="L1456">            String sql = &quot;DELETE FROM &quot; + table + &quot; WHERE &quot; + idColumn + &quot; = ?&quot;;</span>
+<span class="nc" id="L1457">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L1458">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L1459">                stmt.setString(1, id);</span>
+<span class="nc" id="L1460">                stmt.executeUpdate();</span>
             }
-<span class="nc" id="L1147">        }</span>
-<span class="nc" id="L1148">    }</span>
+<span class="nc" id="L1462">        }</span>
+<span class="nc" id="L1463">    }</span>
 
     @Override
-    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-<span class="nc" id="L1152">        String idColumn = metadata.getIdField().getColumnName();</span>
-        // TODO: Handle generic partition value types for table range
-<span class="nc" id="L1154">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L1155" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L1156">            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L1467">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="nc" id="L1468">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+
+        // Get tables that could contain data in this date range
+<span class="nc" id="L1471">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1472" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L1473">            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+        } else {
+<span class="nc" id="L1475">            tables = getExistingTables();</span>
         }
 
-<span class="nc bnc" id="L1159" title="All 2 branches missed.">        for (String table : tables) {</span>
-<span class="nc" id="L1160">            String sql = &quot;DELETE FROM &quot; + table + &quot; WHERE &quot; + idColumn + &quot; = ? AND &quot; +</span>
-                         &quot;created_at BETWEEN ? AND ?&quot;;
-<span class="nc" id="L1162">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L1163">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
-<span class="nc" id="L1164">                stmt.setString(1, id);</span>
-                // TODO: Handle generic partition value types
-<span class="nc bnc" id="L1166" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L1167">                    stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) startValue));</span>
-<span class="nc" id="L1168">                    stmt.setTimestamp(3, Timestamp.valueOf((LocalDateTime) endValue));</span>
+<span class="nc bnc" id="L1478" title="All 2 branches missed.">        for (String table : tables) {</span>
+<span class="nc" id="L1479">            String sql = &quot;DELETE FROM &quot; + table + &quot; WHERE &quot; + idColumn + &quot; = ? AND &quot; +</span>
+                         shardingColumn + &quot; &gt;= ? AND &quot; + shardingColumn + &quot; &lt; ?&quot;;
+<span class="nc" id="L1481">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L1482">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc" id="L1483">                stmt.setString(1, id);</span>
+
+<span class="nc bnc" id="L1485" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L1486">                    stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) startValue));</span>
+<span class="nc" id="L1487">                    stmt.setTimestamp(3, Timestamp.valueOf((LocalDateTime) endValue));</span>
                 } else {
-<span class="nc" id="L1170">                    stmt.setObject(2, startValue);</span>
-<span class="nc" id="L1171">                    stmt.setObject(3, endValue);</span>
+<span class="nc" id="L1489">                    stmt.setObject(2, startValue);</span>
+<span class="nc" id="L1490">                    stmt.setObject(3, endValue);</span>
                 }
-<span class="nc" id="L1173">                stmt.executeUpdate();</span>
+<span class="nc" id="L1492">                stmt.executeUpdate();</span>
             }
-<span class="nc" id="L1175">        }</span>
-<span class="nc" id="L1176">    }</span>
+<span class="nc" id="L1494">        }</span>
+<span class="nc" id="L1495">    }</span>
 
     @Override
     public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
         // TODO: Handle generic partition value types for table range
-<span class="nc" id="L1181">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L1182" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L1183">            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
+<span class="nc" id="L1500">        List&lt;String&gt; tables = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1501" title="All 4 branches missed.">        if (startValue instanceof LocalDateTime &amp;&amp; endValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L1502">            tables = getTablesForDateRange((LocalDateTime) startValue, (LocalDateTime) endValue);</span>
         }
 
-<span class="nc bnc" id="L1186" title="All 2 branches missed.">        for (String table : tables) {</span>
-<span class="nc" id="L1187">            String sql = &quot;DELETE FROM &quot; + table + &quot; WHERE created_at BETWEEN ? AND ?&quot;;</span>
-<span class="nc" id="L1188">            try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L1189">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="nc bnc" id="L1505" title="All 2 branches missed.">        for (String table : tables) {</span>
+<span class="nc" id="L1506">            String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="nc" id="L1507">            String sql = &quot;DELETE FROM &quot; + table + &quot; WHERE &quot; + shardingColumn + &quot; &gt;= ? AND &quot; + shardingColumn + &quot; &lt; ?&quot;;</span>
+<span class="nc" id="L1508">            try (Connection conn = connectionProvider.getConnection();</span>
+<span class="nc" id="L1509">                 PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
                 // TODO: Handle generic partition value types
-<span class="nc bnc" id="L1191" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L1192">                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) startValue));</span>
-<span class="nc" id="L1193">                    stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) endValue));</span>
+<span class="nc bnc" id="L1511" title="All 2 branches missed.">                if (startValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L1512">                    stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) startValue));</span>
+<span class="nc" id="L1513">                    stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) endValue));</span>
                 } else {
-<span class="nc" id="L1195">                    stmt.setObject(1, startValue);</span>
-<span class="nc" id="L1196">                    stmt.setObject(2, endValue);</span>
+<span class="nc" id="L1515">                    stmt.setObject(1, startValue);</span>
+<span class="nc" id="L1516">                    stmt.setObject(2, endValue);</span>
                 }
-<span class="nc" id="L1198">                stmt.executeUpdate();</span>
+<span class="nc" id="L1518">                stmt.executeUpdate();</span>
             }
-<span class="nc" id="L1200">        }</span>
-<span class="nc" id="L1201">    }</span>
+<span class="nc" id="L1520">        }</span>
+<span class="nc" id="L1521">    }</span>
 
     @Override
     public void shutdown() {
         // Stop monitoring
-<span class="nc bnc" id="L1206" title="All 2 branches missed.">        if (monitoringService != null) {</span>
-<span class="nc" id="L1207">            monitoringService.stop();</span>
+<span class="nc bnc" id="L1526" title="All 2 branches missed.">        if (monitoringService != null) {</span>
+<span class="nc" id="L1527">            monitoringService.stop();</span>
         }
 
         // Shutdown scheduler immediately
-<span class="nc bnc" id="L1211" title="All 4 branches missed.">        if (scheduler != null &amp;&amp; !scheduler.isShutdown()) {</span>
-<span class="nc" id="L1212">            scheduler.shutdownNow(); // Use shutdownNow() for immediate termination</span>
+<span class="nc bnc" id="L1531" title="All 4 branches missed.">        if (scheduler != null &amp;&amp; !scheduler.isShutdown()) {</span>
+<span class="nc" id="L1532">            scheduler.shutdownNow(); // Use shutdownNow() for immediate termination</span>
             try {
                 // Wait only 2 seconds for termination
-<span class="nc bnc" id="L1215" title="All 2 branches missed.">                if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {</span>
+<span class="nc bnc" id="L1535" title="All 2 branches missed.">                if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {</span>
                     // Force shutdown if still not terminated
-<span class="nc" id="L1217">                    scheduler.shutdownNow();</span>
+<span class="nc" id="L1537">                    scheduler.shutdownNow();</span>
                 }
-<span class="nc" id="L1219">            } catch (InterruptedException e) {</span>
-<span class="nc" id="L1220">                scheduler.shutdownNow();</span>
-<span class="nc" id="L1221">                Thread.currentThread().interrupt();</span>
-<span class="nc" id="L1222">            }</span>
+<span class="nc" id="L1539">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L1540">                scheduler.shutdownNow();</span>
+<span class="nc" id="L1541">                Thread.currentThread().interrupt();</span>
+<span class="nc" id="L1542">            }</span>
         }
 
         // Shutdown ConnectionProvider
-<span class="nc bnc" id="L1226" title="All 2 branches missed.">        if (connectionProvider != null) {</span>
-<span class="nc" id="L1227">            connectionProvider.shutdown();</span>
+<span class="nc bnc" id="L1546" title="All 2 branches missed.">        if (connectionProvider != null) {</span>
+<span class="nc" id="L1547">            connectionProvider.shutdown();</span>
         }
-<span class="nc" id="L1229">    }</span>
+<span class="nc" id="L1549">    }</span>
     
     /**
      * Get monitoring service for metrics access (if enabled)
      */
     public MonitoringService getMonitoringService() {
-<span class="nc" id="L1235">        return monitoringService;</span>
+<span class="nc" id="L1555">        return monitoringService;</span>
     }
     
     
@@ -1249,155 +1569,180 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     static class Builder&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; {
         private final Class&lt;T&gt; entityClass;
-<span class="nc" id="L1252">        private String host = &quot;localhost&quot;;</span>
-<span class="nc" id="L1253">        private int port = 3306;</span>
+<span class="fc" id="L1572">        private String host = &quot;localhost&quot;;</span>
+<span class="fc" id="L1573">        private int port = 3306;</span>
         private String database;
         private String username;
         private String password;
         private String tablePrefix;
-<span class="nc" id="L1258">        private int partitionRetentionPeriod = 7;</span>
-<span class="nc" id="L1259">        private boolean autoManagePartitions = true;</span>
-<span class="nc" id="L1260">        private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);</span>
-<span class="nc" id="L1261">        private boolean initializePartitionsOnStart = true;</span>
+<span class="fc" id="L1578">        private int partitionRetentionPeriod = 7;</span>
+<span class="fc" id="L1579">        private boolean autoManagePartitions = true;</span>
+<span class="fc" id="L1580">        private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0);</span>
+<span class="fc" id="L1581">        private boolean initializePartitionsOnStart = true;</span>
         private MonitoringConfig monitoringConfig;
         private Logger logger;
-<span class="nc" id="L1264">        private TableGranularity tableGranularity = TableGranularity.DAILY;</span>
-<span class="nc" id="L1265">        private String charset = &quot;utf8mb4&quot;;</span>
-<span class="nc" id="L1266">        private String collation = &quot;utf8mb4_bin&quot;;</span>
-<span class="nc" id="L1267">        private PartitionRange partitionRange = PartitionRange.DAILY;</span>
+<span class="fc" id="L1584">        private TableGranularity tableGranularity = TableGranularity.DAILY;</span>
+<span class="fc" id="L1585">        private String charset = &quot;utf8mb4&quot;;</span>
+<span class="fc" id="L1586">        private String collation = &quot;utf8mb4_bin&quot;;</span>
+<span class="fc" id="L1587">        private PartitionRange partitionRange = PartitionRange.DAILY;</span>
         private String partitionColumn;
         private PartitionColumnType partitionColumnType;
         private PersistenceProvider persistenceProvider;
 
+        // Nested partition support
+<span class="fc" id="L1593">        private boolean nestedPartitionsEnabled = false;</span>
+<span class="fc" id="L1594">        private int nestedPartitionCount = 20; // Default for non-date types</span>
 
-<span class="nc" id="L1273">        Builder(Class&lt;T&gt; entityClass) {</span>
-<span class="nc" id="L1274">            this.entityClass = entityClass;</span>
-<span class="nc" id="L1275">        }</span>
+<span class="fc" id="L1596">        Builder(Class&lt;T&gt; entityClass) {</span>
+<span class="fc" id="L1597">            this.entityClass = entityClass;</span>
+<span class="fc" id="L1598">        }</span>
         
         public Builder&lt;T, P&gt; host(String host) {
-<span class="nc" id="L1278">            this.host = host;</span>
-<span class="nc" id="L1279">            return this;</span>
+<span class="fc" id="L1601">            this.host = host;</span>
+<span class="fc" id="L1602">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; port(int port) {
-<span class="nc" id="L1283">            this.port = port;</span>
-<span class="nc" id="L1284">            return this;</span>
+<span class="fc" id="L1606">            this.port = port;</span>
+<span class="fc" id="L1607">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; database(String database) {
-<span class="nc" id="L1288">            this.database = database;</span>
-<span class="nc" id="L1289">            return this;</span>
+<span class="fc" id="L1611">            this.database = database;</span>
+<span class="fc" id="L1612">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; username(String username) {
-<span class="nc" id="L1293">            this.username = username;</span>
-<span class="nc" id="L1294">            return this;</span>
+<span class="fc" id="L1616">            this.username = username;</span>
+<span class="fc" id="L1617">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; password(String password) {
-<span class="nc" id="L1298">            this.password = password;</span>
-<span class="nc" id="L1299">            return this;</span>
+<span class="fc" id="L1621">            this.password = password;</span>
+<span class="fc" id="L1622">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; tablePrefix(String tablePrefix) {
-<span class="nc" id="L1303">            this.tablePrefix = tablePrefix;</span>
-<span class="nc" id="L1304">            return this;</span>
+<span class="nc" id="L1626">            this.tablePrefix = tablePrefix;</span>
+<span class="nc" id="L1627">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; baseTableName(String baseTableName) {
-<span class="nc" id="L1308">            this.tablePrefix = baseTableName;</span>
-<span class="nc" id="L1309">            return this;</span>
+<span class="fc" id="L1631">            this.tablePrefix = baseTableName;</span>
+<span class="fc" id="L1632">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; tableRetentionDays(int days) {
-<span class="nc" id="L1313">            this.partitionRetentionPeriod = days;</span>
-<span class="nc" id="L1314">            return this;</span>
+<span class="fc" id="L1636">            this.partitionRetentionPeriod = days;</span>
+<span class="fc" id="L1637">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; tableGranularity(TableGranularity granularity) {
-<span class="nc" id="L1318">            this.tableGranularity = granularity;</span>
-<span class="nc" id="L1319">            return this;</span>
+<span class="fc" id="L1641">            this.tableGranularity = granularity;</span>
+<span class="fc" id="L1642">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; autoCreateTables(boolean autoCreate) {
-<span class="nc" id="L1323">            this.initializePartitionsOnStart = autoCreate;</span>
-<span class="nc" id="L1324">            return this;</span>
+<span class="fc" id="L1646">            this.initializePartitionsOnStart = autoCreate;</span>
+<span class="fc" id="L1647">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; charset(String charset) {
-<span class="nc bnc" id="L1328" title="All 4 branches missed.">            if (charset != null &amp;&amp; !charset.trim().isEmpty()) {</span>
-<span class="nc" id="L1329">                this.charset = charset;</span>
+<span class="pc bpc" id="L1651" title="2 of 4 branches missed.">            if (charset != null &amp;&amp; !charset.trim().isEmpty()) {</span>
+<span class="fc" id="L1652">                this.charset = charset;</span>
             }
-<span class="nc" id="L1331">            return this;</span>
+<span class="fc" id="L1654">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; collation(String collation) {
-<span class="nc bnc" id="L1335" title="All 4 branches missed.">            if (collation != null &amp;&amp; !collation.trim().isEmpty()) {</span>
-<span class="nc" id="L1336">                this.collation = collation;</span>
+<span class="pc bpc" id="L1658" title="2 of 4 branches missed.">            if (collation != null &amp;&amp; !collation.trim().isEmpty()) {</span>
+<span class="fc" id="L1659">                this.collation = collation;</span>
             }
-<span class="nc" id="L1338">            return this;</span>
+<span class="fc" id="L1661">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; partitionRetentionPeriod(int days) {
-<span class="nc" id="L1342">            this.partitionRetentionPeriod = days;</span>
-<span class="nc" id="L1343">            return this;</span>
+<span class="nc" id="L1665">            this.partitionRetentionPeriod = days;</span>
+<span class="nc" id="L1666">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; autoManagePartitions(boolean enable) {
-<span class="nc" id="L1347">            this.autoManagePartitions = enable;</span>
-<span class="nc" id="L1348">            return this;</span>
+<span class="nc" id="L1670">            this.autoManagePartitions = enable;</span>
+<span class="nc" id="L1671">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; partitionAdjustmentTime(int hour, int minute) {
-<span class="nc" id="L1352">            this.partitionAdjustmentTime = LocalTime.of(hour, minute);</span>
-<span class="nc" id="L1353">            return this;</span>
+<span class="nc" id="L1675">            this.partitionAdjustmentTime = LocalTime.of(hour, minute);</span>
+<span class="nc" id="L1676">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; partitionAdjustmentTime(LocalTime time) {
-<span class="nc" id="L1357">            this.partitionAdjustmentTime = time;</span>
-<span class="nc" id="L1358">            return this;</span>
+<span class="nc" id="L1680">            this.partitionAdjustmentTime = time;</span>
+<span class="nc" id="L1681">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; initializePartitionsOnStart(boolean initialize) {
-<span class="nc" id="L1362">            this.initializePartitionsOnStart = initialize;</span>
-<span class="nc" id="L1363">            return this;</span>
+<span class="nc" id="L1685">            this.initializePartitionsOnStart = initialize;</span>
+<span class="nc" id="L1686">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; monitoring(MonitoringConfig monitoringConfig) {
-<span class="nc" id="L1367">            this.monitoringConfig = monitoringConfig;</span>
-<span class="nc" id="L1368">            return this;</span>
+<span class="nc" id="L1690">            this.monitoringConfig = monitoringConfig;</span>
+<span class="nc" id="L1691">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; logger(Logger logger) {
-<span class="nc" id="L1372">            this.logger = logger;</span>
-<span class="nc" id="L1373">            return this;</span>
+<span class="nc" id="L1695">            this.logger = logger;</span>
+<span class="nc" id="L1696">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; partitionRange(PartitionRange range) {
-<span class="nc" id="L1377">            this.partitionRange = range;</span>
-<span class="nc" id="L1378">            return this;</span>
+<span class="fc" id="L1700">            this.partitionRange = range;</span>
+<span class="fc" id="L1701">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; partitionColumn(String column) {
-<span class="nc" id="L1382">            this.partitionColumn = column;</span>
-<span class="nc" id="L1383">            return this;</span>
+<span class="fc" id="L1705">            this.partitionColumn = column;</span>
+<span class="fc" id="L1706">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; partitionColumnType(PartitionColumnType type) {
-<span class="nc" id="L1387">            this.partitionColumnType = type;</span>
-<span class="nc" id="L1388">            return this;</span>
+<span class="fc" id="L1710">            this.partitionColumnType = type;</span>
+<span class="fc" id="L1711">            return this;</span>
         }
 
         public Builder&lt;T, P&gt; persistenceProvider(PersistenceProvider provider) {
-<span class="nc" id="L1392">            this.persistenceProvider = provider;</span>
-<span class="nc" id="L1393">            return this;</span>
+<span class="fc" id="L1715">            this.persistenceProvider = provider;</span>
+<span class="fc" id="L1716">            return this;</span>
+        }
+
+        /**
+         * Enable nested partitions within each table.
+         * When enabled, each table will have native database partitions for better query performance.
+         */
+        public Builder&lt;T, P&gt; withNestedPartitions(boolean enabled) {
+<span class="fc" id="L1724">            this.nestedPartitionsEnabled = enabled;</span>
+<span class="fc" id="L1725">            return this;</span>
+        }
+
+        /**
+         * Set the number of nested partitions per table.
+         * For date-based tables, use 24 for hourly partitions.
+         * For other types, default is 20.
+         */
+        public Builder&lt;T, P&gt; withNestedPartitionCount(int count) {
+<span class="pc bpc" id="L1734" title="2 of 4 branches missed.">            if (count &lt; 1 || count &gt; 1024) {</span>
+<span class="nc" id="L1735">                throw new IllegalArgumentException(&quot;Nested partition count must be between 1 and 1024&quot;);</span>
+            }
+<span class="fc" id="L1737">            this.nestedPartitionCount = count;</span>
+<span class="fc" id="L1738">            return this;</span>
         }
 
         public GenericMultiTableRepository&lt;T, P&gt; build() {
-<span class="nc bnc" id="L1397" title="All 6 branches missed.">            if (database == null || username == null || password == null) {</span>
-<span class="nc" id="L1398">                throw new IllegalStateException(&quot;Database, username, and password are required&quot;);</span>
+<span class="pc bpc" id="L1742" title="3 of 6 branches missed.">            if (database == null || username == null || password == null) {</span>
+<span class="nc" id="L1743">                throw new IllegalStateException(&quot;Database, username, and password are required&quot;);</span>
             }
-<span class="nc" id="L1400">            return new GenericMultiTableRepository&lt;T, P&gt;(this);</span>
+<span class="fc" id="L1745">            return new GenericMultiTableRepository&lt;T, P&gt;(this);</span>
         }
     }
     
@@ -1406,7 +1751,7 @@ public class GenericMultiTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P
      */
     // Package-private factory method - only SplitVerseRepository can use this
     static &lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; Builder&lt;T, P&gt; builder(Class&lt;T&gt; entityClass) {
-<span class="nc" id="L1409">        return new Builder&lt;T, P&gt;(entityClass);</span>
+<span class="fc" id="L1754">        return new Builder&lt;T, P&gt;(entityClass);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

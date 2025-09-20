@@ -59,7 +59,7 @@
      * @return true if implemented, false otherwise
      */
     public boolean isImplemented() {
-<span class="nc bnc" id="L62" title="All 2 branches missed.">        return this == DATE_BASED;</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        return this == DATE_BASED;</span>
     }
     
     /**
@@ -68,12 +68,12 @@
      * @throws UnsupportedOperationException if not implemented
      */
     public void validateSupported() {
-<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (!isImplemented()) {</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">        if (!isImplemented()) {</span>
 <span class="nc" id="L72">            throw new UnsupportedOperationException(</span>
 <span class="nc" id="L73">                String.format(&quot;Partition type %s is not yet implemented. Currently only %s is supported.&quot;, </span>
 <span class="nc" id="L74">                    this.name(), DATE_BASED.name())</span>
             );
         }
-<span class="nc" id="L77">    }</span>
+<span class="fc" id="L77">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

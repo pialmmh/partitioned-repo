@@ -74,13 +74,13 @@ public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<?
     }
     
     @Override
-    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-        return delegate.findByIdAndPartitionRange(id, startValue, endValue);
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+        return delegate.findByIdAndPartitionColRange(id, startValue, endValue);
     }
     
     @Override
-    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue, P endValue) throws SQLException {
-        return delegate.findAllByIdsAndPartitionRange(ids, startValue, endValue);
+    public List<T> findAllByIdsAndPartitionColRange(List<String> ids, P startValue, P endValue) throws SQLException {
+        return delegate.findAllByIdsAndPartitionColRange(ids, startValue, endValue);
     }
     
     @Override
@@ -99,8 +99,8 @@ public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<?
     }
     
     @Override
-    public void updateByIdAndPartitionRange(String id, T entity, P startValue, P endValue) throws SQLException {
-        delegate.updateByIdAndPartitionRange(id, entity, startValue, endValue);
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException {
+        delegate.updateByIdAndPartitionColRange(id, entity, startValue, endValue);
     }
     
     @Override
@@ -119,8 +119,8 @@ public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<?
     }
 
     @Override
-    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
-        delegate.deleteByIdAndPartitionRange(id, startValue, endValue);
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+        delegate.deleteByIdAndPartitionColRange(id, startValue, endValue);
     }
 
     @Override

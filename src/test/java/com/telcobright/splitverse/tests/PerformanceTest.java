@@ -8,10 +8,16 @@ import com.telcobright.core.enums.PartitionRange;
 import com.telcobright.core.enums.ShardingStrategy;
 import com.telcobright.core.repository.SplitVerseRepository;
 import com.telcobright.splitverse.config.RepositoryMode;
-import com.telcobright.core.annotation.*;
+import com.telcobright.core.annotation.Column;
+import com.telcobright.core.annotation.Id;
+import com.telcobright.core.annotation.ShardingKey;
+import com.telcobright.core.annotation.Table;
 import org.junit.jupiter.api.*;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -19,8 +25,49 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Performance tests with large datasets (10K+ records).
- * Measures throughput, latency, and scalability.
+ * Performance Test Suite
+ * ======================
+ *
+ * TEST GOALS:
+ * - Measure throughput for high-volume operations
+ * - Analyze query performance with partition pruning
+ * - Test scalability with large datasets (10K+ records)
+ * - Validate batch operation efficiency
+ * - Monitor memory usage and connection pooling
+ *
+ * COVERAGE:
+ * - Bulk insert performance (1000+ records/second)
+ * - Query optimization with partition pruning
+ * - Concurrent operation handling
+ * - Memory efficiency for large result sets
+ * - Connection pool behavior under load
+ * - Index utilization and query planning
+ *
+ * DESCRIPTION:
+ * This performance test suite validates Split-Verse's ability to handle
+ * high-volume data operations efficiently. It measures throughput, latency,
+ * and resource utilization under various load conditions. The tests help
+ * identify performance bottlenecks and validate optimization strategies.
+ *
+ * PREREQUISITES:
+ * - MySQL running on 127.0.0.1:3306 with sufficient resources
+ * - Root access with password "123456"
+ * - At least 1GB free disk space for test data
+ * - Sufficient memory for JVM (recommended: -Xmx2g)
+ *
+ * TESTS:
+ * 1. testBulkInsertPerformance - Measure bulk insert throughput
+ * 2. testQueryPerformanceWithPartitionPruning - Validate partition optimization
+ * 3. testConcurrentOperations - Test thread safety and concurrency
+ * 4. testLargeResultSetHandling - Memory efficiency for large queries
+ * 5. testUpdatePerformance - Bulk update operations
+ * 6. testDeletePerformance - Bulk delete operations
+ *
+ * METRICS:
+ * - Insert throughput: Records per second
+ * - Query latency: Milliseconds per query
+ * - Memory usage: Heap utilization
+ * - Connection efficiency: Pool utilization rate
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PerformanceTest {
@@ -81,13 +128,13 @@ public class PerformanceTest {
 
     @BeforeAll
     public static void setup() throws SQLException {
-        // Verify MySQL
-        if (!TestDatabaseSetup.verifyMySQLConnection()) {
-            fail("MySQL is not available");
-        }
-
         // Create performance test database
-        TestDatabaseSetup.createTestDatabase(PERF_DB);
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://127.0.0.1:3306", "root", "123456");
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + PERF_DB);
+            System.out.println("Created test database: " + PERF_DB);
+        }
 
         // Create repository with VALUE_RANGE partitioning - now properly implemented
         repository = SplitVerseRepository.<Event, LocalDateTime>builder()
@@ -111,7 +158,16 @@ public class PerformanceTest {
         if (repository != null) {
             repository.shutdown();
         }
-        TestDatabaseSetup.cleanupTestDatabases();
+
+        // Drop test database
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:mysql://127.0.0.1:3306", "root", "123456");
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DROP DATABASE IF EXISTS " + PERF_DB);
+            System.out.println("Dropped test database: " + PERF_DB);
+        } catch (SQLException e) {
+            System.err.println("Failed to drop test database: " + e.getMessage());
+        }
     }
 
     @Test

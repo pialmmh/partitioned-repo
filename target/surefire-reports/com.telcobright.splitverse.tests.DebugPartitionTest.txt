@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.telcobright.splitverse.tests.DebugPartitionTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.987 s -- in com.telcobright.splitverse.tests.DebugPartitionTest

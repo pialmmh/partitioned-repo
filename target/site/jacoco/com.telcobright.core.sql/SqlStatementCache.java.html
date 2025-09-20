@@ -9,7 +9,7 @@ import java.util.Map;
  *
  * @author Split-Verse Framework
  */
-<span class="nc" id="L12">public class SqlStatementCache {</span>
+<span class="fc" id="L12">public class SqlStatementCache {</span>
 
     /**
      * SQL statement types that can be cached
@@ -28,7 +28,7 @@ import java.util.Map;
     }
 
     // Cache structure: EntityClass -&gt; TableName -&gt; StatementType -&gt; SQL
-<span class="nc" id="L31">    private final Map&lt;Class&lt;?&gt;, Map&lt;String, Map&lt;StatementType, String&gt;&gt;&gt; cache = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L31">    private final Map&lt;Class&lt;?&gt;, Map&lt;String, Map&lt;StatementType, String&gt;&gt;&gt; cache = new ConcurrentHashMap&lt;&gt;();</span>
 
     /**
      * Store a SQL statement in the cache

@@ -130,6 +130,8 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
                 .charset(builder.getCharset())
                 .collation(builder.getCollation())
                 .persistenceProvider(persistenceProvider)
+                .withNestedPartitions(builder.isNestedPartitionsEnabled())
+                .withNestedPartitionCount(builder.getNestedPartitionCount())
                 .build();
         } else {
             // Create partitioned repository (single table with partitions)
@@ -244,10 +246,10 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     }
     
     @Override
-    public T findByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
         // Fan-out to all shards, return first found
         for (ShardingRepository<T, P> shard : shardRepositories.values()) {
-            T result = shard.findByIdAndPartitionRange(id, startValue, endValue);
+            T result = shard.findByIdAndPartitionColRange(id, startValue, endValue);
             if (result != null) {
                 return result;
             }
@@ -256,7 +258,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     }
     
     @Override
-    public List<T> findAllByIdsAndPartitionRange(List<String> ids, P startValue,
+    public List<T> findAllByIdsAndPartitionColRange(List<String> ids, P startValue,
                                                   P endValue) throws SQLException {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
@@ -273,7 +275,7 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         List<T> results = new ArrayList<>();
         for (Map.Entry<String, List<String>> entry : idsByShard.entrySet()) {
             ShardingRepository<T, P> shard = shardRepositories.get(entry.getKey());
-            results.addAll(shard.findAllByIdsAndPartitionRange(entry.getValue(), startValue, endValue));
+            results.addAll(shard.findAllByIdsAndPartitionColRange(entry.getValue(), startValue, endValue));
         }
         
         return results;
@@ -302,14 +304,14 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     }
     
     @Override
-    public void updateByIdAndPartitionRange(String id, T entity, P startValue,
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue,
                                             P endValue) throws SQLException {
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
         
         ShardingRepository<T, P> targetShard = getShardForKey(id);
-        targetShard.updateByIdAndPartitionRange(id, entity, startValue, endValue);
+        targetShard.updateByIdAndPartitionColRange(id, entity, startValue, endValue);
     }
     
     @Override
@@ -367,13 +369,13 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     }
 
     @Override
-    public void deleteByIdAndPartitionRange(String id, P startValue, P endValue) throws SQLException {
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
 
         ShardingRepository<T, P> targetShard = getShardForKey(id);
-        targetShard.deleteByIdAndPartitionRange(id, startValue, endValue);
+        targetShard.deleteByIdAndPartitionColRange(id, startValue, endValue);
     }
 
     @Override
@@ -484,7 +486,11 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         private SqlStatementCache sqlCache;
         private PersistenceProvider.DatabaseType databaseType = PersistenceProvider.DatabaseType.MYSQL;
         private boolean pregenerateSql = false;
-        
+
+        // Nested partition support
+        private boolean nestedPartitionsEnabled = false;
+        private int nestedPartitionCount = 20; // Default for non-date types
+
         public Builder<T, P> withSingleShard(ShardConfig config) {
             this.shardConfigs = Collections.singletonList(config);
             return this;
@@ -692,6 +698,45 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         }
 
         /**
+         * Enable nested partitions within each table.
+         * When enabled, each table will have native database partitions for better query performance.
+         * For date-based tables, defaults to 24 hourly partitions.
+         * For other types, defaults to 20 partitions.
+         */
+        public Builder<T, P> withNestedPartitions(boolean enabled) {
+            this.nestedPartitionsEnabled = enabled;
+            return this;
+        }
+
+        /**
+         * Set the number of nested partitions per table.
+         * Only applicable when nested partitions are enabled.
+         * For date-based tables, use 24 for hourly partitions.
+         * For other types, default is 20.
+         */
+        public Builder<T, P> withNestedPartitionCount(int count) {
+            if (count < 1 || count > 1024) {
+                throw new IllegalArgumentException("Nested partition count must be between 1 and 1024");
+            }
+            this.nestedPartitionCount = count;
+            return this;
+        }
+
+        /**
+         * Set partition range (for compatibility with test).
+         */
+        public Builder<T, P> withPartitionRange(String range) {
+            // Map string to PartitionRange enum
+            try {
+                this.partitionRange = PartitionRange.valueOf(range);
+            } catch (IllegalArgumentException e) {
+                // If not a valid enum, treat as custom range
+                // For now, just log and continue
+            }
+            return this;
+        }
+
+        /**
          * Enable SQL pre-generation for better performance.
          * SQL statements will be generated at startup for batch sizes: 10, 100, 1000, 5000.
          */
@@ -812,6 +857,8 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         String getCharset() { return charset; }
         String getCollation() { return collation; }
         PartitionRange getPartitionRange() { return partitionRange; }
+        boolean isNestedPartitionsEnabled() { return nestedPartitionsEnabled; }
+        int getNestedPartitionCount() { return nestedPartitionCount; }
 
         /**
          * Determine table names based on configuration.

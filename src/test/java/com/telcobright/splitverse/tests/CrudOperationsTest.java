@@ -20,8 +20,43 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for CRUD operations with the new API.
- * Requires MySQL running at 127.0.0.1:3306 with root/123456
+ * CRUD Operations Test Suite
+ * ===========================
+ *
+ * TEST GOALS:
+ * - Validate all CRUD operations (Create, Read, Update, Delete)
+ * - Test operations across multiple date-based tables
+ * - Verify date range queries and filtering
+ * - Test batch operations and transaction handling
+ *
+ * COVERAGE:
+ * - Insert single and multiple entities
+ * - Find by ID, date range, and composite queries
+ * - Update by ID and with date range constraints
+ * - Delete by ID and with date range constraints
+ * - Batch operations (insertMultiple, deleteMultiple)
+ * - Cross-table operations (data spanning multiple days)
+ *
+ * DESCRIPTION:
+ * This comprehensive test suite validates all CRUD operations in Split-Verse
+ * with focus on date-based partitioning. It tests operations that span multiple
+ * tables (different days) and ensures data consistency across table boundaries.
+ *
+ * PREREQUISITES:
+ * - MySQL running on 127.0.0.1:3306
+ * - Root access with password "123456"
+ * - Ability to create/drop databases
+ *
+ * TESTS:
+ * 1. testInsertSingleEntity - Insert and retrieve single entity
+ * 2. testInsertMultipleEntities - Batch insert operation
+ * 3. testFindByIdAcrossTables - Find entity across date tables
+ * 4. testFindAllByDateRange - Query entities within date range
+ * 5. testUpdateEntity - Update existing entity
+ * 6. testUpdateWithDateRange - Update with date constraints
+ * 7. testDeleteEntity - Delete single entity
+ * 8. testDeleteWithDateRange - Delete with date constraints
+ * 9. testCrossTableOperations - Operations spanning multiple tables
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CrudOperationsTest {
