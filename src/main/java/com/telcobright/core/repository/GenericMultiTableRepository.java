@@ -363,8 +363,11 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
                 // Set date range parameters based on partition column type
                 if (startValue instanceof LocalDateTime) {
-                    stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) startValue));
-                    stmt.setTimestamp(3, Timestamp.valueOf((LocalDateTime) endValue));
+                    Timestamp startTs = Timestamp.valueOf((LocalDateTime) startValue);
+                    Timestamp endTs = Timestamp.valueOf((LocalDateTime) endValue);
+                    // logger.info("Setting timestamp parameters: start=" + startTs + ", end=" + endTs);
+                    stmt.setTimestamp(2, startTs);
+                    stmt.setTimestamp(3, endTs);
                 } else if (startValue instanceof Long) {
                     stmt.setLong(2, (Long) startValue);
                     stmt.setLong(3, (Long) endValue);

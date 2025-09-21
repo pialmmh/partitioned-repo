@@ -1,4 +1,16 @@
 -------------------------------------------------------------------------------
 Test set: com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTest
 -------------------------------------------------------------------------------
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 99.54 s -- in com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTest
+Tests run: 7, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 101.8 s <<< FAILURE! -- in com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTest
+com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTest.testFindByIdAndPartitionColRange -- Time elapsed: 3.975 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Should successfully find SMS with valid date ranges ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTest.testFindByIdAndPartitionColRange(SmsMultiTableHourlyPartitionTest.java:711)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
