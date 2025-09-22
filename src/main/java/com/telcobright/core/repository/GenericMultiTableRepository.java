@@ -152,6 +152,8 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         if (initializePartitionsOnStart) {
             try {
                 initializeTablesForRetentionPeriod();
+                // After initialization, refresh and validate metadata
+                refreshPartitionMetadata();
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to initialize tables for retention period", e);
             }
@@ -247,6 +249,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
      */
     @Override
     public List<T> findAllByPartitionRange(P startValue, P endValue) throws SQLException {
+        // Automatically adjust query range to stay within partition boundaries
+        endValue = adjustQueryMaxRange(endValue);
+
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
         List<T> results = new ArrayList<>();
 
@@ -327,6 +332,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
             return null;
         }
 
+        // Automatically adjust query range to stay within partition boundaries
+        endValue = adjustQueryMaxRange(endValue);
+
         String idColumn = metadata.getIdField().getColumnName();
         String shardingColumn = metadata.getShardingKeyField().getColumnName();
 
@@ -363,9 +371,10 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
                 // Set date range parameters based on partition column type
                 if (startValue instanceof LocalDateTime) {
+                    // Use Timestamp.valueOf which preserves LocalDateTime without timezone conversion
                     Timestamp startTs = Timestamp.valueOf((LocalDateTime) startValue);
                     Timestamp endTs = Timestamp.valueOf((LocalDateTime) endValue);
-                    // logger.info("Setting timestamp parameters: start=" + startTs + ", end=" + endTs);
+                    // Don't use Calendar to avoid timezone issues
                     stmt.setTimestamp(2, startTs);
                     stmt.setTimestamp(3, endTs);
                 } else if (startValue instanceof Long) {
@@ -818,6 +827,37 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         // Values below minimum are allowed - they'll be inserted into the minimum table
     }
 
+    /**
+     * Automatically adjust query parameters to stay within partition boundaries.
+     * As per architecture doc: adjusts max range if it exceeds available partitions.
+     * @return adjusted end value
+     */
+    private P adjustQueryMaxRange(P endValue) {
+        if (endValue == null || maxPartitionDate == null) {
+            return endValue;
+        }
+
+        // Only adjust for time-based partitions
+        if (endValue instanceof LocalDateTime) {
+            LocalDateTime queryEnd = (LocalDateTime) endValue;
+            if (queryEnd.isAfter(maxPartitionDate)) {
+                // Adjust to max boundary + 1 second (since we use < comparison)
+                LocalDateTime adjusted = maxPartitionDate.plusSeconds(1);
+                logger.debug(String.format(
+                    "Adjusted query max range from %s to %s (max partition: %s)",
+                    queryEnd, adjusted, maxPartitionDate
+                ));
+                return (P) adjusted;
+            }
+        } else if (endValue instanceof Long) {
+            // For numeric types, adjust to maxValue + 1
+            // This would need max value tracking for numeric partitions
+            // Currently returning as-is since we don't track numeric boundaries
+        }
+
+        return endValue;
+    }
+
     private String getTableNameForEntity(T entity) throws SQLException {
         if (partitionRange == null || isTimeBased(partitionRange)) {
             LocalDateTime entityDate = metadata.getShardingKeyValue(entity);
@@ -870,20 +910,23 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
     private String getTableNameForDate(LocalDateTime date) {
         DateTimeFormatter formatter = getDateFormatter();
-        return database + "." + tablePrefix + "_" + date.format(formatter);
+        // Don't prefix with database since we're already connected to it
+        return tablePrefix + "_" + date.format(formatter);
     }
 
     private String getTableNameForHash(int bucket) {
         int buckets = getHashBuckets(partitionRange);
         int actualBucket = Math.abs(bucket) % buckets;
-        return database + "." + tablePrefix + "_hash_" + actualBucket;
+        // Don't prefix with database since we're already connected to it
+        return tablePrefix + "_hash_" + actualBucket;
     }
 
     private String getTableNameForValue(long value) {
         long rangeSize = getValueRangeSize(partitionRange);
         long rangeStart = (value / rangeSize) * rangeSize;
         long rangeEnd = rangeStart + rangeSize - 1;
-        return database + "." + tablePrefix + "_" + rangeStart + "_" + rangeEnd;
+        // Don't prefix with database since we're already connected to it
+        return tablePrefix + "_" + rangeStart + "_" + rangeEnd;
     }
 
     private DateTimeFormatter getDateFormatter() {
@@ -1034,9 +1077,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     }
     
     /**
-     * Extract date from table name in format tablename_YYYYMMDD
+     * Extract date string from table name in format tablename_YYYYMMDD
      */
-    private String extractDateFromTableName(String tableName) {
+    private String extractDateStringFromTableName(String tableName) {
         // Extract YYYYMMDD from table name like "events_20250920"
         String dateStr = tableName.substring(tableName.lastIndexOf('_') + 1);
 
@@ -1111,7 +1154,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         // Add partition clause based on the partition column type
         if (effectiveType == PartitionColumnType.LOCAL_DATE_TIME) {
             // Extract the date from the table name (format: tablename_YYYYMMDD)
-            String tableDate = extractDateFromTableName(tableName);
+            String tableDate = extractDateStringFromTableName(tableName);
 
             // For date-based columns, create hourly partitions with actual datetime values
             // MySQL RANGE COLUMNS partitioning allows direct datetime values
@@ -1201,9 +1244,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     
     private boolean tableExists(String tableName) throws SQLException {
         String sql = "SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = ?";
-        String[] parts = tableName.split("\\.");
-        String schema = parts[0];
-        String table = parts[1];
+        // Table name no longer includes database prefix
+        String schema = database;
+        String table = tableName;
         
         try (Connection conn = connectionProvider.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -1341,6 +1384,143 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         }
     }
     
+    /**
+     * Refresh and validate partition metadata.
+     * Ensures consistency across all shards by checking min/max boundaries.
+     * Throws exception if inconsistency detected as per architecture requirements.
+     */
+    public void refreshPartitionMetadata() throws SQLException {
+        if (partitionRange == null || !isTimeBased(partitionRange)) {
+            return; // Only validate for time-based partitions
+        }
+
+        logger.info("Refreshing partition metadata and validating boundaries");
+
+        // Get actual min/max dates from existing tables
+        LocalDateTime actualMinDate = null;
+        LocalDateTime actualMaxDate = null;
+
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            // Query for earliest and latest tables
+            String query = String.format(
+                "SELECT table_name FROM information_schema.tables " +
+                "WHERE table_schema = '%s' AND table_name LIKE '%s%%' " +
+                "ORDER BY table_name",
+                database, tablePrefix
+            );
+
+            try (ResultSet rs = stmt.executeQuery(query)) {
+                LocalDateTime firstDate = null;
+                LocalDateTime lastDate = null;
+
+                while (rs.next()) {
+                    String tableName = rs.getString("table_name");
+                    LocalDateTime tableDate = extractDateTimeFromTableName(tableName);
+
+                    if (tableDate != null) {
+                        if (firstDate == null || tableDate.isBefore(firstDate)) {
+                            firstDate = tableDate;
+                        }
+                        if (lastDate == null || tableDate.isAfter(lastDate)) {
+                            lastDate = tableDate;
+                        }
+                    }
+                }
+
+                actualMinDate = firstDate;
+                actualMaxDate = lastDate;
+            }
+        }
+
+        // Validate boundaries match expected values
+        if (actualMinDate != null && actualMaxDate != null) {
+            boolean inconsistent = false;
+            String inconsistencyDetails = "";
+
+            // Check if actual boundaries match configured boundaries
+            if (minPartitionDate != null && !actualMinDate.equals(minPartitionDate)) {
+                inconsistent = true;
+                inconsistencyDetails += String.format(
+                    "Min partition mismatch: expected=%s, actual=%s. ",
+                    minPartitionDate, actualMinDate
+                );
+            }
+
+            if (maxPartitionDate != null && !actualMaxDate.equals(maxPartitionDate)) {
+                inconsistent = true;
+                inconsistencyDetails += String.format(
+                    "Max partition mismatch: expected=%s, actual=%s. ",
+                    maxPartitionDate, actualMaxDate
+                );
+            }
+
+            if (inconsistent) {
+                // As per architecture doc: throw exception and kill the repo if inconsistent
+                String errorMsg = String.format(
+                    "CRITICAL: Partition boundary inconsistency detected! %s" +
+                    "Repository will be terminated to prevent data corruption.",
+                    inconsistencyDetails
+                );
+                logger.error(errorMsg);
+                throw new SQLException(errorMsg);
+            }
+
+            // Update boundaries if not set
+            if (minPartitionDate == null) {
+                minPartitionDate = actualMinDate;
+            }
+            if (maxPartitionDate == null) {
+                maxPartitionDate = actualMaxDate;
+            }
+
+            logger.info(String.format(
+                "Partition metadata validated successfully. Min=%s, Max=%s",
+                minPartitionDate, maxPartitionDate
+            ));
+        }
+    }
+
+    /**
+     * Extract LocalDateTime from table name (handles daily/hourly/monthly formats)
+     */
+    private LocalDateTime extractDateTimeFromTableName(String tableName) {
+        if (tableName == null || !tableName.startsWith(tablePrefix)) {
+            return null;
+        }
+
+        String datePart = tableName.substring(tablePrefix.length());
+        if (datePart.startsWith("_")) {
+            datePart = datePart.substring(1);
+        }
+
+        try {
+            // Try different patterns based on granularity
+            if (tableGranularity == TableGranularity.HOURLY && datePart.matches("\\d{4}_\\d{2}_\\d{2}_\\d{2}")) {
+                // Format: yyyy_MM_dd_HH
+                return LocalDateTime.parse(datePart + ":00:00",
+                    DateTimeFormatter.ofPattern("yyyy_MM_dd_HH:mm:ss"));
+            } else if (tableGranularity == TableGranularity.MONTHLY && datePart.matches("\\d{4}_\\d{2}")) {
+                // Format: yyyy_MM
+                return LocalDateTime.parse(datePart + "_01 00:00:00",
+                    DateTimeFormatter.ofPattern("yyyy_MM_dd HH:mm:ss"));
+            } else if (datePart.matches("\\d{8}")) {
+                // Format: yyyyMMdd (compact)
+                return LocalDateTime.parse(datePart + " 00:00:00",
+                    DateTimeFormatter.ofPattern("yyyyMMdd HH:mm:ss"));
+            } else if (datePart.matches("\\d{4}_\\d{2}_\\d{2}")) {
+                // Format: yyyy_MM_dd
+                return LocalDateTime.parse(datePart + " 00:00:00",
+                    DateTimeFormatter.ofPattern("yyyy_MM_dd HH:mm:ss"));
+            }
+        } catch (Exception e) {
+            logger.debug("Could not parse date from table name: " + tableName);
+        }
+
+        return null;
+    }
+
     /**
      * Initialize all tables needed for the retention period at startup.
      * This ensures all tables exist before any insert operations.

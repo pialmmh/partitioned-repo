@@ -75,8 +75,8 @@ public class FieldMetadata {
     
     public String getSqlType() {
 <span class="fc bfc" id="L77" title="All 2 branches covered.">        if (type == String.class) {</span>
-<span class="pc bpc" id="L78" title="2 of 4 branches missed.">            if (fieldName.equals(&quot;message&quot;) || fieldName.equals(&quot;shippingAddress&quot;)) {</span>
-<span class="nc" id="L79">                return &quot;TEXT&quot;;</span>
+<span class="pc bpc" id="L78" title="1 of 4 branches missed.">            if (fieldName.equals(&quot;message&quot;) || fieldName.equals(&quot;shippingAddress&quot;)) {</span>
+<span class="fc" id="L79">                return &quot;TEXT&quot;;</span>
             }
 <span class="fc" id="L81">            return &quot;VARCHAR(255)&quot;;</span>
 <span class="pc bpc" id="L82" title="1 of 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
@@ -89,10 +89,10 @@ public class FieldMetadata {
 <span class="nc" id="L89">            return &quot;DECIMAL(10,2)&quot;;</span>
 <span class="pc bpc" id="L90" title="2 of 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
 <span class="nc" id="L91">            return &quot;BOOLEAN&quot;;</span>
-<span class="pc bpc" id="L92" title="3 of 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="pc bpc" id="L92" title="1 of 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
 <span class="fc" id="L93">            return &quot;DOUBLE&quot;;</span>
         } else {
-<span class="nc" id="L95">            return &quot;VARCHAR(255)&quot;;</span>
+<span class="fc" id="L95">            return &quot;VARCHAR(255)&quot;;</span>
         }
     }
     

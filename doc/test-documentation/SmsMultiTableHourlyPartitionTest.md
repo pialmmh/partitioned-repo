@@ -14,10 +14,14 @@ Requirements:
 - Verify hourly partition distribution within each table
 - Verify partition pruning works for time-range queries
 
+
+
 Test 7: Comprehensive Entity Verification with findByIdAndPartitionColRange
+- read the current max partition limit in multi-table max date at start
 - Store all 10,000 SMS records in HashMap<String, SmsRecord> during insertion
 - For each SMS entity in HashMap:
   - Generate random date range with +/- offsets (seconds, minutes, hours, days, months)
+    let the end date be 
   - 80% should be valid ranges containing the SMS timestamp
   - 20% should be invalid ranges not containing the timestamp
 - Use findByIdAndPartitionColRange(id, startDate, endDate) for lookup

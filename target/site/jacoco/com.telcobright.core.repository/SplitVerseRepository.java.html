@@ -69,18 +69,18 @@ public class SplitVerseRepository&lt;T extends ShardingEntity&lt;P&gt;, P extend
 <span class="fc" id="L69">                    shardRepositories.put(config.getShardId(), shardRepo);</span>
 <span class="fc" id="L70">                    activeShardIds.add(config.getShardId());</span>
 <span class="fc" id="L71">                    System.out.println(&quot;[SplitVerse] Initialized shard: &quot; + config.getShardId());</span>
-<span class="nc" id="L72">                } catch (Exception e) {</span>
-<span class="nc" id="L73">                    System.err.println(&quot;[SplitVerse] Failed to initialize shard &quot; +</span>
-<span class="nc" id="L74">                        config.getShardId() + &quot;: &quot; + e.getMessage());</span>
-<span class="nc" id="L75">                    e.printStackTrace();</span>
+<span class="fc" id="L72">                } catch (Exception e) {</span>
+<span class="fc" id="L73">                    System.err.println(&quot;[SplitVerse] Failed to initialize shard &quot; +</span>
+<span class="fc" id="L74">                        config.getShardId() + &quot;: &quot; + e.getMessage());</span>
+<span class="fc" id="L75">                    e.printStackTrace();</span>
 <span class="fc" id="L76">                }</span>
             }
 <span class="fc" id="L78">        }</span>
         
 <span class="fc" id="L80">        this.shardIds = activeShardIds.toArray(new String[0]);</span>
         
-<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        if (shardRepositories.isEmpty()) {</span>
-<span class="nc" id="L83">            throw new IllegalStateException(&quot;No shards could be initialized&quot;);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (shardRepositories.isEmpty()) {</span>
+<span class="fc" id="L83">            throw new IllegalStateException(&quot;No shards could be initialized&quot;);</span>
         }
         
 <span class="fc" id="L86">        System.out.println(&quot;[SplitVerse] Initialized with &quot; + shardRepositories.size() + </span>
@@ -205,12 +205,12 @@ public class SplitVerseRepository&lt;T extends ShardingEntity&lt;P&gt;, P extend
     
     @Override
     public T findById(String id) throws SQLException {
-<span class="nc bnc" id="L208" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">        if (id == null) {</span>
 <span class="nc" id="L209">            return null;</span>
         }
         
-<span class="nc" id="L212">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
-<span class="nc" id="L213">        return targetShard.findById(id);</span>
+<span class="fc" id="L212">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="fc" id="L213">        return targetShard.findById(id);</span>
     }
     
     @Override

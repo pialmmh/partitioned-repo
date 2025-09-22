@@ -4,6 +4,11 @@
 
 Split-Verse provides comprehensive monitoring and automated maintenance capabilities to ensure optimal performance and data lifecycle management. The system includes metrics collection, health checks, partition management, and performance optimization features.
 
+IMPORTANT NOTE: 
+
+A schedular will start everyday to add/drop partitions in each shard. during maintenance, the repository will be in blocked mode. 
+No query will be permitted, not even Insert. 
+
 ## Monitoring Architecture
 
 ```

@@ -4,8 +4,12 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/DebugPartitionTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PartitionBoundaryTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PerformanceTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SimpleSmsDebugTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SingleShardMultiTableDateTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SingleShardMultiTableNestedPartitionTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SingleShardNativePartitionTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SipCallHashPartitionTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTestRetrieveAll.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SmsRetrieveByIdOnlyTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest.java

@@ -1,0 +1,5 @@
+#surefire_0
+#Mon Sep 22 08:44:42 BDT 2025
+basedir=/home/mustafa/telcobright-projects/routesphere/split-verse
+localRepository=/home/mustafa/.m2/repository
+test=SmsMultiTableHourlyPartitionTestRetrieveAll

@@ -63,16 +63,16 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
 <span class="nc" id="L63">                sql.append(&quot;FLOAT&quot;);</span>
 <span class="pc bpc" id="L64" title="2 of 4 branches missed.">            } else if (type == Boolean.class || type == boolean.class) {</span>
 <span class="nc" id="L65">                sql.append(&quot;BOOLEAN&quot;);</span>
-<span class="pc bpc" id="L66" title="1 of 2 branches missed.">            } else if (type == LocalDateTime.class) {</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">            } else if (type == LocalDateTime.class) {</span>
 <span class="fc" id="L67">                sql.append(&quot;DATETIME(6)&quot;);</span>
-<span class="nc bnc" id="L68" title="All 2 branches missed.">            } else if (type == java.time.LocalDate.class) {</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">            } else if (type == java.time.LocalDate.class) {</span>
 <span class="nc" id="L69">                sql.append(&quot;DATE&quot;);</span>
-<span class="nc bnc" id="L70" title="All 2 branches missed.">            } else if (type == java.time.LocalTime.class) {</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">            } else if (type == java.time.LocalTime.class) {</span>
 <span class="nc" id="L71">                sql.append(&quot;TIME&quot;);</span>
-<span class="nc bnc" id="L72" title="All 2 branches missed.">            } else if (type == java.math.BigDecimal.class) {</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">            } else if (type == java.math.BigDecimal.class) {</span>
 <span class="nc" id="L73">                sql.append(&quot;DECIMAL(19,4)&quot;);</span>
             } else {
-<span class="nc" id="L75">                sql.append(&quot;TEXT&quot;);</span>
+<span class="fc" id="L75">                sql.append(&quot;TEXT&quot;);</span>
             }
 
             // Add constraints
