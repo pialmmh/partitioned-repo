@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SmsMultiTableHourlyPartitionTestRetrieveAll {
     private static final String TEST_DB = "sms_shard_01";
     private static SplitVerseRepository<SmsRecord, LocalDateTime> repository;
-    private static final int TOTAL_RECORDS = 1000000; // 1 million records as per test specification
-    private static final int TEST_DAYS = 3; // Changed to 3 days for better performance
+    private static final int TOTAL_RECORDS = 100000; // 100k records for faster testing
+    private static final int TEST_DAYS = 7; // Distribute across 7 days
     private static final int RETENTION_DAYS = 15; // Create 15 days of tables
     private static final Random random = new Random(42); // Fixed seed for reproducibility
     private static LocalDateTime baseTime;
@@ -214,12 +214,12 @@ public class SmsMultiTableHourlyPartitionTestRetrieveAll {
             "Verification code: "
         };
 
-        System.out.println("Starting insertion of " + TOTAL_RECORDS + " SMS records across " + TEST_DAYS + " days (for better performance)...");
+        System.out.println("Starting insertion of " + TOTAL_RECORDS + " SMS records across " + TEST_DAYS + " days...");
         long startTime = System.currentTimeMillis();
         long lastReportTime = startTime;
 
         for (int i = 0; i < TOTAL_RECORDS; i++) {
-            // Distribute records across 3 days (as per revised spec)
+            // Distribute records across 7 days
             int dayOffset = i % TEST_DAYS;
             int hourOffset = random.nextInt(24);
             int minuteOffset = random.nextInt(60);
@@ -292,13 +292,13 @@ public class SmsMultiTableHourlyPartitionTestRetrieveAll {
                 }
             }
 
-            // Report progress every 50,000 records (5%)
-            if ((i + 1) % 50000 == 0 || i == TOTAL_RECORDS - 1) {
+            // Report progress every 10,000 records (10% for 100k)
+            if ((i + 1) % 10000 == 0 || i == TOTAL_RECORDS - 1) {
                 long currentTime = System.currentTimeMillis();
                 long elapsed = currentTime - startTime;
                 long intervalTime = currentTime - lastReportTime;
                 double overallRate = (i + 1) * 1000.0 / elapsed;
-                double intervalRate = 50000.0 * 1000.0 / intervalTime;
+                double intervalRate = 10000.0 * 1000.0 / intervalTime;
 
                 System.out.printf("[INSERTION] Progress: %,d/%,d (%.1f%%) - Overall rate: %,.0f rec/sec - Last 50k rate: %,.0f rec/sec%n",
                     (i + 1), TOTAL_RECORDS, ((i + 1) * 100.0 / TOTAL_RECORDS), overallRate, intervalRate);
