@@ -4,22 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SimpleSequentialRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SimpleSequentialRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/jacoco.exec" beforeDir="false" afterPath="$PROJECT_DIR$/target/jacoco.exec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$Builder.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$IdRange.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$IdRange.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.java.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.source.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-sessions.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco-sessions.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" afterDir="false" />
-    </list>
+    <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
