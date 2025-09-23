@@ -36,7 +36,7 @@ import com.telcobright.core.logging.ConsoleLogger;
  */
 public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; implements ShardingRepository&lt;T, P&gt; {
     private final Logger logger;
-<span class="nc" id="L39">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
+<span class="fc" id="L39">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
     
     private final ConnectionProvider connectionProvider;
     private final String database;
@@ -53,52 +53,52 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
     
     private ScheduledExecutorService scheduler;
     
-<span class="nc" id="L56">    private GenericPartitionedTableRepository(Builder&lt;T, P&gt; builder) {</span>
-<span class="nc" id="L57">        this.database = builder.database;</span>
-<span class="nc" id="L58">        this.partitionRetentionPeriod = builder.partitionRetentionPeriod;</span>
-<span class="nc" id="L59">        this.autoManagePartitions = builder.autoManagePartitions;</span>
-<span class="nc" id="L60">        this.partitionAdjustmentTime = builder.partitionAdjustmentTime;</span>
-<span class="nc" id="L61">        this.initializePartitionsOnStart = builder.initializePartitionsOnStart;</span>
-<span class="nc" id="L62">        this.entityClass = builder.entityClass;</span>
-<span class="nc" id="L63">        this.charset = builder.charset;</span>
-<span class="nc" id="L64">        this.collation = builder.collation;</span>
+<span class="fc" id="L56">    private GenericPartitionedTableRepository(Builder&lt;T, P&gt; builder) {</span>
+<span class="fc" id="L57">        this.database = builder.database;</span>
+<span class="fc" id="L58">        this.partitionRetentionPeriod = builder.partitionRetentionPeriod;</span>
+<span class="fc" id="L59">        this.autoManagePartitions = builder.autoManagePartitions;</span>
+<span class="fc" id="L60">        this.partitionAdjustmentTime = builder.partitionAdjustmentTime;</span>
+<span class="fc" id="L61">        this.initializePartitionsOnStart = builder.initializePartitionsOnStart;</span>
+<span class="fc" id="L62">        this.entityClass = builder.entityClass;</span>
+<span class="fc" id="L63">        this.charset = builder.charset;</span>
+<span class="fc" id="L64">        this.collation = builder.collation;</span>
         
         // Initialize entity metadata (performs reflection once)
-<span class="nc" id="L67">        this.metadata = new EntityMetadata&lt;&gt;(entityClass);</span>
+<span class="fc" id="L67">        this.metadata = new EntityMetadata&lt;&gt;(entityClass);</span>
         
         // Use provided table name or derive from entity
-<span class="nc bnc" id="L70" title="All 2 branches missed.">        this.tableName = builder.tableName != null ? builder.tableName : metadata.getTableName();</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        this.tableName = builder.tableName != null ? builder.tableName : metadata.getTableName();</span>
         
         // Initialize logger
-<span class="nc bnc" id="L73" title="All 2 branches missed.">        this.logger = builder.logger != null ? builder.logger : </span>
-<span class="nc" id="L74">            new ConsoleLogger(&quot;PartitionedRepo.&quot; + tableName);</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        this.logger = builder.logger != null ? builder.logger : </span>
+<span class="fc" id="L74">            new ConsoleLogger(&quot;PartitionedRepo.&quot; + tableName);</span>
         
         // Create ConnectionProvider
-<span class="nc" id="L77">        this.connectionProvider = new ConnectionProvider.Builder()</span>
-<span class="nc" id="L78">            .host(builder.host)</span>
-<span class="nc" id="L79">            .port(builder.port)</span>
-<span class="nc" id="L80">            .database(builder.database)</span>
-<span class="nc" id="L81">            .username(builder.username)</span>
-<span class="nc" id="L82">            .password(builder.password)</span>
-<span class="nc" id="L83">            .build();</span>
+<span class="fc" id="L77">        this.connectionProvider = new ConnectionProvider.Builder()</span>
+<span class="fc" id="L78">            .host(builder.host)</span>
+<span class="fc" id="L79">            .port(builder.port)</span>
+<span class="fc" id="L80">            .database(builder.database)</span>
+<span class="fc" id="L81">            .username(builder.username)</span>
+<span class="fc" id="L82">            .password(builder.password)</span>
+<span class="fc" id="L83">            .build();</span>
         
         // Initialize monitoring if enabled
-<span class="nc bnc" id="L86" title="All 4 branches missed.">        if (builder.monitoringConfig != null &amp;&amp; builder.monitoringConfig.isEnabled()) {</span>
+<span class="pc bpc" id="L86" title="3 of 4 branches missed.">        if (builder.monitoringConfig != null &amp;&amp; builder.monitoringConfig.isEnabled()) {</span>
 <span class="nc" id="L87">            RepositoryMetrics metrics = new RepositoryMetrics(&quot;Partitioned&quot;, tableName, </span>
 <span class="nc" id="L88">                    builder.monitoringConfig.getInstanceId());</span>
 <span class="nc" id="L89">            MetricsCollector metricsCollector = new MetricsCollector(connectionProvider, database);</span>
 <span class="nc" id="L90">            this.monitoringService = new DefaultMonitoringService(builder.monitoringConfig, metrics, metricsCollector);</span>
 <span class="nc" id="L91">            this.monitoringService.start();</span>
 <span class="nc" id="L92">        } else {</span>
-<span class="nc" id="L93">            this.monitoringService = null;</span>
+<span class="fc" id="L93">            this.monitoringService = null;</span>
         }
         
         // Initialize table and partitions if needed
         // Initialize table and partitions for retention period on startup
-<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (initializePartitionsOnStart) {</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        if (initializePartitionsOnStart) {</span>
             try {
-<span class="nc" id="L100">                logger.info(&quot;Initializing partitioned table and partitions for retention period...&quot;);</span>
-<span class="nc" id="L101">                initializeTable();</span>
+<span class="fc" id="L100">                logger.info(&quot;Initializing partitioned table and partitions for retention period...&quot;);</span>
+<span class="fc" id="L101">                initializeTable();</span>
                 // Partitions are now created in initializeTable(), no need for separate initialization
 <span class="nc" id="L103">            } catch (SQLException e) {</span>
 <span class="nc" id="L104">                logger.error(&quot;Failed to initialize partitioned table: &quot; + e.getMessage(), e);</span>
@@ -109,14 +109,14 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
 <span class="nc" id="L109">                } catch (SQLException fallbackError) {</span>
 <span class="nc" id="L110">                    throw new RuntimeException(&quot;Failed to initialize table even without partitions&quot;, fallbackError);</span>
 <span class="nc" id="L111">                }</span>
-<span class="nc" id="L112">            }</span>
+<span class="fc" id="L112">            }</span>
         }
         
         // Start scheduler if auto-management is enabled
-<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (autoManagePartitions) {</span>
-<span class="nc" id="L117">            startScheduler();</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">        if (autoManagePartitions) {</span>
+<span class="fc" id="L117">            startScheduler();</span>
         }
-<span class="nc" id="L119">    }</span>
+<span class="fc" id="L119">    }</span>
     
     /**
      * Insert entity into partitioned table (MySQL handles routing)
@@ -124,23 +124,23 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
      */
     @Override
     public void insert(T entity) throws SQLException {
-<span class="nc" id="L127">        String fullTableName = database + &quot;.&quot; + tableName;</span>
-<span class="nc" id="L128">        String sql = String.format(metadata.getInsertSQL(), fullTableName);</span>
+<span class="fc" id="L127">        String fullTableName = database + &quot;.&quot; + tableName;</span>
+<span class="fc" id="L128">        String sql = String.format(metadata.getInsertSQL(), fullTableName);</span>
         
-<span class="nc" id="L130">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L131">             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
+<span class="fc" id="L130">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L131">             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
             
-<span class="nc" id="L133">            metadata.setInsertParameters(stmt, entity);</span>
-<span class="nc" id="L134">            stmt.executeUpdate();</span>
+<span class="fc" id="L133">            metadata.setInsertParameters(stmt, entity);</span>
+<span class="fc" id="L134">            stmt.executeUpdate();</span>
             
             // Set generated ID if applicable
-<span class="nc bnc" id="L137" title="All 4 branches missed.">            if (metadata.getIdField() != null &amp;&amp; metadata.getIdField().isAutoGenerated()) {</span>
+<span class="pc bpc" id="L137" title="2 of 4 branches missed.">            if (metadata.getIdField() != null &amp;&amp; metadata.getIdField().isAutoGenerated()) {</span>
 <span class="nc" id="L138">                try (ResultSet keys = stmt.getGeneratedKeys()) {</span>
                     // Auto-generated IDs not supported - all IDs must be externally generated strings
 <span class="nc bnc" id="L140" title="All 2 branches missed.">                }</span>
             }
         }
-<span class="nc" id="L143">    }</span>
+<span class="fc" id="L143">    }</span>
     
     /**
      * Insert multiple entities
@@ -148,25 +148,25 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
      */
     @Override
     public void insertMultiple(List&lt;T&gt; entities) throws SQLException {
-<span class="nc bnc" id="L151" title="All 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
+<span class="pc bpc" id="L151" title="2 of 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
 <span class="nc" id="L152">            return;</span>
         }
         
-<span class="nc" id="L155">        String fullTableName = database + &quot;.&quot; + tableName;</span>
-<span class="nc" id="L156">        String sql = String.format(metadata.getInsertSQL(), fullTableName);</span>
+<span class="fc" id="L155">        String fullTableName = database + &quot;.&quot; + tableName;</span>
+<span class="fc" id="L156">        String sql = String.format(metadata.getInsertSQL(), fullTableName);</span>
         
-<span class="nc" id="L158">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L159">             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
+<span class="fc" id="L158">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L159">             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
             
-<span class="nc bnc" id="L161" title="All 2 branches missed.">            for (T entity : entities) {</span>
-<span class="nc" id="L162">                metadata.setInsertParameters(stmt, entity);</span>
-<span class="nc" id="L163">                stmt.addBatch();</span>
-<span class="nc" id="L164">            }</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">            for (T entity : entities) {</span>
+<span class="fc" id="L162">                metadata.setInsertParameters(stmt, entity);</span>
+<span class="fc" id="L163">                stmt.addBatch();</span>
+<span class="fc" id="L164">            }</span>
             
-<span class="nc" id="L166">            stmt.executeBatch();</span>
+<span class="fc" id="L166">            stmt.executeBatch();</span>
             
             // Set generated IDs if applicable
-<span class="nc bnc" id="L169" title="All 4 branches missed.">            if (metadata.getIdField() != null &amp;&amp; metadata.getIdField().isAutoGenerated()) {</span>
+<span class="pc bpc" id="L169" title="2 of 4 branches missed.">            if (metadata.getIdField() != null &amp;&amp; metadata.getIdField().isAutoGenerated()) {</span>
 <span class="nc" id="L170">                try (ResultSet keys = stmt.getGeneratedKeys()) {</span>
 <span class="nc bnc" id="L171" title="All 2 branches missed.">                    for (T entity : entities) {</span>
                         // Auto-generated IDs not supported - all IDs must be externally generated strings
@@ -174,41 +174,41 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
                 }
             }
         }
-<span class="nc" id="L177">    }</span>
+<span class="fc" id="L177">    }</span>
     
     /**
      * Find all entities by date range (with partition pruning)
      */
     @Override
     public List&lt;T&gt; findAllByPartitionRange(P startValue, P endValue) throws SQLException {
-<span class="nc" id="L184">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
-<span class="nc" id="L185">        String fullTableName = database + &quot;.&quot; + tableName;</span>
+<span class="fc" id="L184">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="fc" id="L185">        String fullTableName = database + &quot;.&quot; + tableName;</span>
         
-<span class="nc" id="L187">        String sql = String.format(&quot;SELECT * FROM %s WHERE %s BETWEEN ? AND ?&quot;, </span>
+<span class="fc" id="L187">        String sql = String.format(&quot;SELECT * FROM %s WHERE %s BETWEEN ? AND ?&quot;, </span>
             fullTableName, shardingColumn);
         
-<span class="nc" id="L190">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L190">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
         
-<span class="nc" id="L192">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L193">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="fc" id="L192">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L193">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
 
             // TODO: Handle generic partition value types
-<span class="nc bnc" id="L196" title="All 2 branches missed.">            if (startValue instanceof LocalDateTime) {</span>
-<span class="nc" id="L197">                stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) startValue));</span>
-<span class="nc" id="L198">                stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) endValue));</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">            if (startValue instanceof LocalDateTime) {</span>
+<span class="fc" id="L197">                stmt.setTimestamp(1, Timestamp.valueOf((LocalDateTime) startValue));</span>
+<span class="fc" id="L198">                stmt.setTimestamp(2, Timestamp.valueOf((LocalDateTime) endValue));</span>
             } else {
 <span class="nc" id="L200">                stmt.setObject(1, startValue);</span>
 <span class="nc" id="L201">                stmt.setObject(2, endValue);</span>
             }
             
-<span class="nc" id="L204">            try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L205" title="All 2 branches missed.">                while (rs.next()) {</span>
-<span class="nc" id="L206">                    results.add(metadata.mapResultSet(rs));</span>
+<span class="fc" id="L204">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">                while (rs.next()) {</span>
+<span class="fc" id="L206">                    results.add(metadata.mapResultSet(rs));</span>
                 }
             }
         }
         
-<span class="nc" id="L211">        return results;</span>
+<span class="fc" id="L211">        return results;</span>
     }
     
     /**
@@ -216,22 +216,22 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
      */
     @Override
     public T findById(String id) throws SQLException {
-<span class="nc" id="L219">        String fullTableName = database + &quot;.&quot; + tableName;</span>
-<span class="nc" id="L220">        String sql = String.format(metadata.getSelectByIdSQL(), fullTableName);</span>
+<span class="fc" id="L219">        String fullTableName = database + &quot;.&quot; + tableName;</span>
+<span class="fc" id="L220">        String sql = String.format(metadata.getSelectByIdSQL(), fullTableName);</span>
         
-<span class="nc" id="L222">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L223">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="fc" id="L222">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L223">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
             
-<span class="nc" id="L225">            setIdParameter(stmt, 1, id);</span>
+<span class="fc" id="L225">            setIdParameter(stmt, 1, id);</span>
             
-<span class="nc" id="L227">            try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L228" title="All 2 branches missed.">                if (rs.next()) {</span>
-<span class="nc" id="L229">                    return metadata.mapResultSet(rs);</span>
+<span class="fc" id="L227">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">                if (rs.next()) {</span>
+<span class="fc" id="L229">                    return metadata.mapResultSet(rs);</span>
                 }
-<span class="nc bnc" id="L231" title="All 2 branches missed.">            }</span>
-<span class="nc bnc" id="L232" title="All 4 branches missed.">        }</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">            }</span>
+<span class="pc bpc" id="L232" title="2 of 4 branches missed.">        }</span>
         
-<span class="nc" id="L234">        return null;</span>
+<span class="fc" id="L234">        return null;</span>
     }
     
     /**
@@ -466,105 +466,105 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
      */
     @Override
     public List&lt;T&gt; findBatchByIdGreaterThan(String id, int batchSize) throws SQLException {
-<span class="nc" id="L469">        String fullTableName = database + &quot;.&quot; + tableName;</span>
-<span class="nc" id="L470">        String idColumn = metadata.getIdField().getColumnName();</span>
-<span class="nc" id="L471">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L469">        String fullTableName = database + &quot;.&quot; + tableName;</span>
+<span class="fc" id="L470">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="fc" id="L471">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
         
         // Build query to find batch of entities with ID &gt; specified ID
         // ORDER BY id ASC to get results in increasing ID order
-<span class="nc" id="L475">        String sql = String.format(</span>
+<span class="fc" id="L475">        String sql = String.format(</span>
             &quot;SELECT * FROM %s WHERE %s &gt; ? ORDER BY %s ASC LIMIT ?&quot;,
             fullTableName, idColumn, idColumn
         );
         
-<span class="nc" id="L480">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L481">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+<span class="fc" id="L480">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L481">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
             
-<span class="nc" id="L483">            setIdParameter(stmt, 1, id);</span>
-<span class="nc" id="L484">            stmt.setInt(2, batchSize);</span>
+<span class="fc" id="L483">            setIdParameter(stmt, 1, id);</span>
+<span class="fc" id="L484">            stmt.setInt(2, batchSize);</span>
             
-<span class="nc" id="L486">            try (ResultSet rs = stmt.executeQuery()) {</span>
-<span class="nc bnc" id="L487" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="fc" id="L486">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="pc bpc" id="L487" title="1 of 2 branches missed.">                while (rs.next()) {</span>
 <span class="nc" id="L488">                    results.add(metadata.mapResultSet(rs));</span>
                 }
             }
         }
         
-<span class="nc" id="L493">        return results;</span>
+<span class="fc" id="L493">        return results;</span>
     }
     
     private void initializeTable() throws SQLException {
-<span class="nc" id="L497">        String fullTableName = database + &quot;.&quot; + tableName;</span>
-<span class="nc" id="L498">        String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);</span>
+<span class="fc" id="L497">        String fullTableName = database + &quot;.&quot; + tableName;</span>
+<span class="fc" id="L498">        String createSQL = String.format(metadata.getCreateTableSQL(), fullTableName);</span>
 
         // For partitioned tables, MySQL requires the partitioning column to be part of PRIMARY KEY
         // Modify PRIMARY KEY to include sharding column
-<span class="nc" id="L502">        String idColumn = metadata.getIdField().getColumnName();</span>
-<span class="nc" id="L503">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
+<span class="fc" id="L502">        String idColumn = metadata.getIdField().getColumnName();</span>
+<span class="fc" id="L503">        String shardingColumn = metadata.getShardingKeyField().getColumnName();</span>
 
         // Handle both VARCHAR and BIGINT primary keys
-<span class="nc" id="L506">        createSQL = createSQL.replace(idColumn + &quot; VARCHAR(255) PRIMARY KEY&quot;,</span>
+<span class="fc" id="L506">        createSQL = createSQL.replace(idColumn + &quot; VARCHAR(255) PRIMARY KEY&quot;,</span>
                                      idColumn + &quot; VARCHAR(255)&quot;);
-<span class="nc" id="L508">        createSQL = createSQL.replace(idColumn + &quot; BIGINT PRIMARY KEY AUTO_INCREMENT&quot;,</span>
+<span class="fc" id="L508">        createSQL = createSQL.replace(idColumn + &quot; BIGINT PRIMARY KEY AUTO_INCREMENT&quot;,</span>
                                      idColumn + &quot; BIGINT AUTO_INCREMENT&quot;);
 
         // Add composite primary key with both ID and sharding column
-<span class="nc" id="L512">        createSQL = createSQL.replace(&quot;, KEY idx_&quot; + shardingColumn,</span>
+<span class="fc" id="L512">        createSQL = createSQL.replace(&quot;, KEY idx_&quot; + shardingColumn,</span>
                                      &quot;, PRIMARY KEY (&quot; + idColumn + &quot;, &quot; + shardingColumn + &quot;), KEY idx_&quot; + shardingColumn);
 
         // Replace charset/collation with configured values
-<span class="nc" id="L516">        createSQL = createSQL.replace(&quot;) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;,</span>
+<span class="fc" id="L516">        createSQL = createSQL.replace(&quot;) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;,</span>
                 &quot;) ENGINE=InnoDB DEFAULT CHARSET=&quot; + charset + &quot; COLLATE=&quot; + collation);
 
-<span class="nc" id="L519">        try (Connection conn = connectionProvider.getConnection();</span>
-<span class="nc" id="L520">             Statement stmt = conn.createStatement()) {</span>
+<span class="fc" id="L519">        try (Connection conn = connectionProvider.getConnection();</span>
+<span class="fc" id="L520">             Statement stmt = conn.createStatement()) {</span>
 
             // Check if table exists
-<span class="nc" id="L523">            DatabaseMetaData metaData = conn.getMetaData();</span>
-<span class="nc" id="L524">            try (ResultSet rs = metaData.getTables(database, null, tableName, null)) {</span>
-<span class="nc bnc" id="L525" title="All 2 branches missed.">                if (!rs.next()) {</span>
+<span class="fc" id="L523">            DatabaseMetaData metaData = conn.getMetaData();</span>
+<span class="fc" id="L524">            try (ResultSet rs = metaData.getTables(database, null, tableName, null)) {</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">                if (!rs.next()) {</span>
                     // Table doesn't exist, create it with ALL partitions for the retention period
-<span class="nc" id="L527">                    LocalDateTime now = LocalDateTime.now();</span>
-<span class="nc" id="L528">                    LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);</span>
-<span class="nc" id="L529">                    LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);</span>
+<span class="fc" id="L527">                    LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L528">                    LocalDateTime startDate = now.minusDays(partitionRetentionPeriod);</span>
+<span class="fc" id="L529">                    LocalDateTime endDate = now.plusDays(partitionRetentionPeriod);</span>
 
                     // Build partition clause with ALL partitions for the retention period
                     // Use TO_DAYS function for simpler partition definition
-<span class="nc" id="L533">                    StringBuilder partitionClause = new StringBuilder();</span>
-<span class="nc" id="L534">                    partitionClause.append(&quot;\nPARTITION BY RANGE (TO_DAYS(&quot;).append(shardingColumn).append(&quot;))\n(&quot;);</span>
+<span class="fc" id="L533">                    StringBuilder partitionClause = new StringBuilder();</span>
+<span class="fc" id="L534">                    partitionClause.append(&quot;\nPARTITION BY RANGE (TO_DAYS(&quot;).append(shardingColumn).append(&quot;))\n(&quot;);</span>
 
                     // Create all partitions from start date to end date
                     // This ensures all required partitions exist upfront
-<span class="nc" id="L538">                    boolean first = true;</span>
-<span class="nc" id="L539">                    int partitionCount = 0;</span>
-<span class="nc bnc" id="L540" title="All 2 branches missed.">                    for (LocalDateTime date = startDate; date.isBefore(endDate); date = date.plusDays(1)) {</span>
-<span class="nc" id="L541">                        String partitionName = &quot;p&quot; + date.format(DATE_FORMAT);</span>
-<span class="nc" id="L542">                        LocalDateTime nextDay = date.plusDays(1);</span>
+<span class="fc" id="L538">                    boolean first = true;</span>
+<span class="fc" id="L539">                    int partitionCount = 0;</span>
+<span class="fc bfc" id="L540" title="All 2 branches covered.">                    for (LocalDateTime date = startDate; date.isBefore(endDate); date = date.plusDays(1)) {</span>
+<span class="fc" id="L541">                        String partitionName = &quot;p&quot; + date.format(DATE_FORMAT);</span>
+<span class="fc" id="L542">                        LocalDateTime nextDay = date.plusDays(1);</span>
 
-<span class="nc bnc" id="L544" title="All 2 branches missed.">                        if (!first) {</span>
-<span class="nc" id="L545">                            partitionClause.append(&quot;,&quot;);</span>
+<span class="fc bfc" id="L544" title="All 2 branches covered.">                        if (!first) {</span>
+<span class="fc" id="L545">                            partitionClause.append(&quot;,&quot;);</span>
                         }
-<span class="nc" id="L547">                        first = false;</span>
+<span class="fc" id="L547">                        first = false;</span>
 
-<span class="nc" id="L549">                        partitionClause.append(&quot;\n  PARTITION &quot;).append(partitionName)</span>
-<span class="nc" id="L550">                                      .append(&quot; VALUES LESS THAN (TO_DAYS('&quot;)</span>
-<span class="nc" id="L551">                                      .append(nextDay.toLocalDate().toString())</span>
-<span class="nc" id="L552">                                      .append(&quot;'))&quot;);</span>
-<span class="nc" id="L553">                        partitionCount++;</span>
+<span class="fc" id="L549">                        partitionClause.append(&quot;\n  PARTITION &quot;).append(partitionName)</span>
+<span class="fc" id="L550">                                      .append(&quot; VALUES LESS THAN (TO_DAYS('&quot;)</span>
+<span class="fc" id="L551">                                      .append(nextDay.toLocalDate().toString())</span>
+<span class="fc" id="L552">                                      .append(&quot;'))&quot;);</span>
+<span class="fc" id="L553">                        partitionCount++;</span>
                     }
 
-<span class="nc" id="L556">                    partitionClause.append(&quot;\n)&quot;);</span>
-<span class="nc" id="L557">                    createSQL += partitionClause.toString();</span>
+<span class="fc" id="L556">                    partitionClause.append(&quot;\n)&quot;);</span>
+<span class="fc" id="L557">                    createSQL += partitionClause.toString();</span>
 
-<span class="nc" id="L559">                    logger.info(&quot;Creating partitioned table with &quot; + partitionCount + &quot; partitions&quot;);</span>
-<span class="nc" id="L560">                    logger.info(&quot;Executing CREATE TABLE SQL: &quot; + createSQL);</span>
-<span class="nc" id="L561">                    stmt.execute(createSQL);</span>
-<span class="nc" id="L562">                    logger.info(&quot;Created partitioned table: &quot; + fullTableName + &quot; with partitions from &quot; +</span>
-<span class="nc" id="L563">                               startDate.toLocalDate() + &quot; to &quot; + endDate.toLocalDate());</span>
+<span class="fc" id="L559">                    logger.info(&quot;Creating partitioned table with &quot; + partitionCount + &quot; partitions&quot;);</span>
+<span class="fc" id="L560">                    logger.info(&quot;Executing CREATE TABLE SQL: &quot; + createSQL);</span>
+<span class="fc" id="L561">                    stmt.execute(createSQL);</span>
+<span class="fc" id="L562">                    logger.info(&quot;Created partitioned table: &quot; + fullTableName + &quot; with partitions from &quot; +</span>
+<span class="fc" id="L563">                               startDate.toLocalDate() + &quot; to &quot; + endDate.toLocalDate());</span>
                 }
             }
         }
-<span class="nc" id="L567">    }</span>
+<span class="fc" id="L567">    }</span>
 
     /**
      * Create a simple non-partitioned table as fallback
@@ -713,8 +713,8 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
     }
     
     private void setIdParameter(PreparedStatement stmt, int index, String id) throws SQLException {
-<span class="nc" id="L716">        stmt.setString(index, id);</span>
-<span class="nc" id="L717">    }</span>
+<span class="fc" id="L716">        stmt.setString(index, id);</span>
+<span class="fc" id="L717">    }</span>
     
     private &lt;R&gt; List&lt;R&gt; executeQuery(String sql, Map&lt;String, Object&gt; parameters, 
                                     ResultSetMapper&lt;R&gt; mapper) throws SQLException {
@@ -814,26 +814,26 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
 <span class="nc" id="L814">    }</span>
     
     private void startScheduler() {
-<span class="nc" id="L817">        scheduler = Executors.newSingleThreadScheduledExecutor(r -&gt; {</span>
-<span class="nc" id="L818">            Thread thread = new Thread(r, &quot;PartitionedTableRepository-Scheduler-&quot; + tableName);</span>
-<span class="nc" id="L819">            thread.setDaemon(true);</span>
-<span class="nc" id="L820">            return thread;</span>
+<span class="fc" id="L817">        scheduler = Executors.newSingleThreadScheduledExecutor(r -&gt; {</span>
+<span class="fc" id="L818">            Thread thread = new Thread(r, &quot;PartitionedTableRepository-Scheduler-&quot; + tableName);</span>
+<span class="fc" id="L819">            thread.setDaemon(true);</span>
+<span class="fc" id="L820">            return thread;</span>
         });
         
-<span class="nc" id="L823">        scheduleNextRun();</span>
-<span class="nc" id="L824">    }</span>
+<span class="fc" id="L823">        scheduleNextRun();</span>
+<span class="fc" id="L824">    }</span>
     
     private void scheduleNextRun() {
-<span class="nc" id="L827">        LocalDateTime now = LocalDateTime.now();</span>
-<span class="nc" id="L828">        LocalDateTime nextRun = now.toLocalDate().plusDays(1).atTime(partitionAdjustmentTime);</span>
+<span class="fc" id="L827">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L828">        LocalDateTime nextRun = now.toLocalDate().plusDays(1).atTime(partitionAdjustmentTime);</span>
         
-<span class="nc bnc" id="L830" title="All 2 branches missed.">        if (nextRun.isBefore(now)) {</span>
+<span class="pc bpc" id="L830" title="1 of 2 branches missed.">        if (nextRun.isBefore(now)) {</span>
 <span class="nc" id="L831">            nextRun = nextRun.plusDays(1);</span>
         }
         
-<span class="nc" id="L834">        long delay = java.time.Duration.between(now, nextRun).toMillis();</span>
+<span class="fc" id="L834">        long delay = java.time.Duration.between(now, nextRun).toMillis();</span>
         
-<span class="nc" id="L836">        scheduler.schedule(() -&gt; {</span>
+<span class="fc" id="L836">        scheduler.schedule(() -&gt; {</span>
             try {
 <span class="nc" id="L838">                performScheduledMaintenance();</span>
 <span class="nc" id="L839">                scheduleNextRun();</span>
@@ -842,7 +842,7 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
 <span class="nc" id="L842">                scheduleNextRun();</span>
 <span class="nc" id="L843">            }</span>
 <span class="nc" id="L844">        }, delay, TimeUnit.MILLISECONDS);</span>
-<span class="nc" id="L845">    }</span>
+<span class="fc" id="L845">    }</span>
     
     private void performScheduledMaintenance() throws SQLException {
 <span class="nc" id="L848">        LocalDateTime now = LocalDateTime.now();</span>
@@ -909,26 +909,26 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
     @Override
     public void shutdown() {
         // Shutdown scheduler immediately
-<span class="nc bnc" id="L912" title="All 4 branches missed.">        if (scheduler != null &amp;&amp; !scheduler.isShutdown()) {</span>
-<span class="nc" id="L913">            scheduler.shutdownNow(); // Use shutdownNow() for immediate termination</span>
+<span class="pc bpc" id="L912" title="1 of 4 branches missed.">        if (scheduler != null &amp;&amp; !scheduler.isShutdown()) {</span>
+<span class="fc" id="L913">            scheduler.shutdownNow(); // Use shutdownNow() for immediate termination</span>
             try {
                 // Wait only 2 seconds for termination
-<span class="nc bnc" id="L916" title="All 2 branches missed.">                if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {</span>
+<span class="pc bpc" id="L916" title="1 of 2 branches missed.">                if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {</span>
                     // Force shutdown if still not terminated
 <span class="nc" id="L918">                    scheduler.shutdownNow();</span>
                 }
 <span class="nc" id="L920">            } catch (InterruptedException e) {</span>
 <span class="nc" id="L921">                scheduler.shutdownNow();</span>
 <span class="nc" id="L922">                Thread.currentThread().interrupt();</span>
-<span class="nc" id="L923">            }</span>
+<span class="fc" id="L923">            }</span>
         }
 
         // Shutdown ConnectionProvider
-<span class="nc bnc" id="L927" title="All 2 branches missed.">        if (connectionProvider != null) {</span>
-<span class="nc" id="L928">            connectionProvider.shutdown();</span>
-<span class="nc" id="L929">            logger.info(&quot;ConnectionProvider shutdown&quot;);</span>
+<span class="pc bpc" id="L927" title="1 of 2 branches missed.">        if (connectionProvider != null) {</span>
+<span class="fc" id="L928">            connectionProvider.shutdown();</span>
+<span class="fc" id="L929">            logger.info(&quot;ConnectionProvider shutdown&quot;);</span>
         }
-<span class="nc" id="L931">    }</span>
+<span class="fc" id="L931">    }</span>
     
     
     /**
@@ -1002,8 +1002,8 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
         }
         
         public Builder&lt;T, P&gt; autoManagePartitions(boolean enable) {
-<span class="nc" id="L1005">            this.autoManagePartitions = enable;</span>
-<span class="nc" id="L1006">            return this;</span>
+<span class="fc" id="L1005">            this.autoManagePartitions = enable;</span>
+<span class="fc" id="L1006">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; partitionAdjustmentTime(int hour, int minute) {
@@ -1012,13 +1012,13 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
         }
         
         public Builder&lt;T, P&gt; partitionAdjustmentTime(LocalTime time) {
-<span class="nc" id="L1015">            this.partitionAdjustmentTime = time;</span>
-<span class="nc" id="L1016">            return this;</span>
+<span class="fc" id="L1015">            this.partitionAdjustmentTime = time;</span>
+<span class="fc" id="L1016">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; initializePartitionsOnStart(boolean initialize) {
-<span class="nc" id="L1020">            this.initializePartitionsOnStart = initialize;</span>
-<span class="nc" id="L1021">            return this;</span>
+<span class="fc" id="L1020">            this.initializePartitionsOnStart = initialize;</span>
+<span class="fc" id="L1021">            return this;</span>
         }
         
         public Builder&lt;T, P&gt; withPartitionType(PartitionType partitionType) {
@@ -1074,7 +1074,7 @@ public class GenericPartitionedTableRepository&lt;T extends ShardingEntity&lt;P&
      */
     // Package-private factory method - only SplitVerseRepository can use this
     static &lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; Builder&lt;T, P&gt; builder(Class&lt;T&gt; entityClass) {
-<span class="nc" id="L1077">        return new Builder&lt;T, P&gt;(entityClass);</span>
+<span class="fc" id="L1077">        return new Builder&lt;T, P&gt;(entityClass);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,827 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="15.305" tests="14" errors="0" skipped="0" failures="4">
+  <properties>
+    <property name="java.specification.version" value="21"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/telcobright/dbutil/1.0-SNAPSHOT/dbutil-1.0-SNAPSHOT.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-classic/1.4.11/logback-classic-1.4.11.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-core/1.4.11/logback-core-1.4.11.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-jpa/2.7.14/spring-data-jpa-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-commons/2.7.14/spring-data-commons-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/spring-orm/5.3.29/spring-orm-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jdbc/5.3.29/spring-jdbc-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-aop/5.3.29/spring-aop-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-tx/5.3.29/spring-tx-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-beans/5.3.29/spring-beans-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-core/5.3.29/spring-core-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jcl/5.3.29/spring-jcl-5.3.29.jar:/home/mustafa/.m2/repository/javax/persistence/javax.persistence-api/2.2/javax.persistence-api-2.2.jar:/home/mustafa/.m2/repository/org/hibernate/hibernate-core/5.6.15.Final/hibernate-core-5.6.15.Final.jar:/home/mustafa/.m2/repository/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/home/mustafa/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final/jboss-transaction-api_1.2_spec-1.1.1.Final.jar:/home/mustafa/.m2/repository/org/jboss/jandex/2.4.2.Final/jandex-2.4.2.Final.jar:/home/mustafa/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/mustafa/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/home/mustafa/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final/hibernate-commons-annotations-5.1.2.Final.jar:/home/mustafa/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/home/mustafa/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/home/mustafa/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/home/mustafa/.m2/repository/org/springframework/spring-context/5.3.30/spring-context-5.3.30.jar:/home/mustafa/.m2/repository/org/springframework/spring-expression/5.3.30/spring-expression-5.3.30.jar:/home/mustafa/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.7.14/spring-boot-starter-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter/2.7.14/spring-boot-starter-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot/2.7.14/spring-boot-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.7.14/spring-boot-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.7.14/spring-boot-starter-logging-2.7.14.jar:/home/mustafa/.m2/repository/org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar:/home/mustafa/.m2/repository/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar:/home/mustafa/.m2/repository/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test/2.7.14/spring-boot-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.7.14/spring-boot-test-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/com/jayway/jsonpath/json-path/2.7.0/json-path-2.7.0.jar:/home/mustafa/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/home/mustafa/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/home/mustafa/.m2/repository/org/ow2/asm/asm/9.8/asm-9.8.jar:/home/mustafa/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/mustafa/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar:/home/mustafa/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/mustafa/.m2/repository/org/springframework/spring-test/5.3.29/spring-test-5.3.29.jar:/home/mustafa/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="user.timezone" value="Asia/Dhaka"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="21"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/home/mustafa/.sdkman/candidates/java/21-tem/lib"/>
+    <property name="sun.java.command" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250924004916387_3.jar /home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire 2025-09-24T00-49-16_305-jvmRun1 surefire-20250924004916387_1tmp surefire_0-20250924004916387_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="test" value="SimpleSequentialRepositoryTest"/>
+    <property name="surefire.test.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/telcobright/dbutil/1.0-SNAPSHOT/dbutil-1.0-SNAPSHOT.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-classic/1.4.11/logback-classic-1.4.11.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-core/1.4.11/logback-core-1.4.11.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-jpa/2.7.14/spring-data-jpa-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-commons/2.7.14/spring-data-commons-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/spring-orm/5.3.29/spring-orm-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jdbc/5.3.29/spring-jdbc-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-aop/5.3.29/spring-aop-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-tx/5.3.29/spring-tx-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-beans/5.3.29/spring-beans-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-core/5.3.29/spring-core-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jcl/5.3.29/spring-jcl-5.3.29.jar:/home/mustafa/.m2/repository/javax/persistence/javax.persistence-api/2.2/javax.persistence-api-2.2.jar:/home/mustafa/.m2/repository/org/hibernate/hibernate-core/5.6.15.Final/hibernate-core-5.6.15.Final.jar:/home/mustafa/.m2/repository/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/home/mustafa/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final/jboss-transaction-api_1.2_spec-1.1.1.Final.jar:/home/mustafa/.m2/repository/org/jboss/jandex/2.4.2.Final/jandex-2.4.2.Final.jar:/home/mustafa/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/mustafa/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/home/mustafa/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final/hibernate-commons-annotations-5.1.2.Final.jar:/home/mustafa/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/home/mustafa/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/home/mustafa/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/home/mustafa/.m2/repository/org/springframework/spring-context/5.3.30/spring-context-5.3.30.jar:/home/mustafa/.m2/repository/org/springframework/spring-expression/5.3.30/spring-expression-5.3.30.jar:/home/mustafa/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.7.14/spring-boot-starter-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter/2.7.14/spring-boot-starter-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot/2.7.14/spring-boot-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.7.14/spring-boot-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.7.14/spring-boot-starter-logging-2.7.14.jar:/home/mustafa/.m2/repository/org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar:/home/mustafa/.m2/repository/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar:/home/mustafa/.m2/repository/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test/2.7.14/spring-boot-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.7.14/spring-boot-test-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/com/jayway/jsonpath/json-path/2.7.0/json-path-2.7.0.jar:/home/mustafa/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/home/mustafa/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/home/mustafa/.m2/repository/org/ow2/asm/asm/9.8/asm-9.8.jar:/home/mustafa/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/mustafa/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar:/home/mustafa/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/mustafa/.m2/repository/org/springframework/spring-test/5.3.29/spring-test-5.3.29.jar:/home/mustafa/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/mustafa"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2023-09-19"/>
+    <property name="java.home" value="/home/mustafa/.sdkman/candidates/java/21-tem"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250924004916387_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="21+35-LTS"/>
+    <property name="user.name" value="mustafa"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.14.0-29-generic"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Temurin-21+35"/>
+    <property name="localRepository" value="/home/mustafa/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="21"/>
+    <property name="user.dir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="21+35-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="65.0"/>
+  </properties>
+  <testcase name="testStatePersistence" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="1.229">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 8: State Persistence ===
+[2025-09-24 00:49:18.309] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:18.356] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:18.356] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:18.710] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:18.719] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:18.807] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Generated 100 IDs, current: 100
+[2025-09-24 00:49:18.826] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:18.826] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+[2025-09-24 00:49:18.828] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:18.841] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:18.852] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 100
+✓ New instance continued from ID: 101
+[2025-09-24 00:49:18.862] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:18.862] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+[2025-09-24 00:49:18.866] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:18.867] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:18 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testLargeScaleOperations" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="4.328">
+    <failure message="expected: &lt;true&gt; but was: &lt;false&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:31)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:183)
+	at com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest.testLargeScaleOperations(SimpleSequentialRepositoryTest.java:643)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></failure>
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 14: Large Scale Operations ===
+[2025-09-24 00:49:19.088] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:19.095] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:19.095] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:19.425] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:19.426] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=9223372036854775807, wrapAround=true
+[2025-09-24 00:49:19.460] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Generated 10000 IDs efficiently
+✓ Inserted 1000 logs in 3720ms
+[2025-09-24 00:49:23.207] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:23.208] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:19 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:19 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:23 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:23 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testClientProvidedIds" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.603">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 5: Client Provided IDs ===
+[2025-09-24 00:49:23.420] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:23.422] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:23.422] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:23.751] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:23.752] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:23.781] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Inserted with client ID: 100
+✓ Next auto ID after client ID: 101
+✓ Bulk inserted with client IDs: 200-205
+✓ Counter updated to highest client ID: 205
+[2025-09-24 00:49:23.822] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:23.823] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:23 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:23 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:23 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:23 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testIdWraparound" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.582">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 2: ID Wraparound ===
+[2025-09-24 00:49:24.021] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:24.024] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:24.024] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:24.344] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:24.345] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10, wrapAround=true
+[2025-09-24 00:49:24.375] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+IDs before wraparound: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+[2025-09-24 00:49:24.376] INFO  [SimpleSeqRepo.sequential_logs] ID wrapped around to 1 (max 10 reached)
+✓ ID wrapped around to: 1
+✓ Bulk IDs after wraparound: [2, 3, 4, 5, 6]
+[2025-09-24 00:49:24.383] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:24.383] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:24 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:24 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:24 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:24 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testIdRangeOperations" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.786">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 6: ID Range Operations ===
+[2025-09-24 00:49:24.608] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:24.613] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:24.613] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:24.943] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:24.943] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:24.978] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Reserved range: 1-100
+✓ Reserved second range: 101-150
+✓ Inserted 50 logs with reserved range
+✓ Verified range IDs correctly assigned
+[2025-09-24 00:49:25.187] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:25.187] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:24 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:24 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:25 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:25 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testAutoIdInsertion" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.625">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 4: Auto ID Insertion ===
+[2025-09-24 00:49:25.397] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:25.402] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:25.402] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:25.742] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:25.742] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:25.773] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Inserted log with auto ID: 1
+✓ Bulk inserted with IDs: [2, 3, 4, 5, 6]
+✓ Retrieved log by ID: Test log 1
+[2025-09-24 00:49:25.819] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:25.820] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:25 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:25 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:25 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:25 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testSequentialIdGeneration" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.557">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 1: Sequential ID Generation ===
+[2025-09-24 00:49:26.018] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:26.020] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:26.020] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:26.329] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:26.330] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=1000, wrapAround=true
+[2025-09-24 00:49:26.365] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Sequential IDs generated: 1, 2, 3
+✓ Bulk IDs generated: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+✓ Current ID: 13
+[2025-09-24 00:49:26.382] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:26.382] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testResetId" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.568">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 9: Reset ID ===
+[2025-09-24 00:49:26.576] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:26.579] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:26.579] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:26.903] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:26.903] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:26.932] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Generated 50 IDs
+[2025-09-24 00:49:26.938] INFO  [SimpleSeqRepo.sequential_logs] ID counter reset to: 1000
+✓ Reset ID to 1000
+✓ Next ID after reset: 1001
+✓ Invalid reset values correctly rejected
+[2025-09-24 00:49:26.952] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:26.952] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:26 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testConcurrentIdGeneration" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.607">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 10: Concurrent ID Generation ===
+[2025-09-24 00:49:27.146] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:27.150] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:27.150] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:27.503] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:27.504] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=100000, wrapAround=true
+[2025-09-24 00:49:27.534] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Generated 1000 unique IDs from 10 concurrent threads
+✓ All IDs are sequential from 1 to 1000
+[2025-09-24 00:49:27.553] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:27.553] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:27 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:27 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:27 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:27 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testNoWraparoundMode" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.573">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 3: No Wraparound Mode ===
+[2025-09-24 00:49:27.750] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:27.753] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:27.753] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:28.082] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:28.083] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=5, wrapAround=false
+[2025-09-24 00:49:28.118] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Generated IDs up to max (5)
+✓ Exception thrown when max reached without wraparound
+[2025-09-24 00:49:28.127] INFO  [SimpleSeqRepo.sequential_logs] ID counter reset to: 3
+✓ Bulk request exceeding max correctly failed
+[2025-09-24 00:49:28.131] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:28.131] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:27 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:27 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:28 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:28 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testErrorHandling" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="2.849">
+    <failure message="Should reject count &gt; maxId ==&gt; Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown." type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: Should reject count > maxId ==> Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:73)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:39)
+	at org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3153)
+	at com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest.testErrorHandling(SimpleSequentialRepositoryTest.java:592)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></failure>
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 13: Error Handling ===
+[2025-09-24 00:49:28.328] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:28.331] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:28.331] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:28.649] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:28.649] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:28.677] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Client ID rejected when not allowed
+[2025-09-24 00:49:28.679] INFO  [PartitionedRepo.sequential_logs2] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:28.683] INFO  [PartitionedRepo.sequential_logs2] Creating partitioned table with 60 partitions
+[2025-09-24 00:49:28.683] INFO  [PartitionedRepo.sequential_logs2] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs2 (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250825 VALUES LESS THAN (TO_DAYS('2025-08-26')),
+  PARTITION p20250826 VALUES LESS THAN (TO_DAYS('2025-08-27')),
+  PARTITION p20250827 VALUES LESS THAN (TO_DAYS('2025-08-28')),
+  PARTITION p20250828 VALUES LESS THAN (TO_DAYS('2025-08-29')),
+  PARTITION p20250829 VALUES LESS THAN (TO_DAYS('2025-08-30')),
+  PARTITION p20250830 VALUES LESS THAN (TO_DAYS('2025-08-31')),
+  PARTITION p20250831 VALUES LESS THAN (TO_DAYS('2025-09-01')),
+  PARTITION p20250901 VALUES LESS THAN (TO_DAYS('2025-09-02')),
+  PARTITION p20250902 VALUES LESS THAN (TO_DAYS('2025-09-03')),
+  PARTITION p20250903 VALUES LESS THAN (TO_DAYS('2025-09-04')),
+  PARTITION p20250904 VALUES LESS THAN (TO_DAYS('2025-09-05')),
+  PARTITION p20250905 VALUES LESS THAN (TO_DAYS('2025-09-06')),
+  PARTITION p20250906 VALUES LESS THAN (TO_DAYS('2025-09-07')),
+  PARTITION p20250907 VALUES LESS THAN (TO_DAYS('2025-09-08')),
+  PARTITION p20250908 VALUES LESS THAN (TO_DAYS('2025-09-09')),
+  PARTITION p20250909 VALUES LESS THAN (TO_DAYS('2025-09-10')),
+  PARTITION p20250910 VALUES LESS THAN (TO_DAYS('2025-09-11')),
+  PARTITION p20250911 VALUES LESS THAN (TO_DAYS('2025-09-12')),
+  PARTITION p20250912 VALUES LESS THAN (TO_DAYS('2025-09-13')),
+  PARTITION p20250913 VALUES LESS THAN (TO_DAYS('2025-09-14')),
+  PARTITION p20250914 VALUES LESS THAN (TO_DAYS('2025-09-15')),
+  PARTITION p20250915 VALUES LESS THAN (TO_DAYS('2025-09-16')),
+  PARTITION p20250916 VALUES LESS THAN (TO_DAYS('2025-09-17')),
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01')),
+  PARTITION p20251001 VALUES LESS THAN (TO_DAYS('2025-10-02')),
+  PARTITION p20251002 VALUES LESS THAN (TO_DAYS('2025-10-03')),
+  PARTITION p20251003 VALUES LESS THAN (TO_DAYS('2025-10-04')),
+  PARTITION p20251004 VALUES LESS THAN (TO_DAYS('2025-10-05')),
+  PARTITION p20251005 VALUES LESS THAN (TO_DAYS('2025-10-06')),
+  PARTITION p20251006 VALUES LESS THAN (TO_DAYS('2025-10-07')),
+  PARTITION p20251007 VALUES LESS THAN (TO_DAYS('2025-10-08')),
+  PARTITION p20251008 VALUES LESS THAN (TO_DAYS('2025-10-09')),
+  PARTITION p20251009 VALUES LESS THAN (TO_DAYS('2025-10-10')),
+  PARTITION p20251010 VALUES LESS THAN (TO_DAYS('2025-10-11')),
+  PARTITION p20251011 VALUES LESS THAN (TO_DAYS('2025-10-12')),
+  PARTITION p20251012 VALUES LESS THAN (TO_DAYS('2025-10-13')),
+  PARTITION p20251013 VALUES LESS THAN (TO_DAYS('2025-10-14')),
+  PARTITION p20251014 VALUES LESS THAN (TO_DAYS('2025-10-15')),
+  PARTITION p20251015 VALUES LESS THAN (TO_DAYS('2025-10-16')),
+  PARTITION p20251016 VALUES LESS THAN (TO_DAYS('2025-10-17')),
+  PARTITION p20251017 VALUES LESS THAN (TO_DAYS('2025-10-18')),
+  PARTITION p20251018 VALUES LESS THAN (TO_DAYS('2025-10-19')),
+  PARTITION p20251019 VALUES LESS THAN (TO_DAYS('2025-10-20')),
+  PARTITION p20251020 VALUES LESS THAN (TO_DAYS('2025-10-21')),
+  PARTITION p20251021 VALUES LESS THAN (TO_DAYS('2025-10-22')),
+  PARTITION p20251022 VALUES LESS THAN (TO_DAYS('2025-10-23')),
+  PARTITION p20251023 VALUES LESS THAN (TO_DAYS('2025-10-24'))
+)
+[2025-09-24 00:49:30.145] INFO  [PartitionedRepo.sequential_logs2] Created partitioned table: seq_test_db.sequential_logs2 with partitions from 2025-08-25 to 2025-10-24
+[2025-09-24 00:49:30.145] INFO  [SimpleSeqRepo.sequential_logs2] Initializing SimpleSequentialRepository: table=sequential_logs2, maxId=1000, wrapAround=true
+[2025-09-24 00:49:30.204] INFO  [SimpleSeqRepo.sequential_logs2] State management initialized, starting from ID: 0
+✓ Invalid ID values correctly rejected
+[2025-09-24 00:49:30.205] INFO  [SimpleSeqRepo.sequential_logs2] ID range wrapped around (max 1000 reached)
+[2025-09-24 00:49:30.215] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:30.216] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:28 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:28 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:28 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:28 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:30 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:30 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testMixedOperations" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.58">
+    <failure message="expected: not &lt;null&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: not <null>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertNotNull.failNull(AssertNotNull.java:49)
+	at org.junit.jupiter.api.AssertNotNull.assertNotNull(AssertNotNull.java:35)
+	at org.junit.jupiter.api.AssertNotNull.assertNotNull(AssertNotNull.java:30)
+	at org.junit.jupiter.api.Assertions.assertNotNull(Assertions.java:304)
+	at com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest.testMixedOperations(SimpleSequentialRepositoryTest.java:543)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></failure>
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 12: Mixed Operations ===
+[2025-09-24 00:49:31.175] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:31.177] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:31.177] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:31.504] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:31.504] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:31.533] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Mixed operations sequence: auto(1) -> client(100) -> auto(101) -> range(102-151) -> client(200) -> auto(201)
+[2025-09-24 00:49:31.564] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:31.564] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:31 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:31 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:31 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:31 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testDateRangeQueries" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.685">
+    <failure message="expected: &lt;30&gt; but was: &lt;0&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: <30> but was: <0>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:145)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:531)
+	at com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest.testDateRangeQueries(SimpleSequentialRepositoryTest.java:501)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></failure>
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 11: Date Range Queries ===
+[2025-09-24 00:49:31.755] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:31.757] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:31.757] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:32.080] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:32.080] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:32.114] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Inserted 30 logs across 3 days with IDs: 1-30
+✓ Found 10 logs from yesterday
+[2025-09-24 00:49:32.248] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:32.248] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:31 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:31 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:32 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:32 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+  <testcase name="testInsertWithinCustomRange" classname="com.telcobright.splitverse.tests.SimpleSequentialRepositoryTest" time="0.682">
+    <system-out><![CDATA[
+=== Simple Sequential Repository Test ===
+Database: seq_test_db
+
+=== Test 7: Insert Within Custom Range ===
+[2025-09-24 00:49:32.447] INFO  [PartitionedRepo.sequential_logs] Initializing partitioned table and partitions for retention period...
+[2025-09-24 00:49:32.452] INFO  [PartitionedRepo.sequential_logs] Creating partitioned table with 14 partitions
+[2025-09-24 00:49:32.452] INFO  [PartitionedRepo.sequential_logs] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS seq_test_db.sequential_logs (id VARCHAR(255), timestamp DATETIME, message TEXT, level VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 00:49:32.782] INFO  [PartitionedRepo.sequential_logs] Created partitioned table: seq_test_db.sequential_logs with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 00:49:32.782] INFO  [SimpleSeqRepo.sequential_logs] Initializing SimpleSequentialRepository: table=sequential_logs, maxId=10000, wrapAround=true
+[2025-09-24 00:49:32.810] INFO  [SimpleSeqRepo.sequential_logs] State management initialized, starting from ID: 0
+✓ Inserted with custom range 500-509
+✓ All logs have correct IDs in custom range
+✓ Correctly rejected too many entities for range
+[2025-09-24 00:49:32.886] INFO  [PartitionedRepo.sequential_logs] ConnectionProvider shutdown
+[2025-09-24 00:49:32.886] INFO  [SimpleSeqRepo.sequential_logs] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 12:49:32 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:32 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/seq_test_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 12:49:32 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 12:49:32 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+</testsuite>

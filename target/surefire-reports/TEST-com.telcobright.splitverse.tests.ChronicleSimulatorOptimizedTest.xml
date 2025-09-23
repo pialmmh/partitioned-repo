@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.ChronicleSimulatorOptimizedTest" time="774.921" tests="1" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="21"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/telcobright/dbutil/1.0-SNAPSHOT/dbutil-1.0-SNAPSHOT.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-classic/1.4.11/logback-classic-1.4.11.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-core/1.4.11/logback-core-1.4.11.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-jpa/2.7.14/spring-data-jpa-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-commons/2.7.14/spring-data-commons-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/spring-orm/5.3.29/spring-orm-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jdbc/5.3.29/spring-jdbc-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-aop/5.3.29/spring-aop-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-tx/5.3.29/spring-tx-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-beans/5.3.29/spring-beans-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-core/5.3.29/spring-core-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jcl/5.3.29/spring-jcl-5.3.29.jar:/home/mustafa/.m2/repository/javax/persistence/javax.persistence-api/2.2/javax.persistence-api-2.2.jar:/home/mustafa/.m2/repository/org/hibernate/hibernate-core/5.6.15.Final/hibernate-core-5.6.15.Final.jar:/home/mustafa/.m2/repository/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/home/mustafa/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final/jboss-transaction-api_1.2_spec-1.1.1.Final.jar:/home/mustafa/.m2/repository/org/jboss/jandex/2.4.2.Final/jandex-2.4.2.Final.jar:/home/mustafa/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/mustafa/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/home/mustafa/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final/hibernate-commons-annotations-5.1.2.Final.jar:/home/mustafa/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/home/mustafa/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/home/mustafa/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/home/mustafa/.m2/repository/org/springframework/spring-context/5.3.30/spring-context-5.3.30.jar:/home/mustafa/.m2/repository/org/springframework/spring-expression/5.3.30/spring-expression-5.3.30.jar:/home/mustafa/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.7.14/spring-boot-starter-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter/2.7.14/spring-boot-starter-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot/2.7.14/spring-boot-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.7.14/spring-boot-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.7.14/spring-boot-starter-logging-2.7.14.jar:/home/mustafa/.m2/repository/org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar:/home/mustafa/.m2/repository/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar:/home/mustafa/.m2/repository/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test/2.7.14/spring-boot-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.7.14/spring-boot-test-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/com/jayway/jsonpath/json-path/2.7.0/json-path-2.7.0.jar:/home/mustafa/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/home/mustafa/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/home/mustafa/.m2/repository/org/ow2/asm/asm/9.8/asm-9.8.jar:/home/mustafa/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/mustafa/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar:/home/mustafa/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/mustafa/.m2/repository/org/springframework/spring-test/5.3.29/spring-test-5.3.29.jar:/home/mustafa/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="user.timezone" value="Asia/Dhaka"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="21"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/home/mustafa/.sdkman/candidates/java/21-tem/lib"/>
+    <property name="sun.java.command" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250924021410228_3.jar /home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire 2025-09-24T02-14-10_144-jvmRun1 surefire-20250924021410228_1tmp surefire_0-20250924021410228_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="test" value="ChronicleSimulatorOptimizedTest#testWriteAndRetrieve"/>
+    <property name="surefire.test.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/telcobright/dbutil/1.0-SNAPSHOT/dbutil-1.0-SNAPSHOT.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-classic/1.4.11/logback-classic-1.4.11.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-core/1.4.11/logback-core-1.4.11.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-jpa/2.7.14/spring-data-jpa-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-commons/2.7.14/spring-data-commons-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/spring-orm/5.3.29/spring-orm-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jdbc/5.3.29/spring-jdbc-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-aop/5.3.29/spring-aop-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-tx/5.3.29/spring-tx-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-beans/5.3.29/spring-beans-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-core/5.3.29/spring-core-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jcl/5.3.29/spring-jcl-5.3.29.jar:/home/mustafa/.m2/repository/javax/persistence/javax.persistence-api/2.2/javax.persistence-api-2.2.jar:/home/mustafa/.m2/repository/org/hibernate/hibernate-core/5.6.15.Final/hibernate-core-5.6.15.Final.jar:/home/mustafa/.m2/repository/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/home/mustafa/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final/jboss-transaction-api_1.2_spec-1.1.1.Final.jar:/home/mustafa/.m2/repository/org/jboss/jandex/2.4.2.Final/jandex-2.4.2.Final.jar:/home/mustafa/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/mustafa/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/home/mustafa/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final/hibernate-commons-annotations-5.1.2.Final.jar:/home/mustafa/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/home/mustafa/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/home/mustafa/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/home/mustafa/.m2/repository/org/springframework/spring-context/5.3.30/spring-context-5.3.30.jar:/home/mustafa/.m2/repository/org/springframework/spring-expression/5.3.30/spring-expression-5.3.30.jar:/home/mustafa/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.7.14/spring-boot-starter-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter/2.7.14/spring-boot-starter-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot/2.7.14/spring-boot-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.7.14/spring-boot-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.7.14/spring-boot-starter-logging-2.7.14.jar:/home/mustafa/.m2/repository/org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar:/home/mustafa/.m2/repository/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar:/home/mustafa/.m2/repository/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test/2.7.14/spring-boot-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.7.14/spring-boot-test-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/com/jayway/jsonpath/json-path/2.7.0/json-path-2.7.0.jar:/home/mustafa/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/home/mustafa/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/home/mustafa/.m2/repository/org/ow2/asm/asm/9.8/asm-9.8.jar:/home/mustafa/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/mustafa/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar:/home/mustafa/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/mustafa/.m2/repository/org/springframework/spring-test/5.3.29/spring-test-5.3.29.jar:/home/mustafa/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/mustafa"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2023-09-19"/>
+    <property name="java.home" value="/home/mustafa/.sdkman/candidates/java/21-tem"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250924021410228_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="21+35-LTS"/>
+    <property name="user.name" value="mustafa"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.14.0-29-generic"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Temurin-21+35"/>
+    <property name="localRepository" value="/home/mustafa/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="21"/>
+    <property name="user.dir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="failIfNoTests" value="false"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="21+35-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="65.0"/>
+  </properties>
+  <testcase name="testWriteAndRetrieve" classname="com.telcobright.splitverse.tests.ChronicleSimulatorOptimizedTest" time="774.885">
+    <system-out><![CDATA[[2025-09-24 02:14:12.688] INFO  [PartitionedRepo.events] Initializing partitioned table and partitions for retention period...
+[2025-09-24 02:14:12.755] INFO  [PartitionedRepo.events] Creating partitioned table with 14 partitions
+[2025-09-24 02:14:12.756] INFO  [PartitionedRepo.events] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS chronicle_opt_db.events (id VARCHAR(255), sequence BIGINT, timestamp DATETIME, data VARCHAR(255), PRIMARY KEY (id, timestamp), KEY idx_timestamp (timestamp)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(timestamp))
+(
+  PARTITION p20250917 VALUES LESS THAN (TO_DAYS('2025-09-18')),
+  PARTITION p20250918 VALUES LESS THAN (TO_DAYS('2025-09-19')),
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01'))
+)
+[2025-09-24 02:14:13.332] INFO  [PartitionedRepo.events] Created partitioned table: chronicle_opt_db.events with partitions from 2025-09-17 to 2025-10-01
+[2025-09-24 02:14:13.343] INFO  [SimpleSeqRepo.events] Initializing SimpleSequentialRepository: table=events, maxId=9223372036854775807, wrapAround=true
+[2025-09-24 02:14:13.411] INFO  [SimpleSeqRepo.events] State management initialized, starting from ID: 0
+
+=== Chronicle Optimized Test ===
+Database: chronicle_opt_db
+Target Records: 100000
+================================
+
+PHASE 1: Writing 100000 records...
+  Progress: 10000/100000
+  Progress: 20000/100000
+  Progress: 30000/100000
+  Progress: 40000/100000
+  Progress: 50000/100000
+  Progress: 60000/100000
+  Progress: 70000/100000
+  Progress: 80000/100000
+  Progress: 90000/100000
+  Progress: 100000/100000
+✓ Write completed in 756211ms
+  Write rate: 132 records/sec
+
+PHASE 2: Verifying record count...
+✓ Record count verified: 100000
+
+PHASE 3: Testing retrieval from different starting points...
+
+Test: Retrieve 1000 records from beginning
+✓ Retrieved 1000 records in 1576ms
+  Sequence range: 1000000 to 1000999
+
+Test: Retrieve 1000 records from middle
+✓ Retrieved 1000 records in 1347ms
+  Sequence range: 1050000 to 1050999
+
+Test: Retrieve 1000 records from near end
+✓ Retrieved 1000 records in 1508ms
+  Sequence range: 1099000 to 1099999
+
+Test: Random starting points
+✓ Average read time for 1000 records: 1248.5ms
+
+PHASE 4: Verifying sequence integrity...
+✓ Sequence range verified: 1000000 to 1099999
+
+=== TEST COMPLETED SUCCESSFULLY ===
+✓ All 100000 records written and verified
+[2025-09-24 02:27:06.630] INFO  [PartitionedRepo.events] ConnectionProvider shutdown
+[2025-09-24 02:27:06.631] INFO  [SimpleSeqRepo.events] SimpleSequentialRepository shutdown completed
+]]></system-out>
+    <system-err><![CDATA[Sep 24, 2025 2:14:12 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/chronicle_opt_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 2:14:12 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/chronicle_opt_db?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Sep 24, 2025 2:27:06 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+Sep 24, 2025 2:27:06 AM com.telcobright.core.connection.ConnectionProvider shutdown
+INFO: ConnectionProvider shutdown
+]]></system-err>
+  </testcase>
+</testsuite>

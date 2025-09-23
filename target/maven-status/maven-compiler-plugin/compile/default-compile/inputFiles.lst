@@ -40,6 +40,8 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/repository/GenericMultiTableRepository.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/repository/GenericPartitionedTableRepository.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/repository/PartitionedQueryBuilder.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/repository/SequentialLogRepositoryBuilder.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/repository/SimpleSequentialRepository.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/repository/SplitVerseRepository.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/sql/BaseSqlGenerator.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/sql/SqlGenerator.java

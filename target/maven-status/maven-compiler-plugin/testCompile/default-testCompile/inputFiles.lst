@@ -1,9 +1,13 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/ApiValidationTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/BasicFunctionalityTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/ChronicleSimulatorOptimizedTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/CrudOperationsTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/DebugPartitionTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PartitionBoundaryTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PerformanceTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SequentialLogRepositoryTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SequentialWriteTestSimulatorForChronicle.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SimpleSequentialRepositoryTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SimpleSmsDebugTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SingleShardMultiTableDateTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SingleShardMultiTableNestedPartitionTest.java
