@@ -66,12 +66,12 @@ Generic Sharding-Aware Repository Framework,com.telcobright.core.pagination,Page
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,PartitionedQueryBuilder.DateRange,9,0,0,0,4,0,1,0,1,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,PartitionedQueryBuilder.PartitionInfo,12,0,0,0,5,0,1,0,1,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,GenericMultiTableRepository.Builder,52,161,9,9,18,54,17,19,8,19
-Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SimpleSequentialRepository.Builder,30,103,7,7,8,32,9,8,2,8
-Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SimpleSequentialRepository,100,885,22,66,21,194,23,42,1,20
+Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SimpleSequentialRepository.Builder,49,84,8,6,15,25,12,5,5,5
+Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SimpleSequentialRepository,554,461,71,21,121,100,52,16,12,10
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,PartitionedQueryBuilder.QueryComponents,18,0,0,0,7,0,1,0,1,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SequentialLogRepositoryBuilder,8,0,0,0,2,0,2,0,2,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SplitVerseRepository,630,285,63,19,144,77,62,11,25,7
-Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SimpleSequentialRepository.IdRange,37,21,4,0,2,8,4,4,2,4
+Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SimpleSequentialRepository.IdRange,58,0,4,0,10,0,8,0,6,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,PartitionedQueryBuilder,881,0,84,0,185,0,58,0,16,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,SequentialLogRepositoryBuilder.SequentialIdGenerator,42,0,2,0,10,0,5,0,4,0
 Generic Sharding-Aware Repository Framework,com.telcobright.core.repository,PartitionedQueryBuilder.SelectColumn,15,0,0,0,6,0,1,0,1,0

@@ -8,9 +8,11 @@ com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTest$SmsRecord.clas
 com/telcobright/splitverse/tests/DebugPartitionTest.class
 com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest$InstantShardingEntity.class
 com/telcobright/splitverse/tests/SmsRetrieveByIdOnlyTest$SmsRecord.class
+com/telcobright/splitverse/tests/SimpleBatchRetrievalTest.class
 com/telcobright/splitverse/tests/ChronicleSimulatorOptimizedTest$Event.class
 com/telcobright/splitverse/tests/SingleShardMultiTableDateTest$EventRecord.class
 com/telcobright/splitverse/tests/CrudOperationsTest.class
+com/telcobright/splitverse/tests/SimpleBatchRetrievalTest$Record.class
 com/telcobright/splitverse/tests/SingleShardNativePartitionTest.class
 com/telcobright/splitverse/tests/SequentialWriteTestSimulatorForChronicle.class
 com/telcobright/splitverse/tests/SingleShardMultiTableNestedPartitionTest$ProductRecord.class

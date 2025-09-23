@@ -597,16 +597,6 @@ public class SimpleSequentialRepository<T extends ShardingEntity<LocalDateTime>>
     }
 
     /**
-     * Find entity by numeric ID.
-     *
-     * @param id Numeric ID
-     * @return Entity or null if not found
-     */
-    public T findById(long id) throws SQLException {
-        return delegateRepo.findById(String.valueOf(id));
-    }
-
-    /**
      * Find batch of entities starting from ID.
      * IDs are numeric but stored as strings, so ordering is numeric.
      *

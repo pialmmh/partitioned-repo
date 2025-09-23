@@ -5,38 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6151a89d-1e05-4704-9c9b-9fbbda6c59c5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SimpleSequentialRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/telcobright/core/repository/SimpleSequentialRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/jacoco.exec" beforeDir="false" afterPath="$PROJECT_DIR$/target/jacoco.exec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/EntityMetadata.java.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/FieldMetadata.java.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.metadata/index.source.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository$Builder.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/GenericPartitionedTableRepository.java.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$Builder.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$Builder.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$IdRange.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository$IdRange.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.java.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/SimpleSequentialRepository.java.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.source.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/com.telcobright.core.repository/index.source.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/site/jacoco/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco-sessions.html" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco-sessions.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/site/jacoco/jacoco.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire-reports/TEST-com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTestRetrieveAll.xml" beforeDir="false" afterPath="$PROJECT_DIR$/target/surefire-reports/TEST-com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTestRetrieveAll.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire-reports/com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTestRetrieveAll.txt" beforeDir="false" afterPath="$PROJECT_DIR$/target/surefire-reports/com.telcobright.splitverse.tests.SmsMultiTableHourlyPartitionTestRetrieveAll.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefire-20250922002242891_1tmp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefire-20250922081727637_1tmp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefire-20250922084442946_1tmp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefire_0-20250922002242891_2tmp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefire_0-20250922081727637_2tmp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefire_0-20250922084442946_2tmp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefirebooter-20250922002242891_3.jar" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefirebooter-20250922081727637_3.jar" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/surefire/surefirebooter-20250922084442946_3.jar" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

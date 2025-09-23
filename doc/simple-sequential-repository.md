@@ -144,12 +144,10 @@ repository.insertWithClientId(log, 5000L);
 Bulk insert with client IDs:
 ```java
 // Multiple entities with client IDs
-Map<LogEntry, Long> entitiesWithIds = new HashMap<>();
-entitiesWithIds.put(log1, 5001L);
-entitiesWithIds.put(log2, 5002L);
-entitiesWithIds.put(log3, 5003L);
+List<LogEntry> entities = Arrays.asList(log1, log2, log3);
+List<Long> clientIds = Arrays.asList(5001L, 5002L, 5003L);
 
-repository.insertMultipleWithClientIds(entitiesWithIds);
+repository.insertMultipleWithClientIds(entities, clientIds);
 ```
 
 ### Range Operations
@@ -362,15 +360,17 @@ public class DataMigration {
     }
 
     public void migrateFromLegacy(List<LegacyLog> legacyLogs) throws SQLException {
-        Map<LogEntry, Long> logsWithIds = new HashMap<>();
+        List<LogEntry> logs = new ArrayList<>();
+        List<Long> ids = new ArrayList<>();
 
         for (LegacyLog legacy : legacyLogs) {
             LogEntry log = convertToLogEntry(legacy);
-            logsWithIds.put(log, legacy.getId());
+            logs.add(log);
+            ids.add(legacy.getId());
         }
 
         // Insert preserving original IDs
-        repository.insertMultipleWithClientIds(logsWithIds);
+        repository.insertMultipleWithClientIds(logs, ids);
 
         // Repository automatically advances counter past highest ID
     }
@@ -697,3 +697,56 @@ public class LoggingSystem {
     }
 }
 ```
+
+## Complete API Reference
+
+### ID Generation Methods
+```java
+long getNextId()                              // Get next sequential ID
+List<Long> getNextN(int count)                // Get N sequential IDs at once
+long getCurrentId()                           // Get current ID without incrementing
+void resetId(long newId)                      // Reset counter to specific value
+```
+
+### Insertion Methods
+
+#### Auto-Generated IDs
+```java
+void insert(T entity)                         // Insert single entity with auto ID
+void insertMultiple(List<T> entities)         // Bulk insert with auto IDs
+List<Long> insertMultipleWithAutoId(List<T> entities)  // Returns assigned IDs
+```
+
+#### Client-Provided IDs (requires allowClientIds=true)
+```java
+void insertWithClientId(T entity, long clientId)       // Single entity with client ID
+void insertMultipleWithClientIds(List<T> entities, List<Long> clientIds)  // Bulk with IDs
+```
+
+### Retrieval Methods
+```java
+T findById(long id)                           // Find single entity by ID
+List<T> findByIdRange(long startId, int batchSize)  // Batch retrieval
+// Example: findByIdRange(1000, 100) returns records with IDs 1000-1099
+// Missing records within range are skipped
+```
+
+### Range Operations
+```java
+IdRange reserveIdRange(int count)             // Reserve ID range for future use
+void insertWithIdRange(List<T> entities, IdRange range)  // Use reserved range
+void insertWithinIdRange(List<T> entities, long startId, long endId)  // Use specific range
+```
+
+### Date-Based Queries (inherited from underlying repository)
+```java
+List<T> findByPartitionColBetween(LocalDateTime start, LocalDateTime end)
+List<T> findByPartitionColBetweenPaginated(LocalDateTime start, LocalDateTime end, 
+                                          String cursor, int limit)
+```
+
+### Repository Management
+```java
+void shutdown()                                // Gracefully shutdown and persist state
+```
+
