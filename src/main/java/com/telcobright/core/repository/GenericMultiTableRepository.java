@@ -160,11 +160,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
             }
         } else if (!autoManagePartitions) {
             logger.info("Auto-management disabled. Assuming tables with prefix '{}' already exist.", tablePrefix);
-            // Still need to discover existing tables for routing
+            // Must discover existing tables for routing - fail if none found
             try {
                 discoverExistingTables();
             } catch (SQLException e) {
-                logger.warn("Could not discover existing tables: {}. Will create tables on-demand.", e.getMessage());
+                throw new RuntimeException("Failed to discover existing tables with prefix '" + tablePrefix +
+                    "'. When autoManagePartitions=false, tables must already exist.", e);
             }
         }
         
@@ -1299,7 +1300,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
 
     /**
      * Discover existing tables when auto-management is disabled.
-     * This allows the repository to work with pre-existing tables.
+     * Throws SQLException if no tables are found since we cannot create them.
      */
     private void discoverExistingTables() throws SQLException {
         logger.info("Discovering existing tables with prefix: {}", tablePrefix);
@@ -1322,6 +1323,12 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                 // This is just for logging, actual partition metadata will be refreshed later if needed
                 logger.debug("Discovered table: {}", tableName);
                 count++;
+            }
+
+            if (count == 0) {
+                throw new SQLException("No existing tables found with prefix '" + tablePrefix +
+                    "' in database '" + database + "'. When autoManagePartitions=false, " +
+                    "tables must be created manually before using the repository.");
             }
 
             logger.info("Discovered {} existing tables with prefix '{}'", count, tablePrefix);

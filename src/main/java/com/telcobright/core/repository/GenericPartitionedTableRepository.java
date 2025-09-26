@@ -113,6 +113,17 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
             }
         } else if (!autoManagePartitions) {
             logger.info("Auto-management disabled. Assuming table '{}' and partitions already exist.", tableName);
+            // Verify the table exists - fail if not found
+            try {
+                if (!tableExists()) {
+                    throw new SQLException("Table '" + tableName + "' does not exist in database '" + database +
+                        "'. When autoManagePartitions=false, table and partitions must be created manually.");
+                }
+                logger.info("Verified table '{}' exists with {} partitions", tableName, getPartitions().size());
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to verify table existence. When autoManagePartitions=false, " +
+                    "table and partitions must already exist.", e);
+            }
         }
         
         // Start scheduler if auto-management is enabled
@@ -606,6 +617,24 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
         }
     }
 
+
+    private boolean tableExists() throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 "SELECT COUNT(*) FROM information_schema.TABLES " +
+                 "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?")) {
+
+            stmt.setString(1, database);
+            stmt.setString(2, tableName);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
 
     private boolean partitionExists(String partitionName) throws SQLException {
         String sql = "SELECT partition_name FROM information_schema.partitions " +
