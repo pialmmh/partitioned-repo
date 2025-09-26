@@ -1,5 +1,6 @@
 com/telcobright/splitverse/tests/SimpleSmsDebugTest$SmsRecord.class
 com/telcobright/splitverse/tests/MultiEntityComprehensiveTest.class
+com/telcobright/splitverse/tests/AutoManagePartitionsValidationTest$AutoTestEvent.class
 com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest$ValidLocalDateTimeEntity.class
 com/telcobright/splitverse/tests/entities/OrderEntity.class
 com/telcobright/splitverse/tests/SequentialWriteTestSimulatorForChronicle$ChronicleEvent.class
@@ -45,6 +46,7 @@ com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTest.class
 com/telcobright/splitverse/tests/SimpleSmsDebugTest.class
 com/telcobright/splitverse/tests/PerformanceTest$Event.class
 com/telcobright/splitverse/tests/SequentialLogRepositoryTest$LogEntry.class
+com/telcobright/splitverse/tests/AutoManagePartitionsValidationTest.class
 com/telcobright/splitverse/tests/ApiValidationTest$TestEntity.class
 com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTestRetrieveAll.class
 com/telcobright/splitverse/tests/SingleShardMultiTableNestedPartitionTest.class

@@ -159,7 +159,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                 throw new RuntimeException("Failed to initialize tables for retention period", e);
             }
         } else if (!autoManagePartitions) {
-            logger.info("Auto-management disabled. Assuming tables with prefix '{}' already exist.", tablePrefix);
+            logger.info("Auto-management disabled. Assuming tables with prefix '" + tablePrefix + "' already exist.");
             // Must discover existing tables for routing - fail if none found
             try {
                 discoverExistingTables();
@@ -1303,7 +1303,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
      * Throws SQLException if no tables are found since we cannot create them.
      */
     private void discoverExistingTables() throws SQLException {
-        logger.info("Discovering existing tables with prefix: {}", tablePrefix);
+        logger.info("Discovering existing tables with prefix: " + tablePrefix);
 
         try (Connection conn = connectionProvider.getConnection();
              Statement stmt = conn.createStatement()) {
@@ -1321,7 +1321,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                 String tableName = rs.getString("TABLE_NAME");
                 // Extract date from table name (format: prefix_YYYYMMDD or prefix_YYYY_MM_DD)
                 // This is just for logging, actual partition metadata will be refreshed later if needed
-                logger.debug("Discovered table: {}", tableName);
+                logger.debug("Discovered table: " + tableName);
                 count++;
             }
 
@@ -1331,7 +1331,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                     "tables must be created manually before using the repository.");
             }
 
-            logger.info("Discovered {} existing tables with prefix '{}'", count, tablePrefix);
+            logger.info("Discovered " + count + " existing tables with prefix '" + tablePrefix + "'");
 
             // Note: We're not refreshing partition metadata here to avoid the boundary validation
             // that would fail when auto-management is disabled

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="3.524" tests="7" errors="1" skipped="0" failures="1">
+  <properties>
+    <property name="java.specification.version" value="21"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/telcobright/dbutil/1.0-SNAPSHOT/dbutil-1.0-SNAPSHOT.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-classic/1.4.11/logback-classic-1.4.11.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-core/1.4.11/logback-core-1.4.11.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-jpa/2.7.14/spring-data-jpa-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-commons/2.7.14/spring-data-commons-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/spring-orm/5.3.29/spring-orm-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jdbc/5.3.29/spring-jdbc-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-aop/5.3.29/spring-aop-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-tx/5.3.29/spring-tx-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-beans/5.3.29/spring-beans-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-core/5.3.29/spring-core-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jcl/5.3.29/spring-jcl-5.3.29.jar:/home/mustafa/.m2/repository/javax/persistence/javax.persistence-api/2.2/javax.persistence-api-2.2.jar:/home/mustafa/.m2/repository/org/hibernate/hibernate-core/5.6.15.Final/hibernate-core-5.6.15.Final.jar:/home/mustafa/.m2/repository/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/home/mustafa/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final/jboss-transaction-api_1.2_spec-1.1.1.Final.jar:/home/mustafa/.m2/repository/org/jboss/jandex/2.4.2.Final/jandex-2.4.2.Final.jar:/home/mustafa/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/mustafa/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/home/mustafa/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final/hibernate-commons-annotations-5.1.2.Final.jar:/home/mustafa/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/home/mustafa/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/home/mustafa/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/home/mustafa/.m2/repository/org/springframework/spring-context/5.3.30/spring-context-5.3.30.jar:/home/mustafa/.m2/repository/org/springframework/spring-expression/5.3.30/spring-expression-5.3.30.jar:/home/mustafa/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.7.14/spring-boot-starter-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter/2.7.14/spring-boot-starter-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot/2.7.14/spring-boot-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.7.14/spring-boot-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.7.14/spring-boot-starter-logging-2.7.14.jar:/home/mustafa/.m2/repository/org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar:/home/mustafa/.m2/repository/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar:/home/mustafa/.m2/repository/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test/2.7.14/spring-boot-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.7.14/spring-boot-test-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/com/jayway/jsonpath/json-path/2.7.0/json-path-2.7.0.jar:/home/mustafa/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/home/mustafa/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/home/mustafa/.m2/repository/org/ow2/asm/asm/9.8/asm-9.8.jar:/home/mustafa/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/mustafa/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar:/home/mustafa/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/mustafa/.m2/repository/org/springframework/spring-test/5.3.29/spring-test-5.3.29.jar:/home/mustafa/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="user.timezone" value="Asia/Dhaka"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="21"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/home/mustafa/.sdkman/candidates/java/21-tem/lib"/>
+    <property name="sun.java.command" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250926204505047_3.jar /home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire 2025-09-26T20-45-04_977-jvmRun1 surefire-20250926204505047_1tmp surefire_0-20250926204505047_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="test" value="AutoManagePartitionsValidationTest"/>
+    <property name="surefire.test.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/test-classes:/home/mustafa/telcobright-projects/routesphere/split-verse/target/classes:/home/mustafa/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/home/mustafa/.m2/repository/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar:/home/mustafa/.m2/repository/com/telcobright/dbutil/1.0-SNAPSHOT/dbutil-1.0-SNAPSHOT.jar:/home/mustafa/.m2/repository/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-classic/1.4.11/logback-classic-1.4.11.jar:/home/mustafa/.m2/repository/ch/qos/logback/logback-core/1.4.11/logback-core-1.4.11.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-jpa/2.7.14/spring-data-jpa-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/data/spring-data-commons/2.7.14/spring-data-commons-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/spring-orm/5.3.29/spring-orm-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jdbc/5.3.29/spring-jdbc-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-aop/5.3.29/spring-aop-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-tx/5.3.29/spring-tx-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-beans/5.3.29/spring-beans-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-core/5.3.29/spring-core-5.3.29.jar:/home/mustafa/.m2/repository/org/springframework/spring-jcl/5.3.29/spring-jcl-5.3.29.jar:/home/mustafa/.m2/repository/javax/persistence/javax.persistence-api/2.2/javax.persistence-api-2.2.jar:/home/mustafa/.m2/repository/org/hibernate/hibernate-core/5.6.15.Final/hibernate-core-5.6.15.Final.jar:/home/mustafa/.m2/repository/org/jboss/logging/jboss-logging/3.6.1.Final/jboss-logging-3.6.1.Final.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy/1.17.6/byte-buddy-1.17.6.jar:/home/mustafa/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/home/mustafa/.m2/repository/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.1.1.Final/jboss-transaction-api_1.2_spec-1.1.1.Final.jar:/home/mustafa/.m2/repository/org/jboss/jandex/2.4.2.Final/jandex-2.4.2.Final.jar:/home/mustafa/.m2/repository/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/home/mustafa/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/home/mustafa/.m2/repository/org/hibernate/common/hibernate-commons-annotations/5.1.2.Final/hibernate-commons-annotations-5.1.2.Final.jar:/home/mustafa/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/home/mustafa/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/home/mustafa/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/home/mustafa/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/home/mustafa/.m2/repository/org/springframework/spring-context/5.3.30/spring-context-5.3.30.jar:/home/mustafa/.m2/repository/org/springframework/spring-expression/5.3.30/spring-expression-5.3.30.jar:/home/mustafa/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.7.14/spring-boot-starter-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter/2.7.14/spring-boot-starter-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot/2.7.14/spring-boot-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.7.14/spring-boot-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.7.14/spring-boot-starter-logging-2.7.14.jar:/home/mustafa/.m2/repository/org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36.jar:/home/mustafa/.m2/repository/jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar:/home/mustafa/.m2/repository/org/yaml/snakeyaml/2.4/snakeyaml-2.4.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test/2.7.14/spring-boot-test-2.7.14.jar:/home/mustafa/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.7.14/spring-boot-test-autoconfigure-2.7.14.jar:/home/mustafa/.m2/repository/com/jayway/jsonpath/json-path/2.7.0/json-path-2.7.0.jar:/home/mustafa/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/home/mustafa/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/home/mustafa/.m2/repository/org/ow2/asm/asm/9.8/asm-9.8.jar:/home/mustafa/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/mustafa/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/mustafa/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/mustafa/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar:/home/mustafa/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/mustafa/.m2/repository/org/springframework/spring-test/5.3.29/spring-test-5.3.29.jar:/home/mustafa/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar:/home/mustafa/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.13.4/junit-jupiter-api-5.13.4.jar:/home/mustafa/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-commons/1.13.4/junit-platform-commons-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.13.4/junit-jupiter-engine-5.13.4.jar:/home/mustafa/.m2/repository/org/junit/platform/junit-platform-engine/1.13.4/junit-platform-engine-1.13.4.jar:/home/mustafa/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/mustafa/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/mustafa/.m2/repository/org/mockito/mockito-core/5.1.1/mockito-core-5.1.1.jar:/home/mustafa/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.22/byte-buddy-agent-1.12.22.jar:/home/mustafa/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/mustafa/.m2/repository/org/mockito/mockito-junit-jupiter/5.1.1/mockito-junit-jupiter-5.1.1.jar:/home/mustafa/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar:/home/mustafa/.m2/repository/org/testcontainers/junit-jupiter/1.19.0/junit-jupiter-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/testcontainers/1.21.3/testcontainers-1.21.3.jar:/home/mustafa/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/mustafa/.m2/repository/org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar:/home/mustafa/.m2/repository/commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.jar:/home/mustafa/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/mustafa/.m2/repository/org/jetbrains/annotations/26.0.2/annotations-26.0.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-api/3.4.2/docker-java-api-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.2/docker-java-transport-zerodep-3.4.2.jar:/home/mustafa/.m2/repository/com/github/docker-java/docker-java-transport/3.4.2/docker-java-transport-3.4.2.jar:/home/mustafa/.m2/repository/net/java/dev/jna/jna/5.8.0/jna-5.8.0.jar:/home/mustafa/.m2/repository/org/testcontainers/mysql/1.19.0/mysql-1.19.0.jar:/home/mustafa/.m2/repository/org/testcontainers/jdbc/1.21.3/jdbc-1.21.3.jar:/home/mustafa/.m2/repository/org/testcontainers/database-commons/1.21.3/database-commons-1.21.3.jar:/home/mustafa/.m2/repository/org/awaitility/awaitility/4.2.0/awaitility-4.2.0.jar:/home/mustafa/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/mustafa"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2023-09-19"/>
+    <property name="java.home" value="/home/mustafa/.sdkman/candidates/java/21-tem"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/home/mustafa/telcobright-projects/routesphere/split-verse/target/surefire/surefirebooter-20250926204505047_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="21+35-LTS"/>
+    <property name="user.name" value="mustafa"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.14.0-29-generic"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Temurin-21+35"/>
+    <property name="localRepository" value="/home/mustafa/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="21"/>
+    <property name="user.dir" value="/home/mustafa/telcobright-projects/routesphere/split-verse"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="21+35-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="65.0"/>
+  </properties>
+  <testcase name="testPartitionedAutoManagementEnabled" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="1.627">
+    <system-out><![CDATA[
+=== Test 1: Partitioned Repository with Auto-Management Enabled ===
+[2025-09-26 20:45:07.064] INFO  [PartitionedRepo.auto_test_events] Initializing partitioned table and partitions for retention period...
+[2025-09-26 20:45:07.079] INFO  [PartitionedRepo.auto_test_events] Creating partitioned table with 14 partitions
+[2025-09-26 20:45:07.080] INFO  [PartitionedRepo.auto_test_events] Executing CREATE TABLE SQL: CREATE TABLE IF NOT EXISTS testdb.auto_test_events (event_id VARCHAR(255), event_time DATETIME, event_data VARCHAR(255), PRIMARY KEY (event_id, event_time), KEY idx_event_time (event_time)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+PARTITION BY RANGE (TO_DAYS(event_time))
+(
+  PARTITION p20250919 VALUES LESS THAN (TO_DAYS('2025-09-20')),
+  PARTITION p20250920 VALUES LESS THAN (TO_DAYS('2025-09-21')),
+  PARTITION p20250921 VALUES LESS THAN (TO_DAYS('2025-09-22')),
+  PARTITION p20250922 VALUES LESS THAN (TO_DAYS('2025-09-23')),
+  PARTITION p20250923 VALUES LESS THAN (TO_DAYS('2025-09-24')),
+  PARTITION p20250924 VALUES LESS THAN (TO_DAYS('2025-09-25')),
+  PARTITION p20250925 VALUES LESS THAN (TO_DAYS('2025-09-26')),
+  PARTITION p20250926 VALUES LESS THAN (TO_DAYS('2025-09-27')),
+  PARTITION p20250927 VALUES LESS THAN (TO_DAYS('2025-09-28')),
+  PARTITION p20250928 VALUES LESS THAN (TO_DAYS('2025-09-29')),
+  PARTITION p20250929 VALUES LESS THAN (TO_DAYS('2025-09-30')),
+  PARTITION p20250930 VALUES LESS THAN (TO_DAYS('2025-10-01')),
+  PARTITION p20251001 VALUES LESS THAN (TO_DAYS('2025-10-02')),
+  PARTITION p20251002 VALUES LESS THAN (TO_DAYS('2025-10-03'))
+)
+[2025-09-26 20:45:07.413] INFO  [PartitionedRepo.auto_test_events] Created partitioned table: testdb.auto_test_events with partitions from 2025-09-19 to 2025-10-03
+✓ Table and 14 partitions created automatically
+✓ Insert operation successful with auto-management
+]]></system-out>
+    <system-err><![CDATA[Sep 26, 2025 8:45:07 PM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/testdb?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+]]></system-err>
+  </testcase>
+  <testcase name="testPartitionedManualManagementWithExistingTable" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="0.154">
+    <system-out><![CDATA[
+=== Test 2: Partitioned Repository with Manual Management (Table Exists) ===
+[2025-09-26 20:45:07.804] INFO  [PartitionedRepo.auto_test_events] Auto-management disabled. Assuming table 'auto_test_events' and partitions already exist.
+[2025-09-26 20:45:07.822] INFO  [PartitionedRepo.auto_test_events] Verified table 'auto_test_events' exists with 2 partitions
+✓ Repository initialized with existing table
+✓ Insert operation successful with manual management
+]]></system-out>
+    <system-err><![CDATA[Sep 26, 2025 8:45:07 PM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/testdb?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+]]></system-err>
+  </testcase>
+  <testcase name="testPartitionedManualManagementWithoutTable" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="0.061">
+    <system-out><![CDATA[
+=== Test 3: Partitioned Repository with Manual Management (No Table) ===
+[2025-09-26 20:45:07.906] INFO  [PartitionedRepo.auto_test_events] Auto-management disabled. Assuming table 'auto_test_events' and partitions already exist.
+✓ Repository initialization failed as expected
+  Error: Failed to verify table existence. When autoManagePartitions=false, table and partitions must already exist.
+]]></system-out>
+    <system-err><![CDATA[Sep 26, 2025 8:45:07 PM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/testdb?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+]]></system-err>
+  </testcase>
+  <testcase name="testMultiTableAutoManagementEnabled" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="0.302">
+    <error message="Failed to initialize tables for retention period" type="java.lang.RuntimeException"><![CDATA[java.lang.RuntimeException: Failed to initialize tables for retention period
+	at com.telcobright.core.repository.GenericMultiTableRepository.<init>(GenericMultiTableRepository.java:159)
+	at com.telcobright.core.repository.GenericMultiTableRepository$Builder.build(GenericMultiTableRepository.java:1968)
+	at com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest.testMultiTableAutoManagementEnabled(AutoManagePartitionsValidationTest.java:236)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.sql.SQLException: CRITICAL: Partition boundary inconsistency detected! Min partition mismatch: expected=2025-09-23T20:45:07.978559222, actual=2025-09-23T00:00. Max partition mismatch: expected=2025-09-29T20:45:07.978559222, actual=2025-09-29T00:00. Repository will be terminated to prevent data corruption.
+	at com.telcobright.core.repository.GenericMultiTableRepository.refreshPartitionMetadata(GenericMultiTableRepository.java:1517)
+	at com.telcobright.core.repository.GenericMultiTableRepository.<init>(GenericMultiTableRepository.java:157)
+	... 5 more
+]]></error>
+    <system-out><![CDATA[
+=== Test 4: Multi-Table Repository with Auto-Management Enabled ===
+[2025-09-26 20:45:07.978] INFO  [MultiTableRepo.auto_multi] Initializing daily tables for retention period: 2025-09-23 to 2025-09-29 (7 days)
+[2025-09-26 20:45:08.192] INFO  [MultiTableRepo.auto_multi] Completed table initialization
+[2025-09-26 20:45:08.192] INFO  [MultiTableRepo.auto_multi] Refreshing partition metadata and validating boundaries
+]]></system-out>
+    <system-err><![CDATA[Sep 26, 2025 8:45:07 PM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/testdb?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+[2025-09-26 20:45:08.200] ERROR [MultiTableRepo.auto_multi] CRITICAL: Partition boundary inconsistency detected! Min partition mismatch: expected=2025-09-23T20:45:07.978559222, actual=2025-09-23T00:00. Max partition mismatch: expected=2025-09-29T20:45:07.978559222, actual=2025-09-29T00:00. Repository will be terminated to prevent data corruption.
+Cleanup error: Operation not allowed after ResultSet closed
+]]></system-err>
+  </testcase>
+  <testcase name="testMultiTableManualManagementWithExistingTables" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="0.12">
+    <system-out><![CDATA[
+=== Test 5: Multi-Table Repository with Manual Management (Tables Exist) ===
+Pre-created 6 tables
+[2025-09-26 20:45:08.323] INFO  [MultiTableRepo.auto_multi] Auto-management disabled. Assuming tables with prefix 'auto_multi' already exist.
+[2025-09-26 20:45:08.323] INFO  [MultiTableRepo.auto_multi] Discovering existing tables with prefix: auto_multi
+[2025-09-26 20:45:08.330] INFO  [MultiTableRepo.auto_multi] Discovered 6 existing tables with prefix 'auto_multi'
+✓ Repository initialized with existing tables
+✓ Insert operation successful with manual management
+]]></system-out>
+    <system-err><![CDATA[Cleanup error: Operation not allowed after ResultSet closed
+Sep 26, 2025 8:45:08 PM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/testdb?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Cleanup error: Operation not allowed after ResultSet closed
+]]></system-err>
+  </testcase>
+  <testcase name="testMultiTableManualManagementWithoutTables" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="0.077">
+    <failure message="No tables should exist initially ==&gt; expected: &lt;0&gt; but was: &lt;4&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: No tables should exist initially ==> expected: <0> but was: <4>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+	at com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest.testMultiTableManualManagementWithoutTables(AutoManagePartitionsValidationTest.java:298)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></failure>
+    <system-out><![CDATA[
+=== Test 6: Multi-Table Repository with Manual Management (No Tables) ===
+]]></system-out>
+    <system-err><![CDATA[Cleanup error: Operation not allowed after ResultSet closed
+Cleanup error: Operation not allowed after ResultSet closed
+]]></system-err>
+  </testcase>
+  <testcase name="testRetentionIgnoredWithManualManagement" classname="com.telcobright.splitverse.tests.AutoManagePartitionsValidationTest" time="1.142">
+    <system-out><![CDATA[
+=== Test 7: Retention Period Ignored with Manual Management ===
+Created 5 old tables (beyond retention)
+[2025-09-26 20:45:08.553] INFO  [MultiTableRepo.auto_multi] Auto-management disabled. Assuming tables with prefix 'auto_multi' already exist.
+[2025-09-26 20:45:08.553] INFO  [MultiTableRepo.auto_multi] Discovering existing tables with prefix: auto_multi
+[2025-09-26 20:45:08.557] INFO  [MultiTableRepo.auto_multi] Discovered 5 existing tables with prefix 'auto_multi'
+✓ Old tables retained despite short retention period
+]]></system-out>
+    <system-err><![CDATA[Cleanup error: Operation not allowed after ResultSet closed
+Sep 26, 2025 8:45:08 PM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/testdb?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+Cleanup error: Operation not allowed after ResultSet closed
+]]></system-err>
+  </testcase>
+</testsuite>

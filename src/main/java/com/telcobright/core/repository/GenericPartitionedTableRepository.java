@@ -112,14 +112,14 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
                 }
             }
         } else if (!autoManagePartitions) {
-            logger.info("Auto-management disabled. Assuming table '{}' and partitions already exist.", tableName);
+            logger.info("Auto-management disabled. Assuming table '" + tableName + "' and partitions already exist.");
             // Verify the table exists - fail if not found
             try {
                 if (!tableExists()) {
                     throw new SQLException("Table '" + tableName + "' does not exist in database '" + database +
                         "'. When autoManagePartitions=false, table and partitions must be created manually.");
                 }
-                logger.info("Verified table '{}' exists with {} partitions", tableName, getPartitions().size());
+                logger.info("Verified table '" + tableName + "' exists with " + getPartitions().size() + " partitions");
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to verify table existence. When autoManagePartitions=false, " +
                     "table and partitions must already exist.", e);
