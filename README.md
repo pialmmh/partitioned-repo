@@ -1,25 +1,52 @@
-# Split-Verse: Sharding-Aware Repository Framework
+# Split-Verse: Production-Ready Sharding & Partitioning Framework for MySQL
 
-**Split-Verse** is a production-ready Java framework for transparent data sharding and partitioning in MySQL. It provides automatic partition management, seamless CRUD operations across sharded tables, and built-in support for time-series data with high-performance sequential ID management.
+**Split-Verse** is a high-performance Java framework for transparent data sharding and partitioning in MySQL. It provides automatic partition management, seamless CRUD operations across sharded tables, and built-in support for time-series data with high-performance sequential ID management.
 
 ## 🎯 Key Features
 
+### Core Capabilities
 - **Transparent Sharding**: Automatic routing to correct partitions based on sharding keys
 - **Multiple Repository Types**:
   - **GenericPartitionedTableRepository**: Single partitioned table with auto-management
   - **GenericMultiTableRepository**: Multiple tables with consistent sharding
   - **SimpleSequentialRepository**: Sequential numeric IDs with state persistence
+  - **Multi-Entity Repository**: Single repository managing multiple entity types (Work in Progress)
 - **Flexible ID Strategies**:
   - String IDs (UUID, ULID, NanoID) for distributed systems
   - Sequential numeric IDs for Chronicle-like messaging systems
   - Client-provided IDs with automatic sequence advancement
 - **Automatic Partition Management**: Creates, maintains, and drops partitions automatically
+- **Manual Partition Mode**: Option to disable automatic management for pre-existing tables
 - **Zero-Downtime Operations**: All partition operations are online
 - **Builder-Only API**: Type-safe configuration with compile-time validation
 - **Connection Pooling**: Built-in HikariCP integration for optimal performance
 - **Thread-Safe**: All operations are thread-safe for concurrent access
 - **Batch Operations**: Efficient bulk insert/update/delete operations
 - **Simple Batch Retrieval**: Direct ID range queries without cursor complexity
+- **Type-Safe Query DSL**: Fluent API for building complex queries
+- **Cross-Database Support**: MySQL, PostgreSQL, Oracle, SQL Server
+- **Monitoring & Metrics**: Built-in performance monitoring and metrics collection
+
+### Advanced Features
+- **Partition Boundary Management**: Intelligent handling of data outside partition ranges
+- **Automatic Query Optimization**: Query parameter adjustment for partition pruning
+- **Metadata Consistency**: Strict validation of partition boundaries
+- **Cross-Shard Pagination**: Seamless pagination across multiple shards
+- **Connection Management**: Automatic connection pooling and lifecycle management
+- **SQL Caching**: Prepared statement caching for improved performance
+- **Monitoring Dashboard**: HTTP metrics endpoint for real-time monitoring
+
+## 📋 Table of Contents
+- [Quick Start](#-quick-start)
+- [Repository Types](#-repository-types)
+- [Configuration Options](#-configuration-options)
+- [API Reference](#-api-reference)
+- [Query DSL](#-query-dsl)
+- [Architecture](#-architecture)
+- [Advanced Usage](#-advanced-usage)
+- [Performance Tuning](#-performance-tuning)
+- [Testing](#-testing)
+- [Examples](#-examples)
 
 ## 🚀 Quick Start
 
@@ -70,6 +97,7 @@ GenericPartitionedTableRepository<Event> partitionedRepo =
         .tableName("events")
         .partitionRange(PartitionRange.DAILY)
         .retentionDays(30)
+        .autoManagePartitions(true)  // Enable automatic management (default)
         .build();
 
 // Option 2: GenericMultiTableRepository - Multiple tables
@@ -79,6 +107,7 @@ GenericMultiTableRepository<Event> multiTableRepo =
         .tablePrefix("events")
         .shardingStrategy(ShardingStrategy.MONTHLY)
         .retentionMonths(6)
+        .autoManagePartitions(true)  // Enable automatic management (default)
         .build();
 
 // Option 3: SimpleSequentialRepository - Sequential IDs
@@ -98,614 +127,784 @@ SimpleSequentialRepository<LogEntry> seqRepo =
 Single table with MySQL native range partitions. Best for standard time-series data.
 
 **Features:**
-- RANGE COLUMNS partitioning for date-based data
-- All partitions created upfront during initialization
-- Automatic partition maintenance (add/drop)
-- Efficient partition pruning for date queries
+- Native MySQL partitioning (RANGE BY)
+- Automatic partition creation/deletion
+- Optimized for queries within partition boundaries
+- Supports DAILY, MONTHLY, YEARLY partition ranges
+- Optional manual management mode
 
-**Configuration:**
+**Use Cases:**
+- Log data with daily/monthly retention
+- Time-series metrics
+- Event streaming
+
 ```java
-GenericPartitionedTableRepository<Event> repository =
+GenericPartitionedTableRepository<Event> repo =
     GenericPartitionedTableRepository.builder(Event.class)
-        .connection("127.0.0.1", 3306, "mydb", "user", "pass")
+        .connection(config)
         .tableName("events")
-        .partitionRange(PartitionRange.DAILY)  // DAILY, MONTHLY, YEARLY
-        .retentionDays(30)  // Keep 30 days of data
-        .autoMaintenance(true)  // Auto-manage partitions
-        .maintenanceTime(LocalTime.of(4, 0))  // Run at 4 AM
-        .maxPoolSize(20)  // Connection pool size
+        .partitionRange(PartitionRange.DAILY)
+        .retentionDays(30)
+        .autoManagePartitions(false)  // Manual mode - assumes tables exist
         .build();
 ```
 
 ### GenericMultiTableRepository
 
-Multiple tables with time-based or value-based sharding. Best for complete data isolation.
+Multiple tables with consistent naming pattern. Best for high-volume time-series data.
 
 **Features:**
-- Separate table for each time period or value range
-- Dynamic table creation and management
-- Easy archival (simple DROP TABLE)
-- Flexible retention policies
+- Table per time period (hour/day/month)
+- Automatic table creation/deletion
+- Parallel operations across tables
+- Optimized for write-heavy workloads
+- Optional manual management mode
 
-**Configuration:**
+**Use Cases:**
+- High-frequency sensor data
+- CDR (Call Detail Records)
+- IoT telemetry
+
 ```java
-GenericMultiTableRepository<Event> repository =
-    GenericMultiTableRepository.builder(Event.class)
-        .connection("127.0.0.1", 3306, "mydb", "user", "pass")
-        .tablePrefix("events")  // Creates events_20250101, etc.
-        .shardingStrategy(ShardingStrategy.DAILY)  // Per-day tables
-        .retentionDays(30)
-        .createTablesUpfront(true)  // Pre-create all tables
-        .autoMaintenance(true)
+GenericMultiTableRepository<SmsRecord> repo =
+    GenericMultiTableRepository.builder(SmsRecord.class)
+        .connection(config)
+        .tablePrefix("sms")
+        .shardingStrategy(ShardingStrategy.HOURLY)
+        .retentionHours(24)
+        .autoManagePartitions(false)  // Manual mode - assumes tables exist
         .build();
 ```
 
 ### SimpleSequentialRepository
 
-Specialized repository for sequential numeric IDs with state persistence. Perfect for log storage and Chronicle-like messaging systems.
+Optimized for sequential numeric IDs with state persistence.
 
 **Features:**
-- Sequential ID generation (1, 2, 3, ...)
+- Sequential ID generation
 - State persistence across restarts
-- Thread-safe concurrent access
-- Client-provided ID support
-- Range reservation for distributed systems
-- Simple batch retrieval without cursors
+- Client ID acceptance with validation
+- Automatic ID advancement
+- Batch operations optimized for sequential access
 
-**Configuration:**
+**Use Cases:**
+- Message queues (Chronicle-like)
+- Audit logs
+- Transaction logs
+
 ```java
-SimpleSequentialRepository<LogEntry> repository =
+SimpleSequentialRepository<LogEntry> repo =
     SimpleSequentialRepository.builder(LogEntry.class)
-        .connection("127.0.0.1", 3306, "mydb", "user", "pass")
+        .connection(config)
         .tableName("logs")
-        .stateTableName("log_id_state")  // State persistence table
-        .maxId(10000000)  // Maximum ID value
-        .wrapAround(true)  // Wrap to 1 at max
-        .allowClientIds(true)  // Accept external IDs
-        .retentionDays(90)  // Keep 90 days
-        .partitionRange(PartitionRange.DAILY)
+        .maxId(10_000_000)
+        .stateFile("/var/lib/app/seq_state.dat")
+        .allowClientIds(true)
         .build();
-```
-
-## 🔧 API Reference
-
-### Common Operations (All Repositories)
-
-```java
-// Insert operations
-void insert(T entity)
-void insertMultiple(List<T> entities)
-
-// Find operations
-T findById(String id)
-List<T> findAll()
-List<T> findByPartitionColBetween(LocalDateTime start, LocalDateTime end)
-
-// Update operations
-void updateById(String id, T entity)
-void updateMultiple(List<T> entities)
-
-// Delete operations
-void deleteById(String id)
-void deleteByPartitionColBefore(LocalDateTime cutoff)
-
-// Lifecycle
-void shutdown()
-```
-
-### SimpleSequentialRepository Specific APIs
-
-#### ID Generation
-```java
-// Get next sequential ID
-long nextId = repository.getNextId();  // Returns: 1, 2, 3, ...
-
-// Get multiple IDs at once
-List<Long> ids = repository.getNextN(100);  // Returns: [1, 2, ..., 100]
-
-// Check current ID without incrementing
-long currentId = repository.getCurrentId();
-
-// Reset ID counter
-repository.resetId(1000);  // Next ID will be 1001
-```
-
-#### Insertion with Auto-ID
-```java
-// Single entity with auto-generated ID
-LogEntry log = new LogEntry();
-log.setTimestamp(LocalDateTime.now());
-log.setMessage("Application started");
-long assignedId = repository.insertWithAutoId(log);
-
-// Multiple entities with auto-generated IDs
-List<LogEntry> logs = createLogs(100);
-List<Long> assignedIds = repository.insertMultipleWithAutoId(logs);
-```
-
-#### Client-Provided IDs
-```java
-// Enable in builder
-.allowClientIds(true)
-
-// Single entity with client ID
-repository.insertWithClientId(log, 5000L);
-
-// Multiple entities with client IDs
-List<LogEntry> entities = Arrays.asList(log1, log2, log3);
-List<Long> clientIds = Arrays.asList(5001L, 5002L, 5003L);
-repository.insertMultipleWithClientIds(entities, clientIds);
-```
-
-#### Simple Batch Retrieval
-```java
-// Retrieve records by ID range - no cursor complexity
-// startId=1000, batchSize=100 returns IDs 1000-1099
-List<LogEntry> batch = repository.findByIdRange(1000, 100);
-
-// Iterate through all logs sequentially
-long currentId = 0;
-int batchSize = 1000;
-
-while (true) {
-    List<LogEntry> batch = repository.findByIdRange(currentId, batchSize);
-    if (batch.isEmpty()) break;
-
-    processBatch(batch);
-    currentId += batchSize;
-}
-```
-
-#### Range Operations
-```java
-// Reserve a block of IDs for distributed processing
-SimpleSequentialRepository.IdRange range = repository.reserveIdRange(1000);
-System.out.println("Reserved: " + range.getStartId() + " to " + range.getEndId());
-
-// Insert with reserved range
-List<LogEntry> logs = createLogs(1000);
-repository.insertWithIdRange(logs, range);
-
-// Insert with specific range (requires allowClientIds)
-repository.insertWithinIdRange(logs, 1000L, 1999L);
-```
-
-## 📋 Entity Requirements
-
-All entities **MUST** meet these requirements:
-
-| Requirement | Description | Enforcement |
-|------------|-------------|-------------|
-| **Implements ShardingEntity** | Must implement the interface | Compile-time |
-| **Exactly ONE @Id** | Single String ID field | Runtime validation |
-| **String ID type** | ID must be String, not Long/Integer | Runtime validation |
-| **No AUTO_INCREMENT** | `@Id(autoGenerated = false)` required | Runtime validation |
-| **Exactly ONE @ShardingKey** | Single LocalDateTime field for partitioning | Runtime validation |
-| **LocalDateTime type** | ShardingKey must be LocalDateTime | Runtime validation |
-
-## 💡 How-To Guides
-
-### How to: Implement High-Performance Log Storage
-
-```java
-public class LoggingSystem {
-    private final SimpleSequentialRepository<LogEntry> repository;
-
-    public LoggingSystem() {
-        this.repository = SimpleSequentialRepository.builder(LogEntry.class)
-            .connection("127.0.0.1", 3306, "logs_db", "app", "password")
-            .tableName("application_logs")
-            .maxId(100000000L)  // 100 million max
-            .wrapAround(false)  // Throw error at max
-            .retentionDays(90)  // Keep 3 months
-            .partitionRange(PartitionRange.DAILY)
-            .autoMaintenance(true)
-            .build();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(repository::shutdown));
-    }
-
-    public void log(String level, String message) throws SQLException {
-        LogEntry entry = new LogEntry();
-        entry.setTimestamp(LocalDateTime.now());
-        entry.setLevel(level);
-        entry.setMessage(message);
-
-        long id = repository.insertWithAutoId(entry);
-        System.out.printf("Logged with ID %d: [%s] %s%n", id, level, message);
-    }
-
-    public void processBatch() {
-        long lastProcessedId = loadLastProcessedId();
-        int batchSize = 1000;
-
-        while (true) {
-            List<LogEntry> batch = repository.findByIdRange(lastProcessedId, batchSize);
-            if (batch.isEmpty()) break;
-
-            processBatchData(batch);
-            lastProcessedId += batchSize;
-            saveLastProcessedId(lastProcessedId);
-        }
-    }
-}
-```
-
-### How to: Migrate from External System
-
-```java
-public class DataMigration {
-    private final SimpleSequentialRepository<LogEntry> repository;
-
-    public DataMigration() {
-        this.repository = SimpleSequentialRepository.builder(LogEntry.class)
-            .connection(host, port, db, user, pass)
-            .tableName("logs_partitioned")
-            .allowClientIds(true)  // Accept external IDs
-            .build();
-    }
-
-    public void migrateFromLegacy(List<LegacyLog> legacyLogs) throws SQLException {
-        List<LogEntry> logs = new ArrayList<>();
-        List<Long> ids = new ArrayList<>();
-
-        for (LegacyLog legacy : legacyLogs) {
-            LogEntry log = convertToLogEntry(legacy);
-            logs.add(log);
-            ids.add(legacy.getId());
-        }
-
-        // Insert preserving original IDs
-        repository.insertMultipleWithClientIds(logs, ids);
-
-        // Repository automatically advances counter past highest ID
-    }
-}
-```
-
-### How to: Handle Time-Series Data
-
-```java
-public class TimeSeriesService {
-    private final GenericPartitionedTableRepository<SensorData> repository;
-
-    public TimeSeriesService() {
-        this.repository = GenericPartitionedTableRepository.builder(SensorData.class)
-            .connection("127.0.0.1", 3306, "metrics", "user", "pass")
-            .tableName("sensor_data")
-            .partitionRange(PartitionRange.HOURLY)  // Hourly partitions
-            .retentionDays(7)  // Keep 1 week
-            .autoMaintenance(true)
-            .build();
-    }
-
-    public void storeSensorReading(String sensorId, double value) {
-        SensorData data = new SensorData();
-        data.setId(UUID.randomUUID().toString());
-        data.setSensorId(sensorId);
-        data.setValue(value);
-        data.setTimestamp(LocalDateTime.now());
-
-        repository.insert(data);
-    }
-
-    public List<SensorData> getReadingsForPeriod(LocalDateTime start, LocalDateTime end) {
-        // Automatically uses partition pruning
-        return repository.findByPartitionColBetween(start, end);
-    }
-
-    public double getAverageForToday(String sensorId) {
-        LocalDateTime today = LocalDate.now().atStartOfDay();
-        LocalDateTime tomorrow = today.plusDays(1);
-
-        List<SensorData> todayData = repository.findByPartitionColBetween(today, tomorrow);
-
-        return todayData.stream()
-            .filter(d -> d.getSensorId().equals(sensorId))
-            .mapToDouble(SensorData::getValue)
-            .average()
-            .orElse(0.0);
-    }
-}
-```
-
-### How to: Implement Distributed ID Allocation
-
-```java
-public class DistributedWorker {
-    private final SimpleSequentialRepository<Task> repository;
-    private SimpleSequentialRepository.IdRange currentRange;
-    private long currentId;
-
-    public void allocateWorkRange() {
-        // Each worker reserves a range of 10000 IDs
-        currentRange = repository.reserveIdRange(10000);
-        currentId = currentRange.getStartId();
-
-        System.out.println("Worker allocated IDs: " +
-            currentRange.getStartId() + " - " + currentRange.getEndId());
-    }
-
-    public long getNextWorkerId() {
-        if (currentId > currentRange.getEndId()) {
-            allocateWorkRange();  // Get new range when exhausted
-        }
-        return currentId++;
-    }
-
-    public void processWork() {
-        List<Task> tasks = new ArrayList<>();
-
-        // Create tasks with reserved IDs
-        for (int i = 0; i < 100; i++) {
-            Task task = new Task();
-            task.setWorkerId(getNextWorkerId());
-            task.setTimestamp(LocalDateTime.now());
-            tasks.add(task);
-        }
-
-        // Insert with reserved range
-        repository.insertWithIdRange(tasks, currentRange);
-    }
-}
-```
-
-### How to: Chronicle Queue-Like Implementation
-
-```java
-public class MessageQueue {
-    private final SimpleSequentialRepository<Message> repository;
-    private long readPosition = 0;
-
-    public MessageQueue() {
-        this.repository = SimpleSequentialRepository.builder(Message.class)
-            .connection("127.0.0.1", 3306, "queue", "user", "pass")
-            .tableName("messages")
-            .maxId(Long.MAX_VALUE)
-            .allowClientIds(false)  // Auto-generate sequential IDs
-            .retentionDays(7)
-            .build();
-    }
-
-    public long append(String content) throws SQLException {
-        Message msg = new Message();
-        msg.setContent(content);
-        msg.setTimestamp(LocalDateTime.now());
-
-        return repository.insertWithAutoId(msg);
-    }
-
-    public List<Message> read(int count) throws SQLException {
-        List<Message> messages = repository.findByIdRange(readPosition, count);
-        if (!messages.isEmpty()) {
-            readPosition += messages.size();
-        }
-        return messages;
-    }
-
-    public void seekTo(long position) {
-        this.readPosition = position;
-    }
-
-    public long getCurrentPosition() {
-        return readPosition;
-    }
-}
-```
-
-## 🏗️ Architecture
-
-### Builder Pattern
-
-Split-Verse enforces a strict builder pattern for all repositories:
-
-```java
-// All repositories must be created through builders
-GenericPartitionedTableRepository.builder(Entity.class)...
-GenericMultiTableRepository.builder(Entity.class)...
-SimpleSequentialRepository.builder(Entity.class)...
-
-// Direct instantiation is not allowed (package-private constructors)
-```
-
-### Partition Management
-
-#### Partitioned Repository
-- Creates all partitions upfront: `(retention_days × 2) + 1`
-- Daily maintenance adds future partitions and drops old ones
-- Single ALTER TABLE for batch operations
-
-#### Multi-Table Repository
-- Creates tables on-demand or upfront
-- Each table represents a time period
-- Simple DROP TABLE for cleanup
-
-#### Sequential Repository
-- Uses underlying partitioned table for data
-- Separate state table for ID persistence
-- State saved every 100 operations or on shutdown
-
-### Thread Safety
-
-All repositories are thread-safe:
-- Connection pooling with HikariCP
-- ReentrantLock for ID generation (SimpleSequentialRepository)
-- Concurrent read/write operations supported
-
-## 🔍 State Persistence (SimpleSequentialRepository)
-
-The sequential repository maintains state across restarts:
-
-```sql
--- Automatically created state table
-CREATE TABLE log_id_state (
-    id INT PRIMARY KEY,
-    current_id BIGINT NOT NULL,
-    max_id BIGINT NOT NULL,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-State is persisted:
-- Every 100 ID increments
-- On repository shutdown
-- When client provides higher ID
-- After ID reset
-
-## 📊 Performance Considerations
-
-### Connection Pooling
-```java
-.maxPoolSize(50)  // Adjust based on load
-.connectionTimeout(5000)  // 5 seconds
-.maxLifetime(600000)  // 10 minutes
-```
-
-### Batch Operations
-```java
-// Prefer batch operations for better performance
-repository.insertMultiple(entities);  // Single transaction
-repository.updateMultiple(entities);  // Batch update
-repository.deleteMultiple(ids);  // Batch delete
-```
-
-### Partition Pruning
-```java
-// Date queries automatically use partition pruning
-repository.findByPartitionColBetween(start, end);
-// Only scans relevant partitions
-```
-
-### ID Generation Strategy
-```java
-// For high-throughput sequential IDs
-List<Long> ids = repository.getNextN(1000);  // Reserve 1000 IDs at once
-// Reduces lock contention
-```
-
-## 📝 ID Generation Examples
-
-Since AUTO_INCREMENT is not allowed, use external ID generators:
-
-```java
-// UUID (random)
-entity.setId(UUID.randomUUID().toString());
-
-// ULID (sortable, timestamp-based)
-entity.setId(UlidCreator.getUlid().toString());
-
-// NanoID (URL-safe, compact)
-entity.setId(NanoIdUtils.randomNanoId());
-
-// Sequential (using SimpleSequentialRepository)
-long id = repository.getNextId();
-entity.setId(String.valueOf(id));
-
-// Custom format
-entity.setId(String.format("evt_%d_%s",
-    System.currentTimeMillis(),
-    RandomStringUtils.randomAlphanumeric(8)));
 ```
 
 ## ⚙️ Configuration Options
 
 ### Common Builder Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `connection(host, port, db, user, pass)` | Database connection | Required |
-| `tableName(name)` | Table name | Required |
-| `retentionDays(days)` | Days to retain data | 30 |
-| `maxPoolSize(size)` | Connection pool size | 10 |
-| `autoMaintenance(enabled)` | Auto partition management | true |
-| `maintenanceTime(time)` | When to run maintenance | 4 AM |
+| Option | Description | Default | Applies To |
+|--------|-------------|---------|------------|
+| `connection()` | Database connection details | Required | All |
+| `tableName()` / `tablePrefix()` | Table naming | Required | All |
+| `maxConnectionPoolSize()` | HikariCP pool size | 10 | All |
+| `connectionTimeout()` | Connection timeout (ms) | 30000 | All |
+| `autoManagePartitions()` | Enable automatic partition management | true | Partitioned/Multi-table |
+| `initializeOnStart()` | Create tables/partitions at startup | true | Partitioned/Multi-table |
+| `enableMonitoring()` | Enable metrics collection | false | All |
+| `monitoringPort()` | HTTP metrics port | 9090 | All |
 
-### SimpleSequentialRepository Options
+### Repository-Specific Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `maxId(value)` | Maximum ID value | Long.MAX_VALUE |
-| `wrapAround(enabled)` | Wrap to 1 at max | false |
-| `allowClientIds(enabled)` | Accept client IDs | false |
-| `stateTableName(name)` | State persistence table | {table}_id_state |
+#### GenericPartitionedTableRepository
+- `partitionRange()`: DAILY, MONTHLY, YEARLY
+- `retentionDays()` / `retentionMonths()`: Data retention period
+- `futurePartitions()`: Number of future partitions to maintain (default: 3)
+
+#### GenericMultiTableRepository
+- `shardingStrategy()`: HOURLY, DAILY, MONTHLY
+- `retentionHours()` / `retentionDays()` / `retentionMonths()`: Data retention
+
+#### SimpleSequentialRepository
+- `maxId()`: Maximum ID value before wrapping
+- `stateFile()`: Path to persist current ID state
+- `allowClientIds()`: Accept externally provided sequential IDs
+
+## 📖 API Reference
+
+### Core Operations
+
+All repositories implement these core operations:
+
+```java
+// Single entity operations
+void save(T entity);
+Optional<T> findById(String id);
+boolean exists(String id);
+void delete(String id);
+void update(T entity);
+
+// Batch operations
+int[] saveBatch(List<T> entities);
+List<T> findAllByIds(List<String> ids);
+void deleteBatch(List<String> ids);
+
+// Range queries (for partitioned repositories)
+List<T> findByPartitionRange(LocalDateTime start, LocalDateTime end);
+List<T> findByPartitionRange(LocalDateTime start, LocalDateTime end, int limit);
+
+// ID + partition range queries (optimized)
+Optional<T> findByIdAndPartitionColRange(String id, LocalDateTime start, LocalDateTime end);
+
+// Count operations
+long count();
+long countByPartitionRange(LocalDateTime start, LocalDateTime end);
+```
+
+### Sequential Repository Additional Methods
+
+```java
+// Sequential-specific operations
+List<T> findByIdRange(long startId, long endId);
+long getCurrentId();
+void resetIdSequence();
+```
+
+### Multi-Entity Repository (Work in Progress)
+
+```java
+// Multi-entity builder pattern
+MultiEntityRepository repo = MultiEntityRepository.builder()
+    .registerEntity(User.class)
+        .tableName("users")
+        .partitionRange(PartitionRange.MONTHLY)
+        .retentionMonths(12)
+        .autoManagePartitions(false)  // Manual mode
+        .done()
+    .registerEntity(Order.class)
+        .tableName("orders")
+        .partitionRange(PartitionRange.DAILY)
+        .retentionDays(90)
+        .done()
+    .connection(config)
+    .build();
+
+// Usage
+repo.save(user);
+repo.save(order);
+Optional<User> user = repo.findById(User.class, userId);
+```
+
+## 🔍 Query DSL
+
+Type-safe, fluent API for building complex queries:
+
+### Basic Queries
+
+```java
+// Simple select with conditions
+String query = QueryDSL.select()
+    .column("user_id")
+    .column("created_at")
+    .from("events")
+    .where("event_type").eq("LOGIN")
+    .and("created_at").gte(LocalDateTime.now().minusDays(7))
+    .orderBy("created_at", DESC)
+    .limit(100)
+    .build();
+
+// Aggregation query
+String query = QueryDSL.select()
+    .column("event_type")
+    .count("event_count")
+    .from("events")
+    .where("created_at").between(startDate, endDate)
+    .groupBy("event_type")
+    .having("event_count").gt(100)
+    .build();
+```
+
+### Advanced Queries
+
+```java
+// Complex conditions with OR
+String query = QueryDSL.select()
+    .all()
+    .from("users")
+    .where(
+        QueryDSL.condition("status").eq("ACTIVE")
+            .and("created_at").gte(cutoffDate)
+    )
+    .or(
+        QueryDSL.condition("role").eq("ADMIN")
+    )
+    .build();
+
+// Subqueries
+String query = QueryDSL.select()
+    .column("order_id")
+    .column("total")
+    .from("orders")
+    .where("user_id").in(
+        QueryDSL.select()
+            .column("user_id")
+            .from("premium_users")
+            .where("subscription_end").gte(LocalDateTime.now())
+    )
+    .build();
+```
+
+### Integration with Repositories
+
+```java
+// Custom queries with repositories
+List<Event> results = repository.executeQuery(
+    QueryDSL.select()
+        .all()
+        .from("@table")  // @table placeholder for dynamic table names
+        .where("event_type").eq("ERROR")
+        .and("@partition_col").between(start, end)  // @partition_col for partition column
+        .orderBy("created_at", DESC)
+        .limit(1000)
+);
+```
+
+## 🏗️ Architecture
+
+### Core Components
+
+```
+┌─────────────────────────────────────┐
+│     Application Layer               │
+│     (User Entities & DAOs)          │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Repository Layer                │
+│  ┌────────────────────────────────┐ │
+│  │ • GenericPartitionedTableRepo  │ │
+│  │ • GenericMultiTableRepository  │ │
+│  │ • SimpleSequentialRepository   │ │
+│  └────────────────────────────────┘ │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     SQL Generation Layer            │
+│  ┌────────────────────────────────┐ │
+│  │ • SqlGenerator (per DB type)   │ │
+│  │ • QueryDSL                     │ │
+│  │ • PreparedStatement Cache      │ │
+│  └────────────────────────────────┘ │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Connection Layer                │
+│  ┌────────────────────────────────┐ │
+│  │ • HikariCP Connection Pool     │ │
+│  │ • Connection Provider          │ │
+│  │ • Transaction Management       │ │
+│  └────────────────────────────────┘ │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│     Database Layer                  │
+│  ┌────────────────────────────────┐ │
+│  │ • MySQL with Partitions        │ │
+│  │ • PostgreSQL / Oracle / MSSQL  │ │
+│  └────────────────────────────────┘ │
+└─────────────────────────────────────┘
+```
+
+### Key Design Principles
+
+1. **Entity-Centric Design**
+   - All entities implement `ShardingEntity<P>` interface
+   - Metadata-driven operations via reflection (cached)
+   - Type-safe operations throughout
+
+2. **Builder Pattern**
+   - All repositories created via builders
+   - Compile-time validation of configuration
+   - Immutable configuration after build
+
+3. **Performance Optimizations**
+   - Connection pooling with HikariCP
+   - PreparedStatement caching
+   - Batch operations
+   - Partition pruning via query optimization
+
+4. **Fail-Fast Behavior**
+   - Early validation of configuration
+   - Clear error messages
+   - Automatic rollback on failures
+
+## 🚀 Advanced Usage
+
+### Manual Partition Management
+
+When you have pre-existing tables/partitions and don't want automatic management:
+
+```java
+// Disable automatic partition management
+GenericPartitionedTableRepository<Event> repo =
+    GenericPartitionedTableRepository.builder(Event.class)
+        .connection(config)
+        .tableName("events")
+        .partitionRange(PartitionRange.DAILY)
+        .autoManagePartitions(false)  // Disable auto-management
+        .build();
+
+// Repository will:
+// - NOT create tables/partitions at startup
+// - NOT enforce retention periods
+// - NOT perform maintenance operations
+// - Fail fast if tables don't exist
+```
+
+### Custom ID Strategies
+
+```java
+// Using ULID for distributed systems
+public class Event implements ShardingEntity<LocalDateTime> {
+    @Id(autoGenerated = false)
+    private String id = ULID.random();
+    // ...
+}
+
+// Using NanoID for shorter IDs
+public class Event implements ShardingEntity<LocalDateTime> {
+    @Id(autoGenerated = false)
+    private String id = NanoIdUtils.randomNanoId();
+    // ...
+}
+```
+
+### Monitoring and Metrics
+
+```java
+// Enable monitoring
+GenericMultiTableRepository<Event> repo =
+    GenericMultiTableRepository.builder(Event.class)
+        .connection(config)
+        .enableMonitoring(true)
+        .monitoringPort(9090)
+        .build();
+
+// Access metrics at http://localhost:9090/metrics
+// Returns JSON with:
+// - Operation counts and latencies
+// - Connection pool stats
+// - Partition information
+// - Error rates
+```
+
+### Cross-Shard Operations
+
+```java
+// Configure multiple shards
+SplitVerseRepository<User> repository = SplitVerseRepository.builder(User.class)
+    .addShard(shard1Config)
+    .addShard(shard2Config)
+    .shardingStrategy(HashShardingStrategy.class)
+    .build();
+
+// Automatic routing based on sharding key
+repository.save(user);  // Routes to correct shard
+
+// Cross-shard queries
+List<User> users = repository.findAll()
+    .where("status").eq("ACTIVE")
+    .acrossAllShards()
+    .execute();
+```
+
+### Transaction Management
+
+```java
+// Manual transaction control
+Connection conn = repository.getConnection();
+try {
+    conn.setAutoCommit(false);
+
+    repository.save(entity1);
+    repository.save(entity2);
+    repository.update(entity3);
+
+    conn.commit();
+} catch (Exception e) {
+    conn.rollback();
+    throw e;
+} finally {
+    conn.setAutoCommit(true);
+    conn.close();
+}
+```
+
+## ⚡ Performance Tuning
+
+### Connection Pool Tuning
+
+```java
+.maxConnectionPoolSize(20)        // Increase for high concurrency
+.connectionTimeout(10000)         // Reduce for faster failure detection
+.idleTimeout(600000)             // 10 minutes idle timeout
+.maxLifetime(1800000)            // 30 minutes max connection lifetime
+```
+
+### Batch Size Optimization
+
+```java
+// Optimal batch sizes depend on data size
+int BATCH_SIZE = 1000;  // Good default for most cases
+
+List<Event> events = generateEvents(10000);
+for (int i = 0; i < events.size(); i += BATCH_SIZE) {
+    List<Event> batch = events.subList(i,
+        Math.min(i + BATCH_SIZE, events.size()));
+    repository.saveBatch(batch);
+}
+```
+
+### Query Optimization
+
+```java
+// Always include partition column in WHERE clause for partition pruning
+repository.findByIdAndPartitionColRange(id, startDate, endDate);
+// This is much faster than:
+repository.findById(id);  // Scans all partitions
+```
+
+### Memory Management
+
+```java
+// Use streaming for large result sets
+try (Stream<Event> events = repository.stream()
+    .where("created_at").between(start, end)
+    .execute()) {
+
+    events.forEach(event -> {
+        // Process one at a time
+        processEvent(event);
+    });
+}
+```
 
 ## 🧪 Testing
 
-```bash
-# Run all tests
-mvn test
+### Unit Testing
 
-# Specific test examples
-mvn test -Dtest=SimpleSequentialRepositoryTest
-mvn test -Dtest=ChronicleSimulatorOptimizedTest
-mvn test -Dtest=SimpleBatchRetrievalTest
-```
-
-## ⚠️ Important Notes
-
-1. **String IDs Only**: All entities must use String IDs
-2. **External ID Generation**: No AUTO_INCREMENT support
-3. **LocalDateTime Sharding**: Sharding key must be LocalDateTime
-4. **Thread Safety**: All operations are thread-safe
-5. **Graceful Shutdown**: Always call `shutdown()` for proper cleanup
-6. **MySQL 5.7+**: Requires MySQL 5.7 or higher
-
-## 🚨 Troubleshooting
-
-### "Maximum ID reached" (SimpleSequentialRepository)
-Enable wraparound or increase maxId:
 ```java
-.maxId(Long.MAX_VALUE)
-.wrapAround(true)
+@Test
+public void testPartitionedRepository() {
+    // Create test repository
+    GenericPartitionedTableRepository<TestEntity> repo =
+        GenericPartitionedTableRepository.builder(TestEntity.class)
+            .connection("localhost", 3306, "test_db", "user", "pass")
+            .tableName("test_events")
+            .partitionRange(PartitionRange.DAILY)
+            .retentionDays(7)
+            .build();
+
+    // Test operations
+    TestEntity entity = new TestEntity();
+    entity.setId(UUID.randomUUID().toString());
+    entity.setCreatedAt(LocalDateTime.now());
+
+    repo.save(entity);
+
+    Optional<TestEntity> retrieved = repo.findById(entity.getId());
+    assertTrue(retrieved.isPresent());
+    assertEquals(entity.getId(), retrieved.get().getId());
+}
 ```
 
-### "Client IDs not allowed"
-Enable in builder:
+### Integration Testing
+
 ```java
-.allowClientIds(true)
+@Test
+public void testAutoManagePartitionsDisabled() {
+    // Pre-create table
+    createTableManually("test_table");
+
+    // Create repository with auto-management disabled
+    GenericPartitionedTableRepository<TestEntity> repo =
+        GenericPartitionedTableRepository.builder(TestEntity.class)
+            .connection(testConfig)
+            .tableName("test_table")
+            .autoManagePartitions(false)  // Disable auto-management
+            .build();
+
+    // Verify it uses existing table
+    TestEntity entity = createTestEntity();
+    repo.save(entity);
+
+    // Verify no new partitions created
+    assertEquals(1, countTablesInDatabase());
+}
+
+@Test(expected = SQLException.class)
+public void testAutoManagePartitionsDisabledNoTable() {
+    // Try to create repository without existing table
+    GenericPartitionedTableRepository<TestEntity> repo =
+        GenericPartitionedTableRepository.builder(TestEntity.class)
+            .connection(testConfig)
+            .tableName("non_existent_table")
+            .autoManagePartitions(false)
+            .build();  // Should throw SQLException
+}
 ```
 
-### State not persisting
-Ensure shutdown is called:
+### Performance Testing
+
 ```java
-Runtime.getRuntime().addShutdownHook(new Thread(repository::shutdown));
+@Test
+public void testHighThroughputInsert() {
+    GenericMultiTableRepository<Event> repo = createRepository();
+
+    int numThreads = 10;
+    int eventsPerThread = 10000;
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+
+    long startTime = System.currentTimeMillis();
+
+    List<Future<?>> futures = new ArrayList<>();
+    for (int i = 0; i < numThreads; i++) {
+        futures.add(executor.submit(() -> {
+            List<Event> events = generateEvents(eventsPerThread);
+            repo.saveBatch(events);
+        }));
+    }
+
+    // Wait for completion
+    futures.forEach(f -> {
+        try { f.get(); } catch (Exception e) { fail(e.getMessage()); }
+    });
+
+    long duration = System.currentTimeMillis() - startTime;
+    long totalEvents = numThreads * eventsPerThread;
+    double throughput = totalEvents / (duration / 1000.0);
+
+    System.out.println("Throughput: " + throughput + " events/sec");
+    assertTrue(throughput > 10000);  // Expect > 10k events/sec
+}
 ```
 
-### Duplicate key errors
-Check entity has `@Id(autoGenerated = false)`
+## 📂 Examples
 
-## 📈 Production Best Practices
+### Complete SMS Processing System
 
-1. **Choose Appropriate Repository Type**:
-   - Partitioned: Standard time-series data
-   - Multi-Table: Need complete isolation
-   - Sequential: High-performance sequential access
+```java
+// Entity definition
+@Table(name = "sms_records")
+public class SmsRecord implements ShardingEntity<LocalDateTime> {
+    @Id
+    private String messageId;
 
-2. **Set Realistic Retention**:
-   - Balance between storage and query performance
-   - Use shorter retention for high-volume data
+    @ShardingKey
+    @Column(name = "sent_at")
+    private LocalDateTime sentAt;
 
-3. **Monitor Performance**:
-   - Track partition operations
-   - Monitor connection pool usage
-   - Watch ID usage for sequential repositories
+    @Column(name = "sender")
+    private String sender;
 
-4. **Plan for Scale**:
-   - Start with single shard/table
-   - Add shards as data grows
-   - Use range reservation for distributed systems
+    @Column(name = "recipient")
+    private String recipient;
 
-## 📄 License
+    @Column(name = "message")
+    private String message;
 
-This project is proprietary software. All rights reserved.
+    @Column(name = "status")
+    private String status;
 
-## 🆘 Support
+    // Getters/setters...
+}
 
-For issues or questions:
-- Review this documentation
-- Check test cases for examples
-- Open an issue on GitHub
+// Repository setup
+public class SmsRepository {
+    private final GenericMultiTableRepository<SmsRecord> repository;
 
----
+    public SmsRepository(DatabaseConfig config) {
+        this.repository = GenericMultiTableRepository.builder(SmsRecord.class)
+            .connection(config.getHost(), config.getPort(),
+                       config.getDatabase(), config.getUser(),
+                       config.getPassword())
+            .tablePrefix("sms")
+            .shardingStrategy(ShardingStrategy.HOURLY)
+            .retentionHours(168)  // 7 days
+            .maxConnectionPoolSize(20)
+            .enableMonitoring(true)
+            .monitoringPort(9090)
+            .build();
+    }
 
-**Split-Verse**: Built for scale, designed for simplicity, enforced for correctness.
+    public void processSms(SmsRecord sms) {
+        // Save to appropriate hourly table
+        repository.save(sms);
+    }
+
+    public List<SmsRecord> getRecentMessages(String phoneNumber, int hours) {
+        LocalDateTime start = LocalDateTime.now().minusHours(hours);
+        LocalDateTime end = LocalDateTime.now();
+
+        return repository.executeQuery(
+            QueryDSL.select()
+                .all()
+                .from("@table")
+                .where("sender").eq(phoneNumber)
+                .or("recipient").eq(phoneNumber)
+                .and("@partition_col").between(start, end)
+                .orderBy("sent_at", DESC)
+                .build()
+        );
+    }
+
+    public Map<String, Long> getHourlyStats(LocalDateTime date) {
+        // Get stats for a specific day
+        LocalDateTime dayStart = date.truncatedTo(ChronoUnit.DAYS);
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+
+        List<Map<String, Object>> results = repository.executeQuery(
+            QueryDSL.select()
+                .function("DATE_FORMAT(sent_at, '%Y-%m-%d %H:00:00')", "hour")
+                .count("message_count")
+                .from("@table")
+                .where("@partition_col").between(dayStart, dayEnd)
+                .groupBy("hour")
+                .build()
+        );
+
+        return results.stream()
+            .collect(Collectors.toMap(
+                r -> (String) r.get("hour"),
+                r -> (Long) r.get("message_count")
+            ));
+    }
+}
+```
+
+### Event Sourcing System
+
+```java
+// Event entity
+@Table(name = "domain_events")
+public class DomainEvent implements ShardingEntity<LocalDateTime> {
+    @Id
+    private String eventId;
+
+    @ShardingKey
+    @Column(name = "occurred_at")
+    private LocalDateTime occurredAt;
+
+    @Column(name = "aggregate_id")
+    private String aggregateId;
+
+    @Column(name = "event_type")
+    private String eventType;
+
+    @Column(name = "event_data")
+    private String eventData;  // JSON
+
+    @Column(name = "user_id")
+    private String userId;
+
+    // Getters/setters...
+}
+
+// Event store implementation
+public class EventStore {
+    private final GenericPartitionedTableRepository<DomainEvent> repository;
+
+    public EventStore(DatabaseConfig config) {
+        this.repository = GenericPartitionedTableRepository.builder(DomainEvent.class)
+            .connection(config)
+            .tableName("domain_events")
+            .partitionRange(PartitionRange.MONTHLY)
+            .retentionMonths(24)  // 2 years
+            .futurePartitions(3)   // Create 3 months ahead
+            .build();
+    }
+
+    public void append(DomainEvent event) {
+        event.setEventId(ULID.random());
+        event.setOccurredAt(LocalDateTime.now());
+        repository.save(event);
+    }
+
+    public List<DomainEvent> getAggregateHistory(String aggregateId) {
+        return repository.executeQuery(
+            QueryDSL.select()
+                .all()
+                .from("@table")
+                .where("aggregate_id").eq(aggregateId)
+                .orderBy("occurred_at", ASC)
+                .build()
+        );
+    }
+
+    public List<DomainEvent> getEventsSince(LocalDateTime since) {
+        return repository.findByPartitionRange(since, LocalDateTime.now());
+    }
+
+    public void replayEvents(LocalDateTime from, LocalDateTime to,
+                            Consumer<DomainEvent> handler) {
+        int batchSize = 1000;
+        LocalDateTime current = from;
+
+        while (current.isBefore(to)) {
+            List<DomainEvent> events = repository.executeQuery(
+                QueryDSL.select()
+                    .all()
+                    .from("@table")
+                    .where("@partition_col").gte(current)
+                    .and("@partition_col").lt(to)
+                    .orderBy("occurred_at", ASC)
+                    .limit(batchSize)
+                    .build()
+            );
+
+            if (events.isEmpty()) break;
+
+            events.forEach(handler);
+            current = events.get(events.size() - 1).getOccurredAt();
+        }
+    }
+}
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **Table doesn't exist with autoManagePartitions=false**
+   - Ensure tables are created manually before repository initialization
+   - Check table naming matches configuration
+
+2. **Partition pruning not working**
+   - Always include partition column in WHERE clause
+   - Use `findByIdAndPartitionColRange()` instead of `findById()`
+
+3. **Connection pool exhaustion**
+   - Increase `maxConnectionPoolSize`
+   - Check for connection leaks
+   - Monitor with metrics endpoint
+
+4. **High memory usage**
+   - Use batch operations with reasonable batch sizes
+   - Stream large result sets instead of loading all
+   - Tune JVM heap settings
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+For issues, questions, or suggestions, please open an issue on GitHub.
