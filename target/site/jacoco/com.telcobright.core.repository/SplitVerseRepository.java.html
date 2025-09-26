@@ -1,0 +1,930 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SplitVerseRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.repository</a> &gt; <span class="el_source">SplitVerseRepository.java</span></div><h1>SplitVerseRepository.java</h1><pre class="source lang-java linenums">package com.telcobright.core.repository;
+
+import com.telcobright.api.ShardingRepository;
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.repository.GenericPartitionedTableRepository;
+import com.telcobright.core.repository.GenericMultiTableRepository;
+import com.telcobright.core.partition.PartitionType;
+import com.telcobright.core.partition.PartitionStrategy;
+import com.telcobright.core.partition.PartitionStrategyFactory;
+import com.telcobright.core.enums.ShardingStrategy;
+import com.telcobright.core.enums.PartitionColumnType;
+import com.telcobright.core.enums.PartitionRange;
+import com.telcobright.core.config.DataSourceConfig;
+import com.telcobright.splitverse.config.ShardConfig;
+import com.telcobright.splitverse.config.RepositoryMode;
+import com.telcobright.splitverse.routing.HashRouter;
+import com.telcobright.core.sql.SqlGeneratorByEntityRegistry;
+import com.telcobright.core.sql.SqlStatementCache;
+import com.telcobright.core.persistence.PersistenceProvider;
+import com.telcobright.core.persistence.MySQLPersistenceProvider;
+
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
+
+/**
+ * Split-Verse Repository: Infinite horizontal sharding layer.
+ *
+ * Phase 1 Implementation: Single shard wrapper with hash routing ready for expansion.
+ *
+ * @param &lt;T&gt; Entity type implementing ShardingEntity
+ * @param &lt;P&gt; Partition column value type (must be Comparable)
+ */
+public class SplitVerseRepository&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; implements ShardingRepository&lt;T, P&gt; {
+    
+    private final Map&lt;String, ShardingRepository&lt;T, P&gt;&gt; shardRepositories;
+    private final HashRouter router;
+    private final List&lt;ShardConfig&gt; shardConfigs;
+    private final Class&lt;T&gt; entityClass;
+    private final String[] shardIds;
+    private final ExecutorService executorService;
+    private final PartitionType partitionType;
+    private final String partitionKeyColumn;
+    private final SqlGeneratorByEntityRegistry sqlRegistry;
+    private final SqlStatementCache sqlCache;
+    
+<span class="nc" id="L49">    private SplitVerseRepository(Builder&lt;T, P&gt; builder) {</span>
+<span class="nc" id="L50">        this.entityClass = builder.entityClass;</span>
+<span class="nc" id="L51">        this.shardConfigs = builder.shardConfigs;</span>
+<span class="nc" id="L52">        this.partitionType = builder.getPartitionType();</span>
+<span class="nc" id="L53">        this.partitionKeyColumn = builder.getPartitionKeyColumn();</span>
+<span class="nc" id="L54">        this.shardRepositories = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L55">        this.router = new HashRouter(builder.shardConfigs.size());</span>
+<span class="nc" id="L56">        this.executorService = Executors.newFixedThreadPool(</span>
+<span class="nc" id="L57">            Math.min(builder.shardConfigs.size() * 2, 10)</span>
+        );
+<span class="nc" id="L59">        this.sqlRegistry = builder.sqlRegistry;</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        this.sqlCache = builder.sqlCache != null ? builder.sqlCache :</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">            (sqlRegistry != null ? sqlRegistry.getCache() : new SqlStatementCache());</span>
+        
+        // Initialize shard repositories
+<span class="nc" id="L64">        List&lt;String&gt; activeShardIds = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        for (ShardConfig config : shardConfigs) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">            if (config.isEnabled()) {</span>
+                try {
+<span class="nc" id="L68">                    ShardingRepository&lt;T, P&gt; shardRepo = createShardRepository(config, builder);</span>
+<span class="nc" id="L69">                    shardRepositories.put(config.getShardId(), shardRepo);</span>
+<span class="nc" id="L70">                    activeShardIds.add(config.getShardId());</span>
+<span class="nc" id="L71">                    System.out.println(&quot;[SplitVerse] Initialized shard: &quot; + config.getShardId());</span>
+<span class="nc" id="L72">                } catch (Exception e) {</span>
+<span class="nc" id="L73">                    System.err.println(&quot;[SplitVerse] Failed to initialize shard &quot; +</span>
+<span class="nc" id="L74">                        config.getShardId() + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L75">                    e.printStackTrace();</span>
+<span class="nc" id="L76">                }</span>
+            }
+<span class="nc" id="L78">        }</span>
+        
+<span class="nc" id="L80">        this.shardIds = activeShardIds.toArray(new String[0]);</span>
+        
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (shardRepositories.isEmpty()) {</span>
+<span class="nc" id="L83">            throw new IllegalStateException(&quot;No shards could be initialized&quot;);</span>
+        }
+        
+<span class="nc" id="L86">        System.out.println(&quot;[SplitVerse] Initialized with &quot; + shardRepositories.size() + </span>
+            &quot; active shard(s)&quot;);
+<span class="nc" id="L88">    }</span>
+    
+    private ShardingRepository&lt;T, P&gt; createShardRepository(ShardConfig config, Builder&lt;T, P&gt; builder) {
+        // Pass SQL cache to repositories if available
+<span class="nc" id="L92">        PersistenceProvider persistenceProvider = null;</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (sqlCache != null) {</span>
+<span class="nc" id="L94">            persistenceProvider = new MySQLPersistenceProvider(sqlCache);</span>
+        }
+        // Use table name from builder or annotation
+<span class="nc" id="L97">        String tableName = builder.tableName;</span>
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if (tableName == null || tableName.isEmpty()) {</span>
+            // Try to get from annotation
+            try {
+<span class="nc" id="L101">                com.telcobright.core.annotation.Table tableAnnotation =</span>
+<span class="nc" id="L102">                    entityClass.getAnnotation(com.telcobright.core.annotation.Table.class);</span>
+<span class="nc bnc" id="L103" title="All 4 branches missed.">                if (tableAnnotation != null &amp;&amp; !tableAnnotation.name().isEmpty()) {</span>
+<span class="nc" id="L104">                    tableName = tableAnnotation.name();</span>
+                } else {
+                    // Default from class name
+<span class="nc" id="L107">                    tableName = entityClass.getSimpleName().toLowerCase() + &quot;s&quot;;</span>
+                }
+<span class="nc" id="L109">            } catch (Exception e) {</span>
+<span class="nc" id="L110">                tableName = entityClass.getSimpleName().toLowerCase() + &quot;s&quot;;</span>
+<span class="nc" id="L111">            }</span>
+        }
+
+        // Choose repository type based on mode
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (builder.getRepositoryMode() == RepositoryMode.MULTI_TABLE) {</span>
+            // Create multi-table repository with proper partition support
+<span class="nc" id="L117">            return GenericMultiTableRepository.&lt;T, P&gt;builder(entityClass)</span>
+<span class="nc" id="L118">                .host(config.getHost())</span>
+<span class="nc" id="L119">                .port(config.getPort())</span>
+<span class="nc" id="L120">                .database(config.getDatabase())</span>
+<span class="nc" id="L121">                .username(config.getUsername())</span>
+<span class="nc" id="L122">                .password(config.getPassword())</span>
+<span class="nc" id="L123">                .baseTableName(tableName)</span>
+<span class="nc" id="L124">                .tableRetentionDays(builder.getRetentionDays())</span>
+<span class="nc" id="L125">                .tableGranularity(builder.getTableGranularity())</span>
+<span class="nc" id="L126">                .partitionRange(builder.getPartitionRange())</span>
+<span class="nc" id="L127">                .partitionColumn(builder.getPartitionColumn())</span>
+<span class="nc" id="L128">                .partitionColumnType(builder.getPartitionColumnType())</span>
+<span class="nc" id="L129">                .autoCreateTables(true)</span>
+<span class="nc" id="L130">                .charset(builder.getCharset())</span>
+<span class="nc" id="L131">                .collation(builder.getCollation())</span>
+<span class="nc" id="L132">                .persistenceProvider(persistenceProvider)</span>
+<span class="nc" id="L133">                .withNestedPartitions(builder.isNestedPartitionsEnabled())</span>
+<span class="nc" id="L134">                .withNestedPartitionCount(builder.getNestedPartitionCount())</span>
+<span class="nc" id="L135">                .build();</span>
+        } else {
+            // Create partitioned repository (single table with partitions)
+<span class="nc" id="L138">            return GenericPartitionedTableRepository.&lt;T, P&gt;builder(entityClass)</span>
+<span class="nc" id="L139">                .host(config.getHost())</span>
+<span class="nc" id="L140">                .port(config.getPort())</span>
+<span class="nc" id="L141">                .database(config.getDatabase())</span>
+<span class="nc" id="L142">                .username(config.getUsername())</span>
+<span class="nc" id="L143">                .password(config.getPassword())</span>
+<span class="nc" id="L144">                .tableName(tableName)</span>
+<span class="nc" id="L145">                .partitionRetentionPeriod(builder.getRetentionDays())</span>
+<span class="nc" id="L146">                .withPartitionType(builder.getPartitionType())</span>
+<span class="nc" id="L147">                .withPartitionKeyColumn(builder.getPartitionKeyColumn())</span>
+<span class="nc" id="L148">                .charset(builder.getCharset())</span>
+<span class="nc" id="L149">                .collation(builder.getCollation())</span>
+<span class="nc" id="L150">                .build();</span>
+        }
+    }
+    
+    private ShardingRepository&lt;T, P&gt; getShardForKey(String key) {
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        if (shardRepositories.size() == 1) {</span>
+            // Optimization for single shard
+<span class="nc" id="L157">            return shardRepositories.values().iterator().next();</span>
+        }
+        
+<span class="nc" id="L160">        String shardId = router.getShardId(key, shardIds);</span>
+<span class="nc" id="L161">        ShardingRepository&lt;T, P&gt; repo = shardRepositories.get(shardId);</span>
+        
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (repo == null) {</span>
+<span class="nc" id="L164">            throw new IllegalStateException(&quot;Shard not available: &quot; + shardId);</span>
+        }
+        
+<span class="nc" id="L167">        return repo;</span>
+    }
+    
+    @Override
+    public void insert(T entity) throws SQLException {
+<span class="nc" id="L172">        String id = entity.getId();</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L174">            throw new IllegalArgumentException(&quot;Entity ID cannot be null. IDs must be generated externally.&quot;);</span>
+        }
+        
+<span class="nc" id="L177">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="nc" id="L178">        targetShard.insert(entity);</span>
+<span class="nc" id="L179">    }</span>
+    
+    @Override
+    public void insertMultiple(List&lt;T&gt; entities) throws SQLException {
+<span class="nc bnc" id="L183" title="All 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
+<span class="nc" id="L184">            return;</span>
+        }
+        
+        // Group entities by shard
+<span class="nc" id="L188">        Map&lt;String, List&lt;T&gt;&gt; entitiesByShard = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        for (T entity : entities) {</span>
+<span class="nc" id="L190">            String id = entity.getId();</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">            if (id == null) {</span>
+<span class="nc" id="L192">                throw new IllegalArgumentException(&quot;Entity ID cannot be null&quot;);</span>
+            }
+            
+<span class="nc" id="L195">            String shardId = router.getShardId(id, shardIds);</span>
+<span class="nc" id="L196">            entitiesByShard.computeIfAbsent(shardId, k -&gt; new ArrayList&lt;&gt;()).add(entity);</span>
+<span class="nc" id="L197">        }</span>
+        
+        // Insert into each shard (can be parallelized in future)
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        for (Map.Entry&lt;String, List&lt;T&gt;&gt; entry : entitiesByShard.entrySet()) {</span>
+<span class="nc" id="L201">            ShardingRepository&lt;T, P&gt; shard = shardRepositories.get(entry.getKey());</span>
+<span class="nc" id="L202">            shard.insertMultiple(entry.getValue());</span>
+<span class="nc" id="L203">        }</span>
+<span class="nc" id="L204">    }</span>
+    
+    @Override
+    public T findById(String id) throws SQLException {
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L209">            return null;</span>
+        }
+        
+<span class="nc" id="L212">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="nc" id="L213">        return targetShard.findById(id);</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllByPartitionRange(P startValue, P endValue) throws SQLException {
+        // Fan-out query to all shards
+<span class="nc bnc" id="L219" title="All 2 branches missed.">        if (shardRepositories.size() == 1) {</span>
+            // Optimization for single shard
+<span class="nc" id="L221">            return shardRepositories.values().iterator().next()</span>
+<span class="nc" id="L222">                .findAllByPartitionRange(startValue, endValue);</span>
+        }
+        
+        // Parallel query execution for multiple shards
+<span class="nc" id="L226">        List&lt;CompletableFuture&lt;List&lt;T&gt;&gt;&gt; futures = shardRepositories.values().stream()</span>
+<span class="nc" id="L227">            .map(shard -&gt; CompletableFuture.supplyAsync(() -&gt; {</span>
+                try {
+<span class="nc" id="L229">                    return shard.findAllByPartitionRange(startValue, endValue);</span>
+<span class="nc" id="L230">                } catch (SQLException e) {</span>
+<span class="nc" id="L231">                    throw new CompletionException(e);</span>
+                }
+            }, executorService))
+<span class="nc" id="L234">            .collect(Collectors.toList());</span>
+        
+        try {
+<span class="nc" id="L237">            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))</span>
+<span class="nc" id="L238">                .thenApply(v -&gt; futures.stream()</span>
+<span class="nc" id="L239">                    .map(CompletableFuture::join)</span>
+<span class="nc" id="L240">                    .flatMap(List::stream)</span>
+<span class="nc" id="L241">                    .collect(Collectors.toList()))</span>
+<span class="nc" id="L242">                .get();</span>
+<span class="nc" id="L243">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L244">            throw new SQLException(&quot;Failed to query shards&quot;, e);</span>
+        }
+    }
+    
+    @Override
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+        // Fan-out to all shards, return first found
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        for (ShardingRepository&lt;T, P&gt; shard : shardRepositories.values()) {</span>
+<span class="nc" id="L252">            T result = shard.findByIdAndPartitionColRange(id, startValue, endValue);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">            if (result != null) {</span>
+<span class="nc" id="L254">                return result;</span>
+            }
+<span class="nc" id="L256">        }</span>
+<span class="nc" id="L257">        return null;</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllByIdsAndPartitionColRange(List&lt;String&gt; ids, P startValue,
+                                                  P endValue) throws SQLException {
+<span class="nc bnc" id="L263" title="All 4 branches missed.">        if (ids == null || ids.isEmpty()) {</span>
+<span class="nc" id="L264">            return new ArrayList&lt;&gt;();</span>
+        }
+        
+        // Group IDs by shard
+<span class="nc" id="L268">        Map&lt;String, List&lt;String&gt;&gt; idsByShard = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        for (String id : ids) {</span>
+<span class="nc" id="L270">            String shardId = router.getShardId(id, shardIds);</span>
+<span class="nc" id="L271">            idsByShard.computeIfAbsent(shardId, k -&gt; new ArrayList&lt;&gt;()).add(id);</span>
+<span class="nc" id="L272">        }</span>
+        
+        // Query each shard with its IDs
+<span class="nc" id="L275">        List&lt;T&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        for (Map.Entry&lt;String, List&lt;String&gt;&gt; entry : idsByShard.entrySet()) {</span>
+<span class="nc" id="L277">            ShardingRepository&lt;T, P&gt; shard = shardRepositories.get(entry.getKey());</span>
+<span class="nc" id="L278">            results.addAll(shard.findAllByIdsAndPartitionColRange(entry.getValue(), startValue, endValue));</span>
+<span class="nc" id="L279">        }</span>
+        
+<span class="nc" id="L281">        return results;</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllBeforePartitionValue(P beforeValue) throws SQLException {
+        // Fan-out query to all shards
+<span class="nc" id="L287">        return fanOutQuery(shard -&gt; shard.findAllBeforePartitionValue(beforeValue));</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllAfterPartitionValue(P afterValue) throws SQLException {
+        // Fan-out query to all shards
+<span class="nc" id="L293">        return fanOutQuery(shard -&gt; shard.findAllAfterPartitionValue(afterValue));</span>
+    }
+    
+    @Override
+    public void updateById(String id, T entity) throws SQLException {
+<span class="nc bnc" id="L298" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L299">            throw new IllegalArgumentException(&quot;ID cannot be null&quot;);</span>
+        }
+        
+<span class="nc" id="L302">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="nc" id="L303">        targetShard.updateById(id, entity);</span>
+<span class="nc" id="L304">    }</span>
+    
+    @Override
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue,
+                                            P endValue) throws SQLException {
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L310">            throw new IllegalArgumentException(&quot;ID cannot be null&quot;);</span>
+        }
+        
+<span class="nc" id="L313">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="nc" id="L314">        targetShard.updateByIdAndPartitionColRange(id, entity, startValue, endValue);</span>
+<span class="nc" id="L315">    }</span>
+    
+    @Override
+    public T findOneByIdGreaterThan(String id) throws SQLException {
+        // For single shard, direct delegation
+<span class="nc bnc" id="L320" title="All 2 branches missed.">        if (shardRepositories.size() == 1) {</span>
+<span class="nc" id="L321">            return shardRepositories.values().iterator().next().findOneByIdGreaterThan(id);</span>
+        }
+        
+        // For multiple shards, need to query all and find minimum
+<span class="nc" id="L325">        T result = null;</span>
+<span class="nc bnc" id="L326" title="All 2 branches missed.">        for (ShardingRepository&lt;T, P&gt; shard : shardRepositories.values()) {</span>
+<span class="nc" id="L327">            T candidate = shard.findOneByIdGreaterThan(id);</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">            if (candidate != null) {</span>
+<span class="nc bnc" id="L329" title="All 4 branches missed.">                if (result == null || compareIds(candidate.getId(), result.getId()) &lt; 0) {</span>
+<span class="nc" id="L330">                    result = candidate;</span>
+                }
+            }
+<span class="nc" id="L333">        }</span>
+<span class="nc" id="L334">        return result;</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findBatchByIdGreaterThan(String id, int batchSize) throws SQLException {
+        // For single shard, direct delegation with optimization
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (shardRepositories.size() == 1) {</span>
+            // Single shard: can use direct LIMIT/OFFSET in SQL for efficiency
+<span class="nc" id="L342">            return shardRepositories.values().iterator().next()</span>
+<span class="nc" id="L343">                .findBatchByIdGreaterThan(id, batchSize);</span>
+        }
+
+        // For multiple shards, proper cross-shard pagination is complex
+<span class="nc" id="L347">        throw new UnsupportedOperationException(</span>
+            &quot;Cross-shard pagination is not yet implemented for multiple shards. &quot; +
+<span class="nc" id="L349">            &quot;Current configuration has &quot; + shardRepositories.size() + &quot; shards. &quot; +</span>
+            &quot;Please use a single shard configuration or implement cursor-based pagination.&quot;
+        );
+
+        /* Future implementation for multi-shard pagination:
+         * 1. Query each shard with: SELECT * WHERE id &gt; ? ORDER BY id LIMIT (offset + batchSize)
+         * 2. Merge all results maintaining sort order
+         * 3. Apply pagination window to get the requested batch
+         * 4. Consider using CrossShardPaginator class for this
+         */
+    }
+    
+    @Override
+    public void deleteById(String id) throws SQLException {
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L364">            throw new IllegalArgumentException(&quot;ID cannot be null&quot;);</span>
+        }
+
+<span class="nc" id="L367">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="nc" id="L368">        targetShard.deleteById(id);</span>
+<span class="nc" id="L369">    }</span>
+
+    @Override
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L374">            throw new IllegalArgumentException(&quot;ID cannot be null&quot;);</span>
+        }
+
+<span class="nc" id="L377">        ShardingRepository&lt;T, P&gt; targetShard = getShardForKey(id);</span>
+<span class="nc" id="L378">        targetShard.deleteByIdAndPartitionColRange(id, startValue, endValue);</span>
+<span class="nc" id="L379">    }</span>
+
+    @Override
+    public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
+        // Fan-out delete to all shards
+<span class="nc bnc" id="L384" title="All 2 branches missed.">        for (ShardingRepository&lt;T, P&gt; shard : shardRepositories.values()) {</span>
+<span class="nc" id="L385">            shard.deleteAllByPartitionRange(startValue, endValue);</span>
+<span class="nc" id="L386">        }</span>
+<span class="nc" id="L387">    }</span>
+
+    @Override
+    public void shutdown() {
+<span class="nc" id="L391">        System.out.println(&quot;[SplitVerse] Shutting down...&quot;);</span>
+        
+        // Shutdown all shard repositories
+<span class="nc bnc" id="L394" title="All 2 branches missed.">        for (Map.Entry&lt;String, ShardingRepository&lt;T, P&gt;&gt; entry : shardRepositories.entrySet()) {</span>
+            try {
+<span class="nc" id="L396">                entry.getValue().shutdown();</span>
+<span class="nc" id="L397">                System.out.println(&quot;[SplitVerse] Shut down shard: &quot; + entry.getKey());</span>
+<span class="nc" id="L398">            } catch (Exception e) {</span>
+<span class="nc" id="L399">                System.err.println(&quot;[SplitVerse] Error shutting down shard &quot; + </span>
+<span class="nc" id="L400">                    entry.getKey() + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L401">            }</span>
+<span class="nc" id="L402">        }</span>
+        
+        // Shutdown executor service immediately
+<span class="nc" id="L405">        executorService.shutdownNow();</span>
+        try {
+            // Wait only 1 second for termination
+<span class="nc bnc" id="L408" title="All 2 branches missed.">            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {</span>
+<span class="nc" id="L409">                executorService.shutdownNow();</span>
+            }
+<span class="nc" id="L411">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L412">            executorService.shutdownNow();</span>
+<span class="nc" id="L413">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L414">        }</span>
+        
+<span class="nc" id="L416">        System.out.println(&quot;[SplitVerse] Shutdown complete&quot;);</span>
+<span class="nc" id="L417">    }</span>
+    
+    // Helper method for fan-out queries
+    private List&lt;T&gt; fanOutQuery(ShardQueryFunction&lt;T, P&gt; queryFunction) throws SQLException {
+<span class="nc bnc" id="L421" title="All 2 branches missed.">        if (shardRepositories.size() == 1) {</span>
+<span class="nc" id="L422">            return queryFunction.query(shardRepositories.values().iterator().next());</span>
+        }
+        
+<span class="nc" id="L425">        List&lt;CompletableFuture&lt;List&lt;T&gt;&gt;&gt; futures = shardRepositories.values().stream()</span>
+<span class="nc" id="L426">            .map(shard -&gt; CompletableFuture.supplyAsync(() -&gt; {</span>
+                try {
+<span class="nc" id="L428">                    return queryFunction.query(shard);</span>
+<span class="nc" id="L429">                } catch (SQLException e) {</span>
+<span class="nc" id="L430">                    throw new CompletionException(e);</span>
+                }
+            }, executorService))
+<span class="nc" id="L433">            .collect(Collectors.toList());</span>
+        
+        try {
+<span class="nc" id="L436">            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))</span>
+<span class="nc" id="L437">                .thenApply(v -&gt; futures.stream()</span>
+<span class="nc" id="L438">                    .map(CompletableFuture::join)</span>
+<span class="nc" id="L439">                    .flatMap(List::stream)</span>
+<span class="nc" id="L440">                    .collect(Collectors.toList()))</span>
+<span class="nc" id="L441">                .get();</span>
+<span class="nc" id="L442">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L443">            throw new SQLException(&quot;Failed to query shards&quot;, e);</span>
+        }
+    }
+    
+    
+    // Helper method to compare String IDs
+    private int compareIds(String id1, String id2) {
+<span class="nc" id="L450">        return id1.compareTo(id2);</span>
+    }
+    
+    // Functional interface for shard queries
+    @FunctionalInterface
+    private interface ShardQueryFunction&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; {
+        List&lt;T&gt; query(ShardingRepository&lt;T, P&gt; shard) throws SQLException;
+    }
+    
+    // Builder
+    public static &lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; Builder&lt;T, P&gt; builder() {
+<span class="nc" id="L461">        return new Builder&lt;T, P&gt;();</span>
+    }
+    
+<span class="nc" id="L464">    public static class Builder&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; {</span>
+<span class="nc" id="L465">        private List&lt;ShardConfig&gt; shardConfigs = new ArrayList&lt;&gt;();</span>
+        private Class&lt;T&gt; entityClass;
+        private String tableName;
+<span class="nc" id="L468">        private RepositoryMode repositoryMode = RepositoryMode.MULTI_TABLE; // Default to multi-table</span>
+
+        // New design fields
+<span class="nc" id="L471">        private ShardingStrategy shardingStrategy = ShardingStrategy.SINGLE_KEY_HASH; // Default</span>
+        private String partitionColumn;
+        private PartitionColumnType partitionColumnType;
+        private PartitionRange partitionRange;
+
+        // Legacy fields for backward compatibility
+<span class="nc" id="L477">        private PartitionType partitionType = PartitionType.DATE_BASED; // Default for partitioned mode</span>
+<span class="nc" id="L478">        private String partitionKeyColumn = &quot;created_at&quot;; // Default for date-based</span>
+<span class="nc" id="L479">        private GenericMultiTableRepository.TableGranularity tableGranularity =</span>
+            GenericMultiTableRepository.TableGranularity.DAILY; // Default for multi-table mode
+<span class="nc" id="L481">        private int retentionDays = 30; // Default retention period</span>
+<span class="nc" id="L482">        private String charset = &quot;utf8mb4&quot;; // Default charset</span>
+<span class="nc" id="L483">        private String collation = &quot;utf8mb4_bin&quot;; // Default collation</span>
+<span class="nc" id="L484">        private int idSize = 22; // Default ID size</span>
+        private SqlGeneratorByEntityRegistry sqlRegistry;
+        private SqlStatementCache sqlCache;
+<span class="nc" id="L487">        private PersistenceProvider.DatabaseType databaseType = PersistenceProvider.DatabaseType.MYSQL;</span>
+<span class="nc" id="L488">        private boolean pregenerateSql = false;</span>
+
+        // Nested partition support
+<span class="nc" id="L491">        private boolean nestedPartitionsEnabled = false;</span>
+<span class="nc" id="L492">        private int nestedPartitionCount = 20; // Default for non-date types</span>
+
+        public Builder&lt;T, P&gt; withSingleShard(ShardConfig config) {
+<span class="nc" id="L495">            this.shardConfigs = Collections.singletonList(config);</span>
+<span class="nc" id="L496">            return this;</span>
+        }
+        
+        public Builder&lt;T, P&gt; withShardConfigs(List&lt;ShardConfig&gt; configs) {
+<span class="nc" id="L500">            this.shardConfigs = configs;</span>
+<span class="nc" id="L501">            return this;</span>
+        }
+        
+        public Builder&lt;T, P&gt; withEntityClass(Class&lt;T&gt; entityClass) {
+<span class="nc" id="L505">            this.entityClass = entityClass;</span>
+<span class="nc" id="L506">            return this;</span>
+        }
+        
+        /**
+         * Set the partition type for tables within each shard.
+         * Default is DATE_BASED. Other types are not yet implemented.
+         * 
+         * @param partitionType Type of partitioning to use
+         * @return Builder instance
+         * @throws UnsupportedOperationException if partition type is not implemented
+         */
+        public Builder&lt;T, P&gt; withPartitionType(PartitionType partitionType) {
+<span class="nc bnc" id="L518" title="All 2 branches missed.">            if (partitionType == null) {</span>
+<span class="nc" id="L519">                throw new IllegalArgumentException(&quot;Partition type cannot be null&quot;);</span>
+            }
+            // Validate that the partition type is supported
+<span class="nc" id="L522">            partitionType.validateSupported();</span>
+<span class="nc" id="L523">            this.partitionType = partitionType;</span>
+<span class="nc" id="L524">            return this;</span>
+        }
+        
+        /**
+         * Set the column to use for partitioning.
+         * For DATE_BASED, this should be a LocalDateTime column (default: &quot;created_at&quot;).
+         * 
+         * @param columnName Name of the column to partition by
+         * @return Builder instance
+         */
+        public Builder&lt;T, P&gt; withPartitionKeyColumn(String columnName) {
+<span class="nc bnc" id="L535" title="All 4 branches missed.">            if (columnName == null || columnName.trim().isEmpty()) {</span>
+<span class="nc" id="L536">                throw new IllegalArgumentException(&quot;Partition key column cannot be null or empty&quot;);</span>
+            }
+<span class="nc" id="L538">            this.partitionKeyColumn = columnName;</span>
+<span class="nc" id="L539">            return this;</span>
+        }
+
+        /**
+         * Set the repository mode (PARTITIONED or MULTI_TABLE).
+         * Default is PARTITIONED.
+         */
+        public Builder&lt;T, P&gt; withRepositoryMode(RepositoryMode mode) {
+<span class="nc bnc" id="L547" title="All 2 branches missed.">            if (mode == null) {</span>
+<span class="nc" id="L548">                throw new IllegalArgumentException(&quot;Repository mode cannot be null&quot;);</span>
+            }
+<span class="nc" id="L550">            this.repositoryMode = mode;</span>
+<span class="nc" id="L551">            return this;</span>
+        }
+
+        /**
+         * Set the table granularity for multi-table mode.
+         * Only applies when repository mode is MULTI_TABLE.
+         */
+        public Builder&lt;T, P&gt; withTableGranularity(GenericMultiTableRepository.TableGranularity granularity) {
+<span class="nc bnc" id="L559" title="All 2 branches missed.">            if (granularity == null) {</span>
+<span class="nc" id="L560">                throw new IllegalArgumentException(&quot;Table granularity cannot be null&quot;);</span>
+            }
+<span class="nc" id="L562">            this.tableGranularity = granularity;</span>
+<span class="nc" id="L563">            return this;</span>
+        }
+
+        /**
+         * Set the retention period in days.
+         * Applies to both partitioned and multi-table modes.
+         */
+        public Builder&lt;T, P&gt; withRetentionDays(int days) {
+<span class="nc bnc" id="L571" title="All 2 branches missed.">            if (days &lt; 1) {</span>
+<span class="nc" id="L572">                throw new IllegalArgumentException(&quot;Retention days must be at least 1&quot;);</span>
+            }
+<span class="nc" id="L574">            this.retentionDays = days;</span>
+<span class="nc" id="L575">            return this;</span>
+        }
+
+        /**
+         * Set the character set for tables.
+         */
+        public Builder&lt;T, P&gt; withCharset(String charset) {
+<span class="nc bnc" id="L582" title="All 4 branches missed.">            if (charset != null &amp;&amp; !charset.trim().isEmpty()) {</span>
+<span class="nc" id="L583">                this.charset = charset;</span>
+            }
+<span class="nc" id="L585">            return this;</span>
+        }
+
+        /**
+         * Set the collation for tables.
+         */
+        public Builder&lt;T, P&gt; withCollation(String collation) {
+<span class="nc bnc" id="L592" title="All 4 branches missed.">            if (collation != null &amp;&amp; !collation.trim().isEmpty()) {</span>
+<span class="nc" id="L593">                this.collation = collation;</span>
+            }
+<span class="nc" id="L595">            return this;</span>
+        }
+
+        // New API methods
+
+        /**
+         * Set the table name for the entities.
+         */
+        public Builder&lt;T, P&gt; withTableName(String tableName) {
+<span class="nc bnc" id="L604" title="All 4 branches missed.">            if (tableName == null || tableName.trim().isEmpty()) {</span>
+<span class="nc" id="L605">                throw new IllegalArgumentException(&quot;Table name cannot be null or empty&quot;);</span>
+            }
+<span class="nc" id="L607">            this.tableName = tableName;</span>
+<span class="nc" id="L608">            return this;</span>
+        }
+
+        /**
+         * Set the sharding strategy.
+         */
+        public Builder&lt;T, P&gt; withShardingStrategy(ShardingStrategy strategy) {
+<span class="nc bnc" id="L615" title="All 2 branches missed.">            if (strategy == null) {</span>
+<span class="nc" id="L616">                throw new IllegalArgumentException(&quot;Sharding strategy cannot be null&quot;);</span>
+            }
+<span class="nc" id="L618">            this.shardingStrategy = strategy;</span>
+<span class="nc" id="L619">            return this;</span>
+        }
+
+        /**
+         * Set the partition column name and type.
+         * Required for DUAL_KEY strategies.
+         */
+        public Builder&lt;T, P&gt; withPartitionColumn(String columnName, PartitionColumnType columnType) {
+<span class="nc bnc" id="L627" title="All 2 branches missed.">            if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {</span>
+<span class="nc bnc" id="L628" title="All 4 branches missed.">                if (columnName == null || columnName.trim().isEmpty()) {</span>
+<span class="nc" id="L629">                    throw new IllegalArgumentException(&quot;Partition column name required for DUAL_KEY strategies&quot;);</span>
+                }
+<span class="nc bnc" id="L631" title="All 2 branches missed.">                if (columnType == null) {</span>
+<span class="nc" id="L632">                    throw new IllegalArgumentException(&quot;Partition column type required for DUAL_KEY strategies&quot;);</span>
+                }
+            }
+<span class="nc" id="L635">            this.partitionColumn = columnName;</span>
+<span class="nc" id="L636">            this.partitionColumnType = columnType;</span>
+
+            // Set legacy fields for compatibility
+<span class="nc" id="L639">            this.partitionKeyColumn = columnName;</span>
+<span class="nc" id="L640">            return this;</span>
+        }
+
+        /**
+         * Set the partition range.
+         */
+        public Builder&lt;T, P&gt; withPartitionRange(PartitionRange range) {
+<span class="nc bnc" id="L647" title="All 2 branches missed.">            if (range == null) {</span>
+<span class="nc" id="L648">                throw new IllegalArgumentException(&quot;Partition range cannot be null&quot;);</span>
+            }
+<span class="nc" id="L650">            this.partitionRange = range;</span>
+
+            // Map to legacy table granularity for compatibility
+<span class="nc bnc" id="L653" title="All 2 branches missed.">            if (range == PartitionRange.HOURLY) {</span>
+<span class="nc" id="L654">                this.tableGranularity = GenericMultiTableRepository.TableGranularity.HOURLY;</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">            } else if (range == PartitionRange.DAILY) {</span>
+<span class="nc" id="L656">                this.tableGranularity = GenericMultiTableRepository.TableGranularity.DAILY;</span>
+<span class="nc bnc" id="L657" title="All 2 branches missed.">            } else if (range == PartitionRange.MONTHLY) {</span>
+<span class="nc" id="L658">                this.tableGranularity = GenericMultiTableRepository.TableGranularity.MONTHLY;</span>
+            }
+<span class="nc" id="L660">            return this;</span>
+        }
+
+        /**
+         * Set the ID field size (8-22 bytes).
+         */
+        public Builder&lt;T, P&gt; withIdSize(int size) {
+<span class="nc bnc" id="L667" title="All 4 branches missed.">            if (size &lt; 8 || size &gt; 22) {</span>
+<span class="nc" id="L668">                throw new IllegalArgumentException(&quot;ID size must be between 8 and 22 bytes&quot;);</span>
+            }
+<span class="nc" id="L670">            this.idSize = size;</span>
+<span class="nc" id="L671">            return this;</span>
+        }
+
+        /**
+         * Configure data sources for sharding.
+         */
+        public Builder&lt;T, P&gt; withDataSources(List&lt;DataSourceConfig&gt; dataSources) {
+<span class="nc bnc" id="L678" title="All 4 branches missed.">            if (dataSources == null || dataSources.isEmpty()) {</span>
+<span class="nc" id="L679">                throw new IllegalArgumentException(&quot;At least one data source is required&quot;);</span>
+            }
+
+            // Convert DataSourceConfig to ShardConfig
+<span class="nc" id="L683">            this.shardConfigs = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L684" title="All 2 branches missed.">            for (int i = 0; i &lt; dataSources.size(); i++) {</span>
+<span class="nc" id="L685">                DataSourceConfig ds = dataSources.get(i);</span>
+<span class="nc" id="L686">                ShardConfig shardConfig = ShardConfig.builder()</span>
+<span class="nc" id="L687">                    .shardId(&quot;shard-&quot; + i)</span>
+<span class="nc" id="L688">                    .host(ds.getHost())</span>
+<span class="nc" id="L689">                    .port(ds.getPort())</span>
+<span class="nc" id="L690">                    .database(ds.getDatabase())</span>
+<span class="nc" id="L691">                    .username(ds.getUsername())</span>
+<span class="nc" id="L692">                    .password(ds.getPassword())</span>
+<span class="nc" id="L693">                    .enabled(true)</span>
+<span class="nc" id="L694">                    .build();</span>
+<span class="nc" id="L695">                this.shardConfigs.add(shardConfig);</span>
+            }
+<span class="nc" id="L697">            return this;</span>
+        }
+
+        /**
+         * Enable nested partitions within each table.
+         * When enabled, each table will have native database partitions for better query performance.
+         * For date-based tables, defaults to 24 hourly partitions.
+         * For other types, defaults to 20 partitions.
+         */
+        public Builder&lt;T, P&gt; withNestedPartitions(boolean enabled) {
+<span class="nc" id="L707">            this.nestedPartitionsEnabled = enabled;</span>
+<span class="nc" id="L708">            return this;</span>
+        }
+
+        /**
+         * Set the number of nested partitions per table.
+         * Only applicable when nested partitions are enabled.
+         * For date-based tables, use 24 for hourly partitions.
+         * For other types, default is 20.
+         */
+        public Builder&lt;T, P&gt; withNestedPartitionCount(int count) {
+<span class="nc bnc" id="L718" title="All 4 branches missed.">            if (count &lt; 1 || count &gt; 1024) {</span>
+<span class="nc" id="L719">                throw new IllegalArgumentException(&quot;Nested partition count must be between 1 and 1024&quot;);</span>
+            }
+<span class="nc" id="L721">            this.nestedPartitionCount = count;</span>
+<span class="nc" id="L722">            return this;</span>
+        }
+
+        /**
+         * Set partition range (for compatibility with test).
+         */
+        public Builder&lt;T, P&gt; withPartitionRange(String range) {
+            // Map string to PartitionRange enum
+            try {
+<span class="nc" id="L731">                this.partitionRange = PartitionRange.valueOf(range);</span>
+<span class="nc" id="L732">            } catch (IllegalArgumentException e) {</span>
+                // If not a valid enum, treat as custom range
+                // For now, just log and continue
+<span class="nc" id="L735">            }</span>
+<span class="nc" id="L736">            return this;</span>
+        }
+
+        /**
+         * Enable SQL pre-generation for better performance.
+         * SQL statements will be generated at startup for batch sizes: 10, 100, 1000, 5000.
+         */
+        public Builder&lt;T, P&gt; withSqlPregeneration() {
+<span class="nc" id="L744">            this.pregenerateSql = true;</span>
+<span class="nc" id="L745">            return this;</span>
+        }
+
+        /**
+         * Set the database type for SQL generation.
+         * Default is MySQL.
+         */
+        public Builder&lt;T, P&gt; withDatabaseType(PersistenceProvider.DatabaseType dbType) {
+<span class="nc bnc" id="L753" title="All 2 branches missed.">            if (dbType == null) {</span>
+<span class="nc" id="L754">                throw new IllegalArgumentException(&quot;Database type cannot be null&quot;);</span>
+            }
+<span class="nc" id="L756">            this.databaseType = dbType;</span>
+<span class="nc" id="L757">            return this;</span>
+        }
+
+        /**
+         * Provide a custom SQL statement cache.
+         * If not provided and SQL pre-generation is enabled, a new cache will be created.
+         */
+        public Builder&lt;T, P&gt; withSqlCache(SqlStatementCache cache) {
+<span class="nc" id="L765">            this.sqlCache = cache;</span>
+<span class="nc" id="L766">            return this;</span>
+        }
+
+        /**
+         * Provide a custom SQL generator registry.
+         * This allows sharing the registry across multiple repositories.
+         */
+        public Builder&lt;T, P&gt; withSqlRegistry(SqlGeneratorByEntityRegistry registry) {
+<span class="nc" id="L774">            this.sqlRegistry = registry;</span>
+<span class="nc" id="L775">            return this;</span>
+        }
+
+        public SplitVerseRepository&lt;T, P&gt; build() {
+            // Validate required fields
+<span class="nc bnc" id="L780" title="All 2 branches missed.">            if (shardConfigs.isEmpty()) {</span>
+<span class="nc" id="L781">                throw new IllegalArgumentException(&quot;At least one shard configuration is required&quot;);</span>
+            }
+<span class="nc bnc" id="L783" title="All 2 branches missed.">            if (entityClass == null) {</span>
+<span class="nc" id="L784">                throw new IllegalArgumentException(&quot;Entity class is required&quot;);</span>
+            }
+
+            // Validate sharding strategy requirements
+<span class="nc bnc" id="L788" title="All 2 branches missed.">            if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {</span>
+<span class="nc bnc" id="L789" title="All 4 branches missed.">                if (partitionColumn == null || partitionColumn.trim().isEmpty()) {</span>
+<span class="nc" id="L790">                    throw new IllegalArgumentException(&quot;Partition column required for &quot; + shardingStrategy);</span>
+                }
+<span class="nc bnc" id="L792" title="All 2 branches missed.">                if (partitionColumnType == null) {</span>
+<span class="nc" id="L793">                    throw new IllegalArgumentException(&quot;Partition column type required for &quot; + shardingStrategy);</span>
+                }
+<span class="nc bnc" id="L795" title="All 2 branches missed.">                if (partitionRange == null) {</span>
+<span class="nc" id="L796">                    throw new IllegalArgumentException(&quot;Partition range required for &quot; + shardingStrategy);</span>
+                }
+            }
+
+            // Validate partition type is supported (legacy)
+<span class="nc" id="L801">            partitionType.validateSupported();</span>
+
+            // Log the configuration
+<span class="nc" id="L804">            System.out.println(&quot;[SplitVerse] Building repository with:&quot;);</span>
+<span class="nc" id="L805">            System.out.println(&quot;  Entity: &quot; + entityClass.getSimpleName());</span>
+<span class="nc bnc" id="L806" title="All 2 branches missed.">            System.out.println(&quot;  Table: &quot; + (tableName != null ? tableName : &quot;auto-detect&quot;));</span>
+<span class="nc" id="L807">            System.out.println(&quot;  Sharding Strategy: &quot; + shardingStrategy);</span>
+<span class="nc" id="L808">            System.out.println(&quot;  Repository Mode: &quot; + repositoryMode);</span>
+
+<span class="nc bnc" id="L810" title="All 2 branches missed.">            if (shardingStrategy != ShardingStrategy.SINGLE_KEY_HASH) {</span>
+<span class="nc" id="L811">                System.out.println(&quot;  Partition Column: &quot; + partitionColumn + &quot; (&quot; + partitionColumnType + &quot;)&quot;);</span>
+<span class="nc" id="L812">                System.out.println(&quot;  Partition Range: &quot; + partitionRange);</span>
+            }
+
+<span class="nc bnc" id="L815" title="All 2 branches missed.">            if (repositoryMode == RepositoryMode.PARTITIONED) {</span>
+<span class="nc" id="L816">                System.out.println(&quot;  Partition Type: &quot; + partitionType);</span>
+<span class="nc" id="L817">                System.out.println(&quot;  Partition Key Column: &quot; + partitionKeyColumn);</span>
+            } else {
+<span class="nc" id="L819">                System.out.println(&quot;  Table Granularity: &quot; + tableGranularity);</span>
+            }
+
+<span class="nc" id="L822">            System.out.println(&quot;  Retention Days: &quot; + retentionDays);</span>
+<span class="nc" id="L823">            System.out.println(&quot;  ID Size: &quot; + idSize + &quot; bytes&quot;);</span>
+<span class="nc" id="L824">            System.out.println(&quot;  Charset: &quot; + charset + &quot;, Collation: &quot; + collation);</span>
+<span class="nc" id="L825">            System.out.println(&quot;  Shards: &quot; + shardConfigs.size());</span>
+
+            // Handle SQL pre-generation if enabled
+<span class="nc bnc" id="L828" title="All 2 branches missed.">            if (pregenerateSql) {</span>
+<span class="nc bnc" id="L829" title="All 2 branches missed.">                if (sqlRegistry == null) {</span>
+<span class="nc" id="L830">                    sqlRegistry = new SqlGeneratorByEntityRegistry();</span>
+                }
+<span class="nc bnc" id="L832" title="All 2 branches missed.">                if (sqlCache == null) {</span>
+<span class="nc" id="L833">                    sqlCache = new SqlStatementCache();</span>
+                }
+<span class="nc" id="L835">                sqlRegistry.setCache(sqlCache);</span>
+
+                // Register entity with pre-generation
+<span class="nc" id="L838">                Map&lt;Class&lt;?&gt;, List&lt;String&gt;&gt; entityTableMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L839">                List&lt;String&gt; tableNames = determineTableNames();</span>
+<span class="nc" id="L840">                entityTableMap.put(entityClass, tableNames);</span>
+
+<span class="nc" id="L842">                System.out.println(&quot;[SplitVerse] Pre-generating SQL for &quot; + entityClass.getSimpleName() +</span>
+<span class="nc" id="L843">                    &quot; with &quot; + tableNames.size() + &quot; table pattern(s)&quot;);</span>
+<span class="nc" id="L844">                sqlRegistry.pregenerateForTables(databaseType, entityTableMap);</span>
+<span class="nc" id="L845">                System.out.println(&quot;[SplitVerse] SQL pre-generation complete&quot;);</span>
+            }
+
+<span class="nc" id="L848">            return new SplitVerseRepository&lt;T, P&gt;(this);</span>
+        }
+        
+        // Package-private getters for SplitVerseRepository constructor
+<span class="nc" id="L852">        RepositoryMode getRepositoryMode() { return repositoryMode; }</span>
+<span class="nc" id="L853">        PartitionType getPartitionType() { return partitionType; }</span>
+<span class="nc" id="L854">        String getPartitionKeyColumn() { return partitionKeyColumn; }</span>
+<span class="nc" id="L855">        GenericMultiTableRepository.TableGranularity getTableGranularity() { return tableGranularity; }</span>
+<span class="nc" id="L856">        int getRetentionDays() { return retentionDays; }</span>
+<span class="nc" id="L857">        String getCharset() { return charset; }</span>
+<span class="nc" id="L858">        String getCollation() { return collation; }</span>
+<span class="nc" id="L859">        PartitionRange getPartitionRange() { return partitionRange; }</span>
+<span class="nc" id="L860">        boolean isNestedPartitionsEnabled() { return nestedPartitionsEnabled; }</span>
+<span class="nc" id="L861">        int getNestedPartitionCount() { return nestedPartitionCount; }</span>
+
+        /**
+         * Determine table names based on configuration.
+         * Used for SQL pre-generation.
+         */
+        private List&lt;String&gt; determineTableNames() {
+<span class="nc" id="L868">            List&lt;String&gt; tableNames = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L869" title="All 2 branches missed.">            String baseTable = tableName != null ? tableName : entityClass.getSimpleName().toLowerCase() + &quot;s&quot;;</span>
+
+<span class="nc bnc" id="L871" title="All 2 branches missed.">            if (repositoryMode == RepositoryMode.MULTI_TABLE) {</span>
+                // For multi-table mode, generate patterns based on partition range
+<span class="nc bnc" id="L873" title="All 2 branches missed.">                if (partitionRange != null) {</span>
+<span class="nc bnc" id="L874" title="All 7 branches missed.">                    switch (partitionRange) {</span>
+                        case HOURLY:
+                        case DAILY:
+                        case MONTHLY:
+                            // Date-based patterns
+<span class="nc" id="L879">                            tableNames.add(baseTable + &quot;_2025_09_19&quot;); // Example daily pattern</span>
+<span class="nc" id="L880">                            break;</span>
+                        case VALUE_RANGE_10K:
+                            // Value range patterns
+<span class="nc bnc" id="L883" title="All 2 branches missed.">                            for (int i = 0; i &lt; 10; i++) {</span>
+<span class="nc" id="L884">                                int start = i * 10000;</span>
+<span class="nc" id="L885">                                int end = start + 9999;</span>
+<span class="nc" id="L886">                                tableNames.add(baseTable + &quot;_&quot; + start + &quot;_&quot; + end);</span>
+                            }
+<span class="nc" id="L888">                            break;</span>
+                        case VALUE_RANGE_100K:
+                            // Generate first 5 ranges as examples
+<span class="nc bnc" id="L891" title="All 2 branches missed.">                            for (int i = 0; i &lt; 5; i++) {</span>
+<span class="nc" id="L892">                                int start = i * 100000;</span>
+<span class="nc" id="L893">                                int end = start + 99999;</span>
+<span class="nc" id="L894">                                tableNames.add(baseTable + &quot;_&quot; + start + &quot;_&quot; + end);</span>
+                            }
+<span class="nc" id="L896">                            break;</span>
+                        case HASH_4:
+<span class="nc bnc" id="L898" title="All 2 branches missed.">                            for (int i = 0; i &lt; 4; i++) {</span>
+<span class="nc" id="L899">                                tableNames.add(baseTable + &quot;_hash_&quot; + i);</span>
+                            }
+<span class="nc" id="L901">                            break;</span>
+                        case HASH_8:
+<span class="nc bnc" id="L903" title="All 2 branches missed.">                            for (int i = 0; i &lt; 8; i++) {</span>
+<span class="nc" id="L904">                                tableNames.add(baseTable + &quot;_hash_&quot; + i);</span>
+                            }
+<span class="nc" id="L906">                            break;</span>
+                        case HASH_16:
+<span class="nc bnc" id="L908" title="All 2 branches missed.">                            for (int i = 0; i &lt; 16; i++) {</span>
+<span class="nc" id="L909">                                tableNames.add(baseTable + &quot;_hash_&quot; + i);</span>
+                            }
+<span class="nc" id="L911">                            break;</span>
+                        default:
+<span class="nc" id="L913">                            tableNames.add(baseTable);</span>
+                    }
+                } else {
+                    // Default to base table if no partition range specified
+<span class="nc" id="L917">                    tableNames.add(baseTable);</span>
+                }
+            } else {
+                // For partitioned mode, single table
+<span class="nc" id="L921">                tableNames.add(baseTable);</span>
+            }
+
+<span class="nc" id="L924">            return tableNames;</span>
+        }
+<span class="nc" id="L926">        String getPartitionColumn() { return partitionColumn; }</span>
+<span class="nc" id="L927">        PartitionColumnType getPartitionColumnType() { return partitionColumnType; }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BaseSqlGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.sql</a> &gt; <span class="el_source">BaseSqlGenerator.java</span></div><h1>BaseSqlGenerator.java</h1><pre class="source lang-java linenums">package com.telcobright.core.sql;
+
+import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Base SQL Generator - ANSI SQL Implementation
+ * Provides default implementations using standard ANSI SQL syntax
+ */
+<span class="nc" id="L15">public class BaseSqlGenerator implements SqlGenerator {</span>
+
+<span class="nc" id="L17">    protected static final DateTimeFormatter DATE_TIME_FORMATTER =</span>
+<span class="nc" id="L18">            DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+
+    @Override
+    public String generateCreateTable(String tableName, EntityMetadata metadata) {
+<span class="nc" id="L22">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE &quot;);</span>
+<span class="nc bnc" id="L23" title="All 2 branches missed.">        if (supportsIfNotExists()) {</span>
+<span class="nc" id="L24">            sql.append(&quot;IF NOT EXISTS &quot;);</span>
+        }
+<span class="nc" id="L26">        sql.append(escapeIdentifier(tableName)).append(&quot; (\n&quot;);</span>
+
+        // Add columns
+<span class="nc" id="L29">        List&lt;FieldMetadata&gt; fields = metadata.getFields();</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        for (int i = 0; i &lt; fields.size(); i++) {</span>
+<span class="nc" id="L31">            FieldMetadata field = fields.get(i);</span>
+<span class="nc" id="L32">            sql.append(&quot;  &quot;).append(escapeIdentifier(field.getColumnName()))</span>
+<span class="nc" id="L33">               .append(&quot; &quot;).append(getSqlType(field));</span>
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">            if (field.equals(metadata.getIdField())) {</span>
+<span class="nc" id="L36">                sql.append(&quot; PRIMARY KEY&quot;);</span>
+            }
+
+<span class="nc bnc" id="L39" title="All 2 branches missed.">            if (i &lt; fields.size() - 1) {</span>
+<span class="nc" id="L40">                sql.append(&quot;,&quot;);</span>
+            }
+<span class="nc" id="L42">            sql.append(&quot;\n&quot;);</span>
+        }
+
+<span class="nc" id="L45">        sql.append(&quot;)&quot;);</span>
+<span class="nc" id="L46">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateCreateTableWithPartitions(String tableName, EntityMetadata metadata,
+                                                   String partitionColumn, String partitionType) {
+        // Default implementation - no native partitioning support in ANSI SQL
+<span class="nc" id="L53">        return generateCreateTable(tableName, metadata);</span>
+    }
+
+    @Override
+    public String generateAlterTableAddPartition(String tableName, String partitionName,
+                                                String partitionDefinition) {
+<span class="nc" id="L59">        throw new UnsupportedOperationException(&quot;Native partitioning not supported in ANSI SQL&quot;);</span>
+    }
+
+    @Override
+    public String generateDropTable(String tableName) {
+<span class="nc" id="L64">        return &quot;DROP TABLE IF EXISTS &quot; + escapeIdentifier(tableName);</span>
+    }
+
+    @Override
+    public String generateCreateIndex(String tableName, String indexName, List&lt;String&gt; columns) {
+<span class="nc" id="L69">        String columnList = columns.stream()</span>
+<span class="nc" id="L70">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L71">                .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L72">        return String.format(&quot;CREATE INDEX %s ON %s (%s)&quot;,</span>
+<span class="nc" id="L73">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L74">                escapeIdentifier(tableName),</span>
+                columnList);
+    }
+
+    @Override
+    public String generateDropIndex(String tableName, String indexName) {
+<span class="nc" id="L80">        return &quot;DROP INDEX &quot; + escapeIdentifier(indexName);</span>
+    }
+
+    @Override
+    public String generateInsert(String tableName, Map&lt;String, Object&gt; values) {
+<span class="nc" id="L85">        String columns = values.keySet().stream()</span>
+<span class="nc" id="L86">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L87">                .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L88">        String placeholders = values.values().stream()</span>
+<span class="nc" id="L89">                .map(v -&gt; &quot;?&quot;)</span>
+<span class="nc" id="L90">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L92">        return String.format(&quot;INSERT INTO %s (%s) VALUES (%s)&quot;,</span>
+<span class="nc" id="L93">                escapeIdentifier(tableName), columns, placeholders);</span>
+    }
+
+    @Override
+    public String generateBatchInsert(String tableName, List&lt;Map&lt;String, Object&gt;&gt; records) {
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (records.isEmpty()) {</span>
+<span class="nc" id="L99">            throw new IllegalArgumentException(&quot;Cannot generate batch insert for empty records&quot;);</span>
+        }
+
+<span class="nc" id="L102">        Map&lt;String, Object&gt; firstRecord = records.get(0);</span>
+<span class="nc" id="L103">        String columns = firstRecord.keySet().stream()</span>
+<span class="nc" id="L104">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L105">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L107">        String valuePlaceholders = firstRecord.keySet().stream()</span>
+<span class="nc" id="L108">                .map(k -&gt; &quot;?&quot;)</span>
+<span class="nc" id="L109">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L111">        StringBuilder sql = new StringBuilder();</span>
+<span class="nc" id="L112">        sql.append(&quot;INSERT INTO &quot;).append(escapeIdentifier(tableName))</span>
+<span class="nc" id="L113">           .append(&quot; (&quot;).append(columns).append(&quot;) VALUES &quot;);</span>
+
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        for (int i = 0; i &lt; records.size(); i++) {</span>
+<span class="nc" id="L116">            sql.append(&quot;(&quot;).append(valuePlaceholders).append(&quot;)&quot;);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            if (i &lt; records.size() - 1) {</span>
+<span class="nc" id="L118">                sql.append(&quot;, &quot;);</span>
+            }
+        }
+
+<span class="nc" id="L122">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateSelectById(String tableName, String idColumn) {
+<span class="nc" id="L127">        return String.format(&quot;SELECT * FROM %s WHERE %s = ?&quot;,</span>
+<span class="nc" id="L128">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L129">                escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String generateSelectAll(String tableName) {
+<span class="nc" id="L134">        return &quot;SELECT * FROM &quot; + escapeIdentifier(tableName);</span>
+    }
+
+    @Override
+    public String generateSelectWithWhere(String tableName, Map&lt;String, Object&gt; conditions) {
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (conditions.isEmpty()) {</span>
+<span class="nc" id="L140">            return generateSelectAll(tableName);</span>
+        }
+
+<span class="nc" id="L143">        String whereClause = conditions.keySet().stream()</span>
+<span class="nc" id="L144">                .map(col -&gt; escapeIdentifier(col) + &quot; = ?&quot;)</span>
+<span class="nc" id="L145">                .collect(Collectors.joining(&quot; AND &quot;));</span>
+
+<span class="nc" id="L147">        return String.format(&quot;SELECT * FROM %s WHERE %s&quot;,</span>
+<span class="nc" id="L148">                escapeIdentifier(tableName), whereClause);</span>
+    }
+
+    @Override
+    public String generateSelectWithDateRange(String tableName, String dateColumn,
+                                             String startDate, String endDate) {
+<span class="nc" id="L154">        return String.format(&quot;SELECT * FROM %s WHERE %s &gt;= ? AND %s &lt; ?&quot;,</span>
+<span class="nc" id="L155">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L156">                escapeIdentifier(dateColumn),</span>
+<span class="nc" id="L157">                escapeIdentifier(dateColumn));</span>
+    }
+
+    @Override
+    public String generateSelectByIdAndDateRange(String tableName, String idColumn,
+                                                String dateColumn, String startDate, String endDate) {
+<span class="nc" id="L163">        return String.format(&quot;SELECT * FROM %s WHERE %s = ? AND %s &gt;= ? AND %s &lt; ?&quot;,</span>
+<span class="nc" id="L164">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L165">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L166">                escapeIdentifier(dateColumn),</span>
+<span class="nc" id="L167">                escapeIdentifier(dateColumn));</span>
+    }
+
+    @Override
+    public String generateUpdate(String tableName, Map&lt;String, Object&gt; values,
+                                Map&lt;String, Object&gt; conditions) {
+<span class="nc" id="L173">        String setClause = values.keySet().stream()</span>
+<span class="nc" id="L174">                .map(col -&gt; escapeIdentifier(col) + &quot; = ?&quot;)</span>
+<span class="nc" id="L175">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L177">        String whereClause = conditions.keySet().stream()</span>
+<span class="nc" id="L178">                .map(col -&gt; escapeIdentifier(col) + &quot; = ?&quot;)</span>
+<span class="nc" id="L179">                .collect(Collectors.joining(&quot; AND &quot;));</span>
+
+<span class="nc" id="L181">        return String.format(&quot;UPDATE %s SET %s WHERE %s&quot;,</span>
+<span class="nc" id="L182">                escapeIdentifier(tableName), setClause, whereClause);</span>
+    }
+
+    @Override
+    public String generateUpdateById(String tableName, String idColumn, Map&lt;String, Object&gt; values) {
+<span class="nc" id="L187">        String setClause = values.keySet().stream()</span>
+<span class="nc" id="L188">                .map(col -&gt; escapeIdentifier(col) + &quot; = ?&quot;)</span>
+<span class="nc" id="L189">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L191">        return String.format(&quot;UPDATE %s SET %s WHERE %s = ?&quot;,</span>
+<span class="nc" id="L192">                escapeIdentifier(tableName), setClause, escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String generateDelete(String tableName, Map&lt;String, Object&gt; conditions) {
+<span class="nc" id="L197">        String whereClause = conditions.keySet().stream()</span>
+<span class="nc" id="L198">                .map(col -&gt; escapeIdentifier(col) + &quot; = ?&quot;)</span>
+<span class="nc" id="L199">                .collect(Collectors.joining(&quot; AND &quot;));</span>
+
+<span class="nc" id="L201">        return String.format(&quot;DELETE FROM %s WHERE %s&quot;,</span>
+<span class="nc" id="L202">                escapeIdentifier(tableName), whereClause);</span>
+    }
+
+    @Override
+    public String generateDeleteById(String tableName, String idColumn) {
+<span class="nc" id="L207">        return String.format(&quot;DELETE FROM %s WHERE %s = ?&quot;,</span>
+<span class="nc" id="L208">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L209">                escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String generateDeleteByDateRange(String tableName, String dateColumn,
+                                           String startDate, String endDate) {
+<span class="nc" id="L215">        return String.format(&quot;DELETE FROM %s WHERE %s &gt;= ? AND %s &lt; ?&quot;,</span>
+<span class="nc" id="L216">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L217">                escapeIdentifier(dateColumn),</span>
+<span class="nc" id="L218">                escapeIdentifier(dateColumn));</span>
+    }
+
+    @Override
+    public String generateSelectWithPagination(String baseQuery, int limit, int offset) {
+<span class="nc" id="L223">        return baseQuery + &quot; LIMIT &quot; + limit + &quot; OFFSET &quot; + offset;</span>
+    }
+
+    @Override
+    public String generateSelectWithSorting(String baseQuery, List&lt;SortField&gt; sortFields) {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (sortFields.isEmpty()) {</span>
+<span class="nc" id="L229">            return baseQuery;</span>
+        }
+
+<span class="nc" id="L232">        String orderByClause = sortFields.stream()</span>
+<span class="nc" id="L233">                .map(sf -&gt; escapeIdentifier(sf.getColumn()) + &quot; &quot; + sf.getDirection())</span>
+<span class="nc" id="L234">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L236">        return baseQuery + &quot; ORDER BY &quot; + orderByClause;</span>
+    }
+
+    @Override
+    public String generateCountQuery(String tableName, Map&lt;String, Object&gt; conditions) {
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        if (conditions.isEmpty()) {</span>
+<span class="nc" id="L242">            return &quot;SELECT COUNT(*) FROM &quot; + escapeIdentifier(tableName);</span>
+        }
+
+<span class="nc" id="L245">        String whereClause = conditions.keySet().stream()</span>
+<span class="nc" id="L246">                .map(col -&gt; escapeIdentifier(col) + &quot; = ?&quot;)</span>
+<span class="nc" id="L247">                .collect(Collectors.joining(&quot; AND &quot;));</span>
+
+<span class="nc" id="L249">        return String.format(&quot;SELECT COUNT(*) FROM %s WHERE %s&quot;,</span>
+<span class="nc" id="L250">                escapeIdentifier(tableName), whereClause);</span>
+    }
+
+    @Override
+    public String generateSelectBatchByIdGreaterThan(String tableName, String idColumn,
+                                                    String lastId, int batchSize) {
+<span class="nc" id="L256">        return String.format(&quot;SELECT * FROM %s WHERE %s &gt; ? ORDER BY %s LIMIT %d&quot;,</span>
+<span class="nc" id="L257">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L258">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L259">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L260">                batchSize);</span>
+    }
+
+    @Override
+    public String generateSelectBeforeDate(String tableName, String dateColumn, String date) {
+<span class="nc" id="L265">        return String.format(&quot;SELECT * FROM %s WHERE %s &lt; ?&quot;,</span>
+<span class="nc" id="L266">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L267">                escapeIdentifier(dateColumn));</span>
+    }
+
+    @Override
+    public String generateSelectAfterDate(String tableName, String dateColumn, String date) {
+<span class="nc" id="L272">        return String.format(&quot;SELECT * FROM %s WHERE %s &gt;= ?&quot;,</span>
+<span class="nc" id="L273">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L274">                escapeIdentifier(dateColumn));</span>
+    }
+
+    @Override
+    public String generateExistsQuery(String tableName, String idColumn) {
+<span class="nc" id="L279">        return String.format(&quot;SELECT 1 FROM %s WHERE %s = ? LIMIT 1&quot;,</span>
+<span class="nc" id="L280">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L281">                escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String escapeIdentifier(String identifier) {
+<span class="nc" id="L286">        return &quot;\&quot;&quot; + identifier + &quot;\&quot;&quot;;</span>
+    }
+
+    @Override
+    public String escapeLiteral(Object value) {
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L292">            return &quot;NULL&quot;;</span>
+        }
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        if (value instanceof String) {</span>
+<span class="nc" id="L295">            return &quot;'&quot; + ((String) value).replace(&quot;'&quot;, &quot;''&quot;) + &quot;'&quot;;</span>
+        }
+<span class="nc bnc" id="L297" title="All 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
+<span class="nc" id="L298">            return &quot;'&quot; + DATE_TIME_FORMATTER.format((LocalDateTime) value) + &quot;'&quot;;</span>
+        }
+<span class="nc" id="L300">        return value.toString();</span>
+    }
+
+    @Override
+    public String getDateFormat() {
+<span class="nc" id="L305">        return &quot;yyyy-MM-dd HH:mm:ss&quot;;</span>
+    }
+
+    @Override
+    public String getCurrentTimestamp() {
+<span class="nc" id="L310">        return &quot;CURRENT_TIMESTAMP&quot;;</span>
+    }
+
+    @Override
+    public boolean supportsIfNotExists() {
+<span class="nc" id="L315">        return false;</span>
+    }
+
+    @Override
+    public boolean supportsNativePartitioning() {
+<span class="nc" id="L320">        return false;</span>
+    }
+
+    protected FieldMetadata getFieldByColumnName(EntityMetadata&lt;?&gt; metadata, String columnName) {
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        for (FieldMetadata field : metadata.getFields()) {</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">            if (field.getColumnName().equals(columnName)) {</span>
+<span class="nc" id="L326">                return field;</span>
+            }
+<span class="nc" id="L328">        }</span>
+<span class="nc" id="L329">        return null;</span>
+    }
+
+    protected String getSqlType(FieldMetadata field) {
+<span class="nc" id="L333">        Class&lt;?&gt; type = field.getType();</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">        if (type == String.class) {</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">            return field.getColumnName().equals(&quot;id&quot;) ? &quot;VARCHAR(255)&quot; : &quot;TEXT&quot;;</span>
+<span class="nc bnc" id="L336" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="nc" id="L337">            return &quot;INTEGER&quot;;</span>
+<span class="nc bnc" id="L338" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="nc" id="L339">            return &quot;BIGINT&quot;;</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        } else if (type == LocalDateTime.class) {</span>
+<span class="nc" id="L341">            return &quot;TIMESTAMP&quot;;</span>
+<span class="nc bnc" id="L342" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="nc" id="L343">            return &quot;BOOLEAN&quot;;</span>
+<span class="nc bnc" id="L344" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="nc" id="L345">            return &quot;DOUBLE PRECISION&quot;;</span>
+<span class="nc bnc" id="L346" title="All 4 branches missed.">        } else if (type == Float.class || type == float.class) {</span>
+<span class="nc" id="L347">            return &quot;REAL&quot;;</span>
+        } else {
+<span class="nc" id="L349">            return &quot;TEXT&quot;;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

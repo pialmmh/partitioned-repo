@@ -107,6 +107,7 @@ com/telcobright/examples/deprecated/PartitionedTableRepository$CustomerOrderStat
 com/telcobright/core/repository/PartitionedQueryBuilder$SelectColumn.class
 com/telcobright/core/annotation/Column.class
 com/telcobright/core/connection/ConnectionProvider.class
+com/telcobright/core/partitioning/RepositoryMode.class
 com/telcobright/core/persistence/PostgreSQLPersistenceProvider.class
 com/telcobright/splitverse/entity/jpa/TestUser.class
 com/telcobright/core/repository/GenericMultiTableRepository.class

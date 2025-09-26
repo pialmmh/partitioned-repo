@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SequentialLogRepositoryBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.repository</a> &gt; <span class="el_source">SequentialLogRepositoryBuilder.java</span></div><h1>SequentialLogRepositoryBuilder.java</h1><pre class="source lang-java linenums">package com.telcobright.core.repository;
+
+import com.telcobright.api.ShardingRepository;
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.partition.PartitionType;
+import com.telcobright.core.enums.PartitionRange;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+/**
+ * Simplified builder for creating a log-optimized repository using native partitioning.
+ *
+ * This builder creates a GenericPartitionedTableRepository configured specifically for:
+ * - Sequential log storage with date-based partitioning
+ * - Automatic partition rotation (old partitions dropped, new ones created)
+ * - Optimized for sequential ID-based iteration
+ * - Minimal configuration requirements
+ *
+ * Use Case: Application logs, audit trails, event streams
+ *
+ * Example Usage:
+ * ```java
+ * ShardingRepository&lt;LogEntry, LocalDateTime&gt; repo =
+ *     SequentialLogRepositoryBuilder.create(LogEntry.class)
+ *         .connection(&quot;localhost&quot;, 3306, &quot;logs_db&quot;, &quot;user&quot;, &quot;pass&quot;)
+ *         .tableName(&quot;app_logs&quot;)
+ *         .retentionDays(30)
+ *         .build();
+ * ```
+ */
+<span class="nc" id="L31">public class SequentialLogRepositoryBuilder {</span>
+
+    /**
+     * Create a log-optimized repository with minimal configuration.
+     *
+     * Features:
+     * - Date-based partitioning (DAILY by default)
+     * - Automatic maintenance at 2 AM
+     * - 30-day retention by default
+     * - Sequential ID support with cursor-based pagination
+     *
+     * @param entityClass Entity class implementing ShardingEntity&lt;LocalDateTime&gt;
+     * @return Configured repository ready for log storage
+     */
+    public static &lt;T extends ShardingEntity&lt;LocalDateTime&gt;&gt; Builder&lt;T&gt; create(Class&lt;T&gt; entityClass) {
+<span class="nc" id="L46">        return new Builder&lt;&gt;(entityClass);</span>
+    }
+
+    public static class Builder&lt;T extends ShardingEntity&lt;LocalDateTime&gt;&gt; {
+        private final Class&lt;T&gt; entityClass;
+
+        // Connection settings
+<span class="nc" id="L53">        private String host = &quot;127.0.0.1&quot;;</span>
+<span class="nc" id="L54">        private int port = 3306;</span>
+        private String database;
+        private String username;
+        private String password;
+
+        // Table settings
+        private String tableName;
+
+        // Partition settings
+<span class="nc" id="L63">        private int retentionDays = 30;</span>
+<span class="nc" id="L64">        private PartitionRange partitionRange = PartitionRange.DAILY;</span>
+<span class="nc" id="L65">        private boolean autoMaintenance = true;</span>
+<span class="nc" id="L66">        private LocalTime maintenanceTime = LocalTime.of(2, 0);</span>
+
+<span class="nc" id="L68">        private Builder(Class&lt;T&gt; entityClass) {</span>
+<span class="nc" id="L69">            this.entityClass = entityClass;</span>
+<span class="nc" id="L70">        }</span>
+
+        public Builder&lt;T&gt; connection(String host, int port, String database, String username, String password) {
+<span class="nc" id="L73">            this.host = host;</span>
+<span class="nc" id="L74">            this.port = port;</span>
+<span class="nc" id="L75">            this.database = database;</span>
+<span class="nc" id="L76">            this.username = username;</span>
+<span class="nc" id="L77">            this.password = password;</span>
+<span class="nc" id="L78">            return this;</span>
+        }
+
+        public Builder&lt;T&gt; tableName(String tableName) {
+<span class="nc" id="L82">            this.tableName = tableName;</span>
+<span class="nc" id="L83">            return this;</span>
+        }
+
+        public Builder&lt;T&gt; retentionDays(int days) {
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (days &lt; 1) {</span>
+<span class="nc" id="L88">                throw new IllegalArgumentException(&quot;Retention days must be at least 1&quot;);</span>
+            }
+<span class="nc" id="L90">            this.retentionDays = days;</span>
+<span class="nc" id="L91">            return this;</span>
+        }
+
+        public Builder&lt;T&gt; partitionRange(PartitionRange range) {
+<span class="nc" id="L95">            this.partitionRange = range;</span>
+<span class="nc" id="L96">            return this;</span>
+        }
+
+        public Builder&lt;T&gt; autoMaintenance(boolean enabled) {
+<span class="nc" id="L100">            this.autoMaintenance = enabled;</span>
+<span class="nc" id="L101">            return this;</span>
+        }
+
+        public Builder&lt;T&gt; maintenanceTime(LocalTime time) {
+<span class="nc" id="L105">            this.maintenanceTime = time;</span>
+<span class="nc" id="L106">            return this;</span>
+        }
+
+        public ShardingRepository&lt;T, LocalDateTime&gt; build() {
+            // Validate required fields
+<span class="nc bnc" id="L111" title="All 4 branches missed.">            if (database == null || database.isEmpty()) {</span>
+<span class="nc" id="L112">                throw new IllegalStateException(&quot;Database name is required&quot;);</span>
+            }
+<span class="nc bnc" id="L114" title="All 4 branches missed.">            if (username == null || password == null) {</span>
+<span class="nc" id="L115">                throw new IllegalStateException(&quot;Database credentials are required&quot;);</span>
+            }
+<span class="nc bnc" id="L117" title="All 4 branches missed.">            if (tableName == null || tableName.isEmpty()) {</span>
+<span class="nc" id="L118">                throw new IllegalStateException(&quot;Table name is required&quot;);</span>
+            }
+
+            // Create and return configured GenericPartitionedTableRepository
+            // Note: GenericPartitionedTableRepository supports DAILY partitions by default
+            // For MONTHLY or other ranges, consider using GenericMultiTableRepository
+<span class="nc" id="L124">            return GenericPartitionedTableRepository.&lt;T, LocalDateTime&gt;builder(entityClass)</span>
+<span class="nc" id="L125">                .host(host)</span>
+<span class="nc" id="L126">                .port(port)</span>
+<span class="nc" id="L127">                .database(database)</span>
+<span class="nc" id="L128">                .username(username)</span>
+<span class="nc" id="L129">                .password(password)</span>
+<span class="nc" id="L130">                .tableName(tableName)</span>
+<span class="nc" id="L131">                .partitionRetentionPeriod(retentionDays)</span>
+<span class="nc" id="L132">                .withPartitionType(PartitionType.DATE_BASED)</span>
+<span class="nc" id="L133">                .autoManagePartitions(autoMaintenance)</span>
+<span class="nc" id="L134">                .partitionAdjustmentTime(maintenanceTime)</span>
+<span class="nc" id="L135">                .initializePartitionsOnStart(true)</span>
+<span class="nc" id="L136">                .charset(&quot;utf8mb4&quot;)</span>
+<span class="nc" id="L137">                .collation(&quot;utf8mb4_bin&quot;) // Binary collation for sequential IDs</span>
+<span class="nc" id="L138">                .build();</span>
+        }
+    }
+
+    /**
+     * Utility class for generating time-based sequential IDs.
+     * These IDs are naturally sortable and work well with string comparison.
+     */
+<span class="nc" id="L146">    public static class SequentialIdGenerator {</span>
+<span class="nc" id="L147">        private static long sequence = 0;</span>
+<span class="nc" id="L148">        private static long lastTimestamp = -1;</span>
+
+        /**
+         * Generate a time-based sequential ID.
+         * Format: timestamp-sequence (e.g., &quot;1737562800000-000001&quot;)
+         *
+         * This format ensures:
+         * - Natural chronological ordering
+         * - Uniqueness even with high concurrency
+         * - Efficient string comparison in MySQL
+         */
+        public static synchronized String generate() {
+<span class="nc" id="L160">            long timestamp = System.currentTimeMillis();</span>
+
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            if (timestamp == lastTimestamp) {</span>
+<span class="nc" id="L163">                sequence++;</span>
+            } else {
+<span class="nc" id="L165">                sequence = 0;</span>
+<span class="nc" id="L166">                lastTimestamp = timestamp;</span>
+            }
+
+<span class="nc" id="L169">            return String.format(&quot;%013d-%06d&quot;, timestamp, sequence);</span>
+        }
+
+        /**
+         * Generate an ID with a custom prefix.
+         * Useful for identifying log sources or types.
+         */
+        public static synchronized String generate(String prefix) {
+<span class="nc" id="L177">            return prefix + &quot;-&quot; + generate();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

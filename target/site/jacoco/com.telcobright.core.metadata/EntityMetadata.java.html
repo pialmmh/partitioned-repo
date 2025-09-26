@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EntityMetadata.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.metadata</a> &gt; <span class="el_source">EntityMetadata.java</span></div><h1>EntityMetadata.java</h1><pre class="source lang-java linenums">package com.telcobright.core.metadata;
+
+import com.telcobright.core.annotation.*;
+import com.telcobright.core.entity.ShardingEntity;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.*;
+
+/**
+ * Metadata holder for entity class information, parsed once at startup
+ */
+public class EntityMetadata&lt;T&gt; {
+    private final Class&lt;T&gt; entityClass;
+    private final String tableName;
+    private final List&lt;FieldMetadata&gt; fields;
+    private final FieldMetadata idField;
+    private final FieldMetadata shardingKeyField;
+    private final String partitionColumnName;  // Cached partition column name
+    private final String insertSQL;
+    private final String selectByIdSQL;
+    private final String updateByIdSQL;
+    private final String createTableSQL;
+    private final Map&lt;String, Integer&gt; insertParameterIndex;
+    private final Map&lt;String, Integer&gt; updateParameterIndex;
+
+<span class="fc" id="L31">    public EntityMetadata(Class&lt;T&gt; entityClass) {</span>
+<span class="fc" id="L32">        this.entityClass = entityClass;</span>
+<span class="fc" id="L33">        this.fields = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L34">        this.insertParameterIndex = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L35">        this.updateParameterIndex = new HashMap&lt;&gt;();</span>
+        
+        // Parse class annotations
+<span class="fc" id="L38">        Table tableAnnotation = entityClass.getAnnotation(Table.class);</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (tableAnnotation == null) {</span>
+            // Use simple class name if no annotation
+<span class="nc" id="L41">            this.tableName = entityClass.getSimpleName().toLowerCase().replace(&quot;entity&quot;, &quot;&quot;);</span>
+        } else {
+<span class="fc" id="L43">            this.tableName = tableAnnotation.name();</span>
+        }
+        
+        // Parse fields
+<span class="fc" id="L47">        FieldMetadata tempIdField = null;</span>
+<span class="fc" id="L48">        FieldMetadata tempShardingField = null;</span>
+<span class="fc" id="L49">        int idFieldCount = 0;</span>
+<span class="fc" id="L50">        int shardingKeyCount = 0;</span>
+<span class="fc" id="L51">        int paramIndex = 1;</span>
+        
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (Field field : entityClass.getDeclaredFields()) {</span>
+<span class="fc" id="L54">            field.setAccessible(true);</span>
+            
+            // Skip static or transient fields
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) || </span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">                java.lang.reflect.Modifier.isTransient(field.getModifiers())) {</span>
+<span class="nc" id="L59">                continue;</span>
+            }
+            
+<span class="fc" id="L62">            FieldMetadata fieldMeta = new FieldMetadata(field);</span>
+<span class="fc" id="L63">            fields.add(fieldMeta);</span>
+            
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            if (fieldMeta.isId()) {</span>
+<span class="fc" id="L66">                idFieldCount++;</span>
+<span class="fc" id="L67">                tempIdField = fieldMeta;</span>
+            }
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            if (fieldMeta.isShardingKey()) {</span>
+<span class="fc" id="L70">                shardingKeyCount++;</span>
+<span class="fc" id="L71">                tempShardingField = fieldMeta;</span>
+            }
+            
+            // Build parameter index for insert
+<span class="pc bpc" id="L75" title="2 of 4 branches missed.">            if (fieldMeta.isInsertable() &amp;&amp; !fieldMeta.isAutoGenerated()) {</span>
+<span class="fc" id="L76">                insertParameterIndex.put(fieldMeta.getFieldName(), paramIndex++);</span>
+            }
+        }
+        
+<span class="fc" id="L80">        this.idField = tempIdField;</span>
+<span class="fc" id="L81">        this.shardingKeyField = tempShardingField;</span>
+
+        // Cache partition column name from @ShardingKey field
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (tempShardingField != null) {</span>
+<span class="fc" id="L85">            this.partitionColumnName = tempShardingField.getColumnName();</span>
+        } else {
+<span class="nc" id="L87">            this.partitionColumnName = null;</span>
+        }
+
+        // Enforce required columns
+<span class="fc" id="L91">        validateRequiredColumns();</span>
+        
+        // Generate SQL statements
+<span class="fc" id="L94">        this.insertSQL = generateInsertSQL();</span>
+<span class="fc" id="L95">        this.selectByIdSQL = generateSelectByIdSQL();</span>
+<span class="fc" id="L96">        this.updateByIdSQL = generateUpdateByIdSQL();</span>
+<span class="fc" id="L97">        this.createTableSQL = generateCreateTableSQL();</span>
+<span class="fc" id="L98">    }</span>
+    
+    /**
+     * Validates that the entity has required fields for repository operations
+     */
+    private void validateRequiredColumns() {
+        // Count annotations for validation
+<span class="fc" id="L105">        int idCount = 0;</span>
+<span class="fc" id="L106">        int shardingCount = 0;</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">            if (field.isId()) idCount++;</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            if (field.isShardingKey()) shardingCount++;</span>
+<span class="fc" id="L110">        }</span>
+        
+        // Validate exactly ONE @Id field
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">        if (idField == null) {</span>
+<span class="nc" id="L114">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L115">                String.format(&quot;Entity %s must have exactly ONE field annotated with @Id&quot;, entityClass.getSimpleName())</span>
+            );
+        }
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (idCount &gt; 1) {</span>
+<span class="nc" id="L119">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L120">                String.format(&quot;Entity %s has %d fields annotated with @Id, but only ONE is allowed&quot;, </span>
+<span class="nc" id="L121">                    entityClass.getSimpleName(), idCount)</span>
+            );
+        }
+        
+        // Validate ID field is String type
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (!String.class.equals(idField.getType())) {</span>
+<span class="nc" id="L127">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L128">                String.format(&quot;Entity %s @Id field '%s' must be of type String for Split-Verse (found: %s). &quot; +</span>
+                    &quot;Split-Verse requires String IDs for consistent hash-based sharding.&quot;, 
+<span class="nc" id="L130">                    entityClass.getSimpleName(), idField.getFieldName(), idField.getType().getSimpleName())</span>
+            );
+        }
+        
+        // Validate exactly ONE @ShardingKey field
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="nc" id="L136">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L137">                String.format(&quot;Entity %s must have exactly ONE field annotated with @ShardingKey for date-based partitioning&quot;, </span>
+<span class="nc" id="L138">                    entityClass.getSimpleName())</span>
+            );
+        }
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">        if (shardingCount &gt; 1) {</span>
+<span class="nc" id="L142">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L143">                String.format(&quot;Entity %s has %d fields annotated with @ShardingKey, but only ONE is allowed&quot;, </span>
+<span class="nc" id="L144">                    entityClass.getSimpleName(), shardingCount)</span>
+            );
+        }
+        
+        // Validate sharding key is a Comparable type for range queries
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">        if (!Comparable.class.isAssignableFrom(shardingKeyField.getType())) {</span>
+<span class="nc" id="L150">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L151">                String.format(&quot;Entity %s @ShardingKey field '%s' must implement Comparable for range partitioning (found: %s)&quot;,</span>
+<span class="nc" id="L152">                    entityClass.getSimpleName(), shardingKeyField.getFieldName(), shardingKeyField.getType().getSimpleName())</span>
+            );
+        }
+
+        // Validate that NO fields use unsupported date/time types
+<span class="fc" id="L157">        validateDateTimeTypes();</span>
+        
+        // Validate that @Id is not auto-generated
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">        if (idField.isAutoGenerated()) {</span>
+<span class="nc" id="L161">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L162">                String.format(&quot;Entity %s @Id field '%s' must have autoGenerated=false. &quot; +</span>
+                    &quot;Split-Verse requires externally generated String IDs (UUID, ULID, etc.)&quot;, 
+<span class="nc" id="L164">                    entityClass.getSimpleName(), idField.getFieldName())</span>
+            );
+        }
+<span class="fc" id="L167">    }</span>
+    
+    private String generateInsertSQL() {
+<span class="fc" id="L170">        StringBuilder columns = new StringBuilder();</span>
+<span class="fc" id="L171">        StringBuilder values = new StringBuilder();</span>
+<span class="fc" id="L172">        boolean first = true;</span>
+        
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="pc bpc" id="L175" title="2 of 4 branches missed.">            if (field.isInsertable() &amp;&amp; !field.isAutoGenerated()) {</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">                if (!first) {</span>
+<span class="fc" id="L177">                    columns.append(&quot;, &quot;);</span>
+<span class="fc" id="L178">                    values.append(&quot;, &quot;);</span>
+                }
+<span class="fc" id="L180">                columns.append(field.getColumnName());</span>
+<span class="fc" id="L181">                values.append(&quot;?&quot;);</span>
+<span class="fc" id="L182">                first = false;</span>
+            }
+<span class="fc" id="L184">        }</span>
+        
+<span class="fc" id="L186">        return String.format(&quot;INSERT INTO %%s (%s) VALUES (%s)&quot;, </span>
+<span class="fc" id="L187">            columns.toString(), values.toString());</span>
+    }
+    
+    private String generateSelectByIdSQL() {
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">        if (idField == null) {</span>
+<span class="nc" id="L192">            return null;</span>
+        }
+        
+<span class="fc" id="L195">        StringBuilder columns = new StringBuilder();</span>
+<span class="fc" id="L196">        boolean first = true;</span>
+        
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">            if (!first) {</span>
+<span class="fc" id="L200">                columns.append(&quot;, &quot;);</span>
+            }
+<span class="fc" id="L202">            columns.append(field.getColumnName());</span>
+<span class="fc" id="L203">            first = false;</span>
+<span class="fc" id="L204">        }</span>
+        
+<span class="fc" id="L206">        return String.format(&quot;SELECT %s FROM %%s WHERE %s = ?&quot;, </span>
+<span class="fc" id="L207">            columns.toString(), idField.getColumnName());</span>
+    }
+    
+    private String generateUpdateByIdSQL() {
+<span class="fc" id="L211">        StringBuilder setClause = new StringBuilder();</span>
+<span class="fc" id="L212">        boolean first = true;</span>
+<span class="fc" id="L213">        int paramIndex = 1;</span>
+        
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+            // Skip ID field and non-updatable fields
+<span class="pc bpc" id="L217" title="1 of 4 branches missed.">            if (field.isId() || !field.isUpdatable()) {</span>
+<span class="nc" id="L218">                continue;</span>
+            }
+            
+<span class="fc bfc" id="L221" title="All 2 branches covered.">            if (!first) {</span>
+<span class="fc" id="L222">                setClause.append(&quot;, &quot;);</span>
+            }
+<span class="fc" id="L224">            setClause.append(field.getColumnName()).append(&quot; = ?&quot;);</span>
+<span class="fc" id="L225">            updateParameterIndex.put(field.getFieldName(), paramIndex++);</span>
+<span class="fc" id="L226">            first = false;</span>
+<span class="fc" id="L227">        }</span>
+        
+        // ID field is the last parameter for WHERE clause
+<span class="fc" id="L230">        updateParameterIndex.put(idField.getFieldName(), paramIndex);</span>
+        
+<span class="fc" id="L232">        return String.format(&quot;UPDATE %%s SET %s WHERE %s = ?&quot;,</span>
+<span class="fc" id="L233">            setClause.toString(), idField.getColumnName());</span>
+    }
+    
+    private String generateCreateTableSQL() {
+<span class="fc" id="L237">        StringBuilder sql = new StringBuilder(&quot;CREATE TABLE IF NOT EXISTS %s (&quot;);</span>
+<span class="fc" id="L238">        boolean first = true;</span>
+        
+<span class="fc bfc" id="L240" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">            if (!first) {</span>
+<span class="fc" id="L242">                sql.append(&quot;, &quot;);</span>
+            }
+<span class="fc" id="L244">            sql.append(field.getColumnName()).append(&quot; &quot;).append(field.getSqlType());</span>
+            
+<span class="fc bfc" id="L246" title="All 2 branches covered.">            if (field.isId()) {</span>
+<span class="fc" id="L247">                sql.append(&quot; PRIMARY KEY&quot;);</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">                if (field.isAutoGenerated()) {</span>
+<span class="nc" id="L249">                    sql.append(&quot; AUTO_INCREMENT&quot;);</span>
+                }
+            }
+            
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">            if (!field.isNullable()) {</span>
+<span class="nc" id="L254">                sql.append(&quot; NOT NULL&quot;);</span>
+            }
+            
+<span class="fc" id="L257">            first = false;</span>
+<span class="fc" id="L258">        }</span>
+        
+        // Add automatic indexes - ID already has PRIMARY KEY, but add explicit index for sharding key
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">        if (shardingKeyField != null) {</span>
+<span class="fc" id="L262">            sql.append(&quot;, KEY idx_&quot;).append(shardingKeyField.getColumnName())</span>
+<span class="fc" id="L263">               .append(&quot; (&quot;).append(shardingKeyField.getColumnName()).append(&quot;)&quot;);</span>
+        }
+        
+        // No composite index needed - single String ID only
+        
+        // Add custom indexes from @Index annotations
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        for (FieldMetadata field : fields) {</span>
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">            if (field.hasIndex()) {</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">                String indexKeyword = field.getIndexAnnotation().unique() ? &quot;UNIQUE KEY&quot; : &quot;KEY&quot;;</span>
+<span class="nc" id="L272">                String indexName = field.getIndexName();</span>
+<span class="nc" id="L273">                String comment = field.getIndexAnnotation().comment();</span>
+                
+<span class="nc" id="L275">                sql.append(&quot;, &quot;).append(indexKeyword).append(&quot; &quot;).append(indexName)</span>
+<span class="nc" id="L276">                   .append(&quot; (&quot;).append(field.getColumnName()).append(&quot;)&quot;);</span>
+                
+<span class="nc bnc" id="L278" title="All 2 branches missed.">                if (!comment.isEmpty()) {</span>
+<span class="nc" id="L279">                    sql.append(&quot; COMMENT '&quot;).append(comment).append(&quot;'&quot;);</span>
+                }
+            }
+<span class="fc" id="L282">        }</span>
+        
+<span class="fc" id="L284">        sql.append(&quot;) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);</span>
+        
+<span class="fc" id="L286">        return sql.toString();</span>
+    }
+    
+    public void setInsertParameters(PreparedStatement stmt, T entity) throws SQLException {
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
+<span class="nc bnc" id="L291" title="All 4 branches missed.">            if (field.isInsertable() &amp;&amp; !field.isAutoGenerated()) {</span>
+<span class="nc" id="L292">                Integer index = insertParameterIndex.get(field.getFieldName());</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">                if (index != null) {</span>
+<span class="nc" id="L294">                    setParameter(stmt, index, field.getValue(entity), field.getType());</span>
+                }
+            }
+<span class="nc" id="L297">        }</span>
+<span class="nc" id="L298">    }</span>
+    
+    public void setUpdateParameters(PreparedStatement stmt, T entity, String id) throws SQLException {
+        // Set all updatable field values
+<span class="nc bnc" id="L302" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
+<span class="nc bnc" id="L303" title="All 4 branches missed.">            if (!field.isId() &amp;&amp; field.isUpdatable()) {</span>
+<span class="nc" id="L304">                Integer index = updateParameterIndex.get(field.getFieldName());</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">                if (index != null) {</span>
+<span class="nc" id="L306">                    setParameter(stmt, index, field.getValue(entity), field.getType());</span>
+                }
+            }
+<span class="nc" id="L309">        }</span>
+        
+        // Set ID value for WHERE clause (last parameter)
+<span class="nc" id="L312">        Integer idIndex = updateParameterIndex.get(idField.getFieldName());</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        if (idIndex != null) {</span>
+<span class="nc" id="L314">            setParameter(stmt, idIndex, id, idField.getType());</span>
+        }
+<span class="nc" id="L316">    }</span>
+    
+    public T mapResultSet(ResultSet rs) throws SQLException {
+        try {
+<span class="nc" id="L320">            T entity = entityClass.getDeclaredConstructor().newInstance();</span>
+            
+<span class="nc bnc" id="L322" title="All 2 branches missed.">            for (FieldMetadata field : fields) {</span>
+<span class="nc" id="L323">                Object value = getResultSetValue(rs, field.getColumnName(), field.getType());</span>
+<span class="nc" id="L324">                field.setValue(entity, value);</span>
+<span class="nc" id="L325">            }</span>
+            
+<span class="nc" id="L327">            return entity;</span>
+<span class="nc" id="L328">        } catch (Exception e) {</span>
+<span class="nc" id="L329">            throw new SQLException(&quot;Failed to map result set to entity&quot;, e);</span>
+        }
+    }
+    
+    private void setParameter(PreparedStatement stmt, int index, Object value, Class&lt;?&gt; type) throws SQLException {
+<span class="nc bnc" id="L334" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L335">            stmt.setNull(index, java.sql.Types.NULL);</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        } else if (type == String.class) {</span>
+<span class="nc" id="L337">            stmt.setString(index, (String) value);</span>
+<span class="nc bnc" id="L338" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="nc" id="L339">            stmt.setLong(index, (Long) value);</span>
+<span class="nc bnc" id="L340" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="nc" id="L341">            stmt.setInt(index, (Integer) value);</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">        } else if (type == LocalDateTime.class) {</span>
+            // Use Timestamp.valueOf which preserves the LocalDateTime exactly as is
+            // Do NOT use Calendar to avoid timezone conversions
+<span class="nc" id="L345">            Timestamp timestamp = Timestamp.valueOf((LocalDateTime) value);</span>
+<span class="nc" id="L346">            stmt.setTimestamp(index, timestamp);</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">        } else if (type == BigDecimal.class) {</span>
+<span class="nc" id="L348">            stmt.setBigDecimal(index, (BigDecimal) value);</span>
+<span class="nc bnc" id="L349" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="nc" id="L350">            stmt.setBoolean(index, (Boolean) value);</span>
+<span class="nc bnc" id="L351" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="nc" id="L352">            stmt.setDouble(index, (Double) value);</span>
+        } else {
+<span class="nc" id="L354">            stmt.setObject(index, value);</span>
+        }
+<span class="nc" id="L356">    }</span>
+    
+    private Object getResultSetValue(ResultSet rs, String columnName, Class&lt;?&gt; type) throws SQLException {
+<span class="nc bnc" id="L359" title="All 2 branches missed.">        if (type == String.class) {</span>
+<span class="nc" id="L360">            return rs.getString(columnName);</span>
+<span class="nc bnc" id="L361" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="nc" id="L362">            long value = rs.getLong(columnName);</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">            return rs.wasNull() ? null : value;</span>
+<span class="nc bnc" id="L364" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="nc" id="L365">            int value = rs.getInt(columnName);</span>
+<span class="nc bnc" id="L366" title="All 2 branches missed.">            return rs.wasNull() ? null : value;</span>
+<span class="nc bnc" id="L367" title="All 2 branches missed.">        } else if (type == LocalDateTime.class) {</span>
+            // Get timestamp without Calendar to avoid timezone conversion
+            // toLocalDateTime() preserves the exact date/time from the database
+<span class="nc" id="L370">            Timestamp ts = rs.getTimestamp(columnName);</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">            return ts != null ? ts.toLocalDateTime() : null;</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">        } else if (type == BigDecimal.class) {</span>
+<span class="nc" id="L373">            return rs.getBigDecimal(columnName);</span>
+<span class="nc bnc" id="L374" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="nc" id="L375">            return rs.getBoolean(columnName);</span>
+<span class="nc bnc" id="L376" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="nc" id="L377">            double value = rs.getDouble(columnName);</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">            return rs.wasNull() ? null : value;</span>
+        } else {
+<span class="nc" id="L380">            return rs.getObject(columnName);</span>
+        }
+    }
+    
+    // Getters
+<span class="nc" id="L385">    public String getTableName() { return tableName; }</span>
+<span class="nc" id="L386">    public String getInsertSQL() { return insertSQL; }</span>
+<span class="nc" id="L387">    public String getSelectByIdSQL() { return selectByIdSQL; }</span>
+<span class="nc" id="L388">    public String getUpdateByIdSQL() { return updateByIdSQL; }</span>
+<span class="fc" id="L389">    public String getCreateTableSQL() { return createTableSQL; }</span>
+<span class="fc" id="L390">    public FieldMetadata getIdField() { return idField; }</span>
+<span class="fc" id="L391">    public FieldMetadata getShardingKeyField() { return shardingKeyField; }</span>
+<span class="fc" id="L392">    public List&lt;FieldMetadata&gt; getFields() { return fields; }</span>
+<span class="nc" id="L393">    public String getPartitionColumnName() { return partitionColumnName; }</span>
+    
+    public String getId(T entity) {
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        if (idField == null) {</span>
+<span class="nc" id="L397">            return null;</span>
+        }
+<span class="nc" id="L399">        return (String) idField.getValue(entity);</span>
+    }
+    
+    public void setId(T entity, String id) {
+<span class="nc bnc" id="L403" title="All 2 branches missed.">        if (idField != null) {</span>
+<span class="nc" id="L404">            idField.setValue(entity, id);</span>
+        }
+<span class="nc" id="L406">    }</span>
+    
+    public LocalDateTime getShardingKeyValue(T entity) {
+<span class="nc bnc" id="L409" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="nc" id="L410">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
+        }
+<span class="nc" id="L412">        Object value = shardingKeyField.getValue(entity);</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">        if (value instanceof LocalDateTime) {</span>
+<span class="nc" id="L414">            return (LocalDateTime) value;</span>
+        }
+        // Use the interface method if available
+<span class="nc bnc" id="L417" title="All 2 branches missed.">        if (entity instanceof ShardingEntity) {</span>
+<span class="nc" id="L418">            Object partitionValue = ((ShardingEntity) entity).getPartitionColValue();</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">            if (partitionValue instanceof LocalDateTime) {</span>
+<span class="nc" id="L420">                return (LocalDateTime) partitionValue;</span>
+            }
+        }
+<span class="nc" id="L423">        throw new ClassCastException(&quot;Sharding key value is not LocalDateTime: &quot; + value.getClass());</span>
+    }
+
+    /**
+     * Get the partition column value from the entity (generic type support).
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public &lt;V extends Comparable&lt;V&gt;&gt; V getPartitionColValue(T entity) {
+<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (shardingKeyField == null) {</span>
+<span class="nc" id="L432">            throw new IllegalStateException(&quot;No sharding key field found in entity&quot;);</span>
+        }
+<span class="nc" id="L434">        Object value = shardingKeyField.getValue(entity);</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L436">            return null;</span>
+        }
+<span class="nc bnc" id="L438" title="All 2 branches missed.">        if (!Comparable.class.isAssignableFrom(value.getClass())) {</span>
+<span class="nc" id="L439">            throw new ClassCastException(&quot;Partition column value must be Comparable: &quot; + value.getClass());</span>
+        }
+<span class="nc" id="L441">        return (V) value;</span>
+    }
+
+    private void validateDateTimeTypes() {
+        // IMPORTANT: Only validate @Id and @ShardingKey fields
+        // Regular fields can use any date/time types
+
+        // Validate @Id field - must be String
+<span class="pc bpc" id="L449" title="1 of 2 branches missed.">        if (idField != null) {</span>
+<span class="fc" id="L450">            Class&lt;?&gt; idType = idField.getType();</span>
+<span class="pc bpc" id="L451" title="1 of 2 branches missed.">            if (idType != String.class) {</span>
+<span class="nc" id="L452">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L453">                    String.format(&quot;Entity %s @Id field must be String type for consistent sharding. &quot; +</span>
+                        &quot;Found: %s. See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L455">                        entityClass.getSimpleName(), idType.getSimpleName())</span>
+                );
+            }
+        }
+
+        // Validate @ShardingKey field - restricted types only
+<span class="pc bpc" id="L461" title="1 of 2 branches missed.">        if (shardingKeyField != null) {</span>
+<span class="fc" id="L462">            Class&lt;?&gt; shardingType = shardingKeyField.getType();</span>
+
+            // Check for allowed types first
+<span class="pc bpc" id="L465" title="7 of 8 branches missed.">            if (shardingType == LocalDateTime.class ||</span>
+                shardingType == String.class ||
+                shardingType == Long.class ||
+                shardingType == Integer.class) {
+                // These types are allowed
+<span class="fc" id="L470">                return;</span>
+            }
+
+            // Now check for specific unsupported date/time types to provide helpful error messages
+<span class="nc bnc" id="L474" title="All 2 branches missed.">            if (shardingType == java.util.Date.class) {</span>
+<span class="nc" id="L475">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L476">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type java.util.Date. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L479">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+<span class="nc bnc" id="L482" title="All 2 branches missed.">            if (shardingType == java.sql.Date.class) {</span>
+<span class="nc" id="L483">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L484">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type java.sql.Date. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L487">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+<span class="nc bnc" id="L490" title="All 2 branches missed.">            if (shardingType == java.sql.Timestamp.class) {</span>
+<span class="nc" id="L491">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L492">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type java.sql.Timestamp. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L495">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+<span class="nc bnc" id="L498" title="All 2 branches missed.">            if (shardingType == java.sql.Time.class) {</span>
+<span class="nc" id="L499">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L500">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type java.sql.Time. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L503">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+<span class="nc bnc" id="L506" title="All 2 branches missed.">            if (shardingType == java.time.ZonedDateTime.class) {</span>
+<span class="nc" id="L507">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L508">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type ZonedDateTime. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L511">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+<span class="nc bnc" id="L514" title="All 2 branches missed.">            if (shardingType == java.time.OffsetDateTime.class) {</span>
+<span class="nc" id="L515">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L516">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type OffsetDateTime. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L519">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+<span class="nc bnc" id="L522" title="All 2 branches missed.">            if (shardingType == java.time.Instant.class) {</span>
+<span class="nc" id="L523">                throw new IllegalArgumentException(</span>
+<span class="nc" id="L524">                    String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type Instant. &quot; +</span>
+                        &quot;Only LocalDateTime is supported for date-based partitioning. &quot; +
+                        &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L527">                        entityClass.getSimpleName(), shardingKeyField.getFieldName())</span>
+                );
+            }
+
+            // Generic error for any other unsupported type
+<span class="nc" id="L532">            throw new IllegalArgumentException(</span>
+<span class="nc" id="L533">                String.format(&quot;Entity %s @ShardingKey field '%s' uses unsupported type %s. &quot; +</span>
+                    &quot;Supported types: LocalDateTime (for date-based), String, Long, Integer. &quot; +
+                    &quot;See doc/supported-data-types.md for details.&quot;,
+<span class="nc" id="L536">                    entityClass.getSimpleName(), shardingKeyField.getFieldName(), shardingType.getSimpleName())</span>
+            );
+        }
+<span class="nc" id="L539">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

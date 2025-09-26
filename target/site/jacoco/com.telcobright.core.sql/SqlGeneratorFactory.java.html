@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SqlGeneratorFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.sql</a> &gt; <span class="el_source">SqlGeneratorFactory.java</span></div><h1>SqlGeneratorFactory.java</h1><pre class="source lang-java linenums">package com.telcobright.core.sql;
+
+import com.telcobright.core.sql.mysql.MySQLSqlGenerator;
+import com.telcobright.core.sql.oracle.OracleSqlGenerator;
+import com.telcobright.core.sql.postgresql.PostgreSQLSqlGenerator;
+import com.telcobright.core.sql.sqlserver.SqlServerSqlGenerator;
+import com.telcobright.core.persistence.PersistenceProvider;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
+/**
+ * Factory for creating database-specific SQL generators
+ * Uses singleton pattern to cache generator instances
+ */
+<span class="nc" id="L19">public class SqlGeneratorFactory {</span>
+
+<span class="nc" id="L21">    private static final Map&lt;DatabaseType, SqlGenerator&gt; generatorCache = new ConcurrentHashMap&lt;&gt;();</span>
+
+<span class="nc" id="L23">    public enum DatabaseType {</span>
+<span class="nc" id="L24">        MYSQL(&quot;MySQL&quot;),</span>
+<span class="nc" id="L25">        POSTGRESQL(&quot;PostgreSQL&quot;),</span>
+<span class="nc" id="L26">        ORACLE(&quot;Oracle&quot;),</span>
+<span class="nc" id="L27">        SQLSERVER(&quot;Microsoft SQL Server&quot;),</span>
+<span class="nc" id="L28">        GENERIC(&quot;Generic&quot;);</span>
+
+        private final String productName;
+
+<span class="nc" id="L32">        DatabaseType(String productName) {</span>
+<span class="nc" id="L33">            this.productName = productName;</span>
+<span class="nc" id="L34">        }</span>
+
+        public String getProductName() {
+<span class="nc" id="L37">            return productName;</span>
+        }
+    }
+
+    /**
+     * Get SQL generator for specific database type
+     */
+    public static SqlGenerator getGenerator(DatabaseType type) {
+<span class="nc" id="L45">        return generatorCache.computeIfAbsent(type, SqlGeneratorFactory::createGenerator);</span>
+    }
+
+    /**
+     * Get SQL generator based on PersistenceProvider database type
+     */
+    public static SqlGenerator getGenerator(PersistenceProvider.DatabaseType dbType) {
+<span class="nc" id="L52">        DatabaseType type = mapPersistenceType(dbType);</span>
+<span class="nc" id="L53">        return getGenerator(type);</span>
+    }
+
+    /**
+     * Auto-detect database type from connection and get appropriate generator
+     */
+    public static SqlGenerator getGenerator(Connection connection) throws SQLException {
+<span class="nc" id="L60">        DatabaseType type = detectDatabaseType(connection);</span>
+<span class="nc" id="L61">        return getGenerator(type);</span>
+    }
+
+    /**
+     * Create new generator instance for database type
+     */
+    private static SqlGenerator createGenerator(DatabaseType type) {
+<span class="nc bnc" id="L68" title="All 5 branches missed.">        switch (type) {</span>
+            case MYSQL:
+<span class="nc" id="L70">                return new MySQLSqlGenerator();</span>
+            case POSTGRESQL:
+<span class="nc" id="L72">                return new PostgreSQLSqlGenerator();</span>
+            case ORACLE:
+<span class="nc" id="L74">                return new OracleSqlGenerator();</span>
+            case SQLSERVER:
+<span class="nc" id="L76">                return new SqlServerSqlGenerator();</span>
+            case GENERIC:
+            default:
+<span class="nc" id="L79">                return new BaseSqlGenerator();</span>
+        }
+    }
+
+    /**
+     * Map PersistenceProvider database type to our database type
+     */
+    private static DatabaseType mapPersistenceType(PersistenceProvider.DatabaseType dbType) {
+<span class="nc bnc" id="L87" title="All 5 branches missed.">        switch (dbType) {</span>
+            case MYSQL:
+<span class="nc" id="L89">                return DatabaseType.MYSQL;</span>
+            case POSTGRESQL:
+<span class="nc" id="L91">                return DatabaseType.POSTGRESQL;</span>
+            case ORACLE:
+<span class="nc" id="L93">                return DatabaseType.ORACLE;</span>
+            case SQLSERVER:
+<span class="nc" id="L95">                return DatabaseType.SQLSERVER;</span>
+            default:
+<span class="nc" id="L97">                return DatabaseType.GENERIC;</span>
+        }
+    }
+
+    /**
+     * Detect database type from connection metadata
+     */
+    private static DatabaseType detectDatabaseType(Connection connection) throws SQLException {
+<span class="nc" id="L105">        DatabaseMetaData metaData = connection.getMetaData();</span>
+<span class="nc" id="L106">        String productName = metaData.getDatabaseProductName().toLowerCase();</span>
+
+<span class="nc bnc" id="L108" title="All 4 branches missed.">        if (productName.contains(&quot;mysql&quot;) || productName.contains(&quot;mariadb&quot;)) {</span>
+<span class="nc" id="L109">            return DatabaseType.MYSQL;</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">        } else if (productName.contains(&quot;postgresql&quot;) || productName.contains(&quot;postgres&quot;)) {</span>
+<span class="nc" id="L111">            return DatabaseType.POSTGRESQL;</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        } else if (productName.contains(&quot;oracle&quot;)) {</span>
+<span class="nc" id="L113">            return DatabaseType.ORACLE;</span>
+<span class="nc bnc" id="L114" title="All 4 branches missed.">        } else if (productName.contains(&quot;microsoft&quot;) || productName.contains(&quot;sql server&quot;)) {</span>
+<span class="nc" id="L115">            return DatabaseType.SQLSERVER;</span>
+        } else {
+<span class="nc" id="L117">            return DatabaseType.GENERIC;</span>
+        }
+    }
+
+    /**
+     * Clear cached generators (useful for testing)
+     */
+    public static void clearCache() {
+<span class="nc" id="L125">        generatorCache.clear();</span>
+<span class="nc" id="L126">    }</span>
+
+    /**
+     * Get database type name from connection
+     */
+    public static String getDatabaseTypeName(Connection connection) throws SQLException {
+<span class="nc" id="L132">        DatabaseType type = detectDatabaseType(connection);</span>
+<span class="nc" id="L133">        return type.getProductName();</span>
+    }
+
+    /**
+     * Check if database supports native partitioning
+     */
+    public static boolean supportsPartitioning(DatabaseType type) {
+<span class="nc" id="L140">        SqlGenerator generator = getGenerator(type);</span>
+<span class="nc" id="L141">        return generator.supportsNativePartitioning();</span>
+    }
+
+    /**
+     * Check if database supports IF NOT EXISTS clause
+     */
+    public static boolean supportsIfNotExists(DatabaseType type) {
+<span class="nc" id="L148">        SqlGenerator generator = getGenerator(type);</span>
+<span class="nc" id="L149">        return generator.supportsIfNotExists();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

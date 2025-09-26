@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepositoryProxyExample.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.examples.demo</a> &gt; <span class="el_source">RepositoryProxyExample.java</span></div><h1>RepositoryProxyExample.java</h1><pre class="source lang-java linenums">package com.telcobright.examples.demo;
+
+import com.telcobright.api.RepositoryProxy;
+import com.telcobright.api.ShardingRepository;
+import com.telcobright.core.repository.SplitVerseRepository;
+import com.telcobright.splitverse.config.ShardConfig;
+import com.telcobright.examples.entity.OrderEntity;
+import com.telcobright.examples.entity.SmsEntity;
+
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Example demonstrating the use of RepositoryProxy for unified API access
+ */
+<span class="nc" id="L17">public class RepositoryProxyExample {</span>
+    
+    public static void main(String[] args) throws SQLException {
+        // Example 1: SMS Repository via Split-Verse Proxy
+<span class="nc" id="L21">        ShardConfig smsShardConfig = ShardConfig.builder()</span>
+<span class="nc" id="L22">            .shardId(&quot;sms-primary&quot;)</span>
+<span class="nc" id="L23">            .host(&quot;127.0.0.1&quot;)</span>
+<span class="nc" id="L24">            .port(3306)</span>
+<span class="nc" id="L25">            .database(&quot;test&quot;)</span>
+<span class="nc" id="L26">            .username(&quot;root&quot;)</span>
+<span class="nc" id="L27">            .password(&quot;123456&quot;)</span>
+<span class="nc" id="L28">            .connectionPoolSize(10)</span>
+<span class="nc" id="L29">            .enabled(true)</span>
+<span class="nc" id="L30">            .build();</span>
+        
+        SplitVerseRepository&lt;SmsEntity, LocalDateTime&gt; smsRepo =
+<span class="nc" id="L33">            SplitVerseRepository.&lt;SmsEntity, LocalDateTime&gt;builder()</span>
+<span class="nc" id="L34">                .withSingleShard(smsShardConfig)</span>
+<span class="nc" id="L35">                .withEntityClass(SmsEntity.class)</span>
+<span class="nc" id="L36">                .build();</span>
+        
+        // SplitVerseRepository implements ShardingRepository, so can be used directly
+<span class="nc" id="L39">        ShardingRepository&lt;SmsEntity, LocalDateTime&gt; smsProxy = smsRepo;</span>
+        
+        // Example 2: Order Repository via Split-Verse Proxy
+<span class="nc" id="L42">        ShardConfig orderShardConfig = ShardConfig.builder()</span>
+<span class="nc" id="L43">            .shardId(&quot;order-primary&quot;)</span>
+<span class="nc" id="L44">            .host(&quot;127.0.0.1&quot;)</span>
+<span class="nc" id="L45">            .port(3306)</span>
+<span class="nc" id="L46">            .database(&quot;test&quot;)</span>
+<span class="nc" id="L47">            .username(&quot;root&quot;)</span>
+<span class="nc" id="L48">            .password(&quot;123456&quot;)</span>
+<span class="nc" id="L49">            .connectionPoolSize(10)</span>
+<span class="nc" id="L50">            .enabled(true)</span>
+<span class="nc" id="L51">            .build();</span>
+        
+        SplitVerseRepository&lt;OrderEntity, LocalDateTime&gt; orderRepo =
+<span class="nc" id="L54">            SplitVerseRepository.&lt;OrderEntity, LocalDateTime&gt;builder()</span>
+<span class="nc" id="L55">                .withSingleShard(orderShardConfig)</span>
+<span class="nc" id="L56">                .withEntityClass(OrderEntity.class)</span>
+<span class="nc" id="L57">                .build();</span>
+        
+        // SplitVerseRepository implements ShardingRepository, so can be used directly
+<span class="nc" id="L60">        ShardingRepository&lt;OrderEntity, LocalDateTime&gt; orderProxy = orderRepo;</span>
+        
+        // Both repositories can now be used through the same ShardingRepository interface
+<span class="nc" id="L63">        demonstrateCommonOperations(smsProxy, &quot;SMS Repository&quot;);</span>
+<span class="nc" id="L64">        demonstrateCommonOperations(orderProxy, &quot;Order Repository&quot;);</span>
+        
+        // With Split-Verse, all repositories are sharding-aware by default
+<span class="nc" id="L67">        System.out.println(&quot;SMS Repository: Split-Verse sharding enabled&quot;);</span>
+<span class="nc" id="L68">        System.out.println(&quot;Order Repository: Split-Verse sharding enabled&quot;);</span>
+        
+        // Split-Verse handles all sharding internally - no need to access underlying implementation
+        
+        // Cleanup
+<span class="nc" id="L73">        smsProxy.shutdown();</span>
+<span class="nc" id="L74">        orderProxy.shutdown();</span>
+<span class="nc" id="L75">    }</span>
+    
+    /**
+     * Demonstrate common operations that work with any ShardingRepository
+     */
+    private static &lt;T extends com.telcobright.core.entity.ShardingEntity&lt;LocalDateTime&gt;&gt;
+            void demonstrateCommonOperations(ShardingRepository&lt;T, LocalDateTime&gt; repo, String repoName) {
+        
+        try {
+<span class="nc" id="L84">            System.out.println(&quot;\n=== &quot; + repoName + &quot; ===&quot;);</span>
+            
+            // Find entities in date range
+<span class="nc" id="L87">            LocalDateTime startDate = LocalDateTime.now().minusDays(7);</span>
+<span class="nc" id="L88">            LocalDateTime endDate = LocalDateTime.now();</span>
+<span class="nc" id="L89">            List&lt;T&gt; entities = repo.findAllByDateRange(startDate, endDate);</span>
+<span class="nc" id="L90">            System.out.println(&quot;Found &quot; + entities.size() + &quot; entities in last 7 days&quot;);</span>
+            
+            // Cursor-based iteration
+<span class="nc" id="L93">            String cursor = null;</span>
+<span class="nc" id="L94">            T nextEntity = repo.findOneByIdGreaterThan(cursor);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            if (nextEntity != null) {</span>
+<span class="nc" id="L96">                System.out.println(&quot;Found next entity using cursor-based iteration&quot;);</span>
+            }
+            
+            // Batch processing
+<span class="nc" id="L100">            List&lt;T&gt; batch = repo.findBatchByIdGreaterThan(cursor, 10);</span>
+<span class="nc" id="L101">            System.out.println(&quot;Retrieved batch of &quot; + batch.size() + &quot; entities&quot;);</span>
+            
+<span class="nc" id="L103">        } catch (SQLException e) {</span>
+<span class="nc" id="L104">            System.err.println(&quot;Error accessing &quot; + repoName + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L105">        }</span>
+<span class="nc" id="L106">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

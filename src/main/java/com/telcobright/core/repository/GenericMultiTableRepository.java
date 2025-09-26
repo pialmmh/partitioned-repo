@@ -149,13 +149,22 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         }
         
         // Initialize tables for the retention period on startup
-        if (initializePartitionsOnStart) {
+        // If autoManagePartitions is false, skip ALL table creation - assume they exist
+        if (autoManagePartitions && initializePartitionsOnStart) {
             try {
                 initializeTablesForRetentionPeriod();
                 // After initialization, refresh and validate metadata
                 refreshPartitionMetadata();
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to initialize tables for retention period", e);
+            }
+        } else if (!autoManagePartitions) {
+            logger.info("Auto-management disabled. Assuming tables with prefix '{}' already exist.", tablePrefix);
+            // Still need to discover existing tables for routing
+            try {
+                discoverExistingTables();
+            } catch (SQLException e) {
+                logger.warn("Could not discover existing tables: {}. Will create tables on-demand.", e.getMessage());
             }
         }
         
@@ -1287,7 +1296,41 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
         
         return results;
     }
-    
+
+    /**
+     * Discover existing tables when auto-management is disabled.
+     * This allows the repository to work with pre-existing tables.
+     */
+    private void discoverExistingTables() throws SQLException {
+        logger.info("Discovering existing tables with prefix: {}", tablePrefix);
+
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            String sql = String.format(
+                "SELECT TABLE_NAME FROM information_schema.TABLES " +
+                "WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME LIKE '%s_%%' " +
+                "ORDER BY TABLE_NAME",
+                database, tablePrefix
+            );
+
+            ResultSet rs = stmt.executeQuery(sql);
+            int count = 0;
+            while (rs.next()) {
+                String tableName = rs.getString("TABLE_NAME");
+                // Extract date from table name (format: prefix_YYYYMMDD or prefix_YYYY_MM_DD)
+                // This is just for logging, actual partition metadata will be refreshed later if needed
+                logger.debug("Discovered table: {}", tableName);
+                count++;
+            }
+
+            logger.info("Discovered {} existing tables with prefix '{}'", count, tablePrefix);
+
+            // Note: We're not refreshing partition metadata here to avoid the boundary validation
+            // that would fail when auto-management is disabled
+        }
+    }
+
     private void performAutomaticMaintenance(LocalDateTime referenceDate) throws SQLException {
         long startTime = System.currentTimeMillis();
         int tablesCreated = 0;

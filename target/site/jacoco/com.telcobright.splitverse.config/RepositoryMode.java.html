@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepositoryMode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.splitverse.config</a> &gt; <span class="el_source">RepositoryMode.java</span></div><h1>RepositoryMode.java</h1><pre class="source lang-java linenums">package com.telcobright.splitverse.config;
+
+/**
+ * Defines the repository storage mode for Split-Verse
+ */
+<span class="nc" id="L6">public enum RepositoryMode {</span>
+    /**
+     * Single table with MySQL native partitions
+     * - Table is divided into partitions by date (p20250914, p20250915, etc.)
+     * - All partitions created upfront in CREATE TABLE
+     * - Requires composite primary key (id, created_at)
+     * - Better for queries spanning multiple days
+     */
+<span class="nc" id="L14">    PARTITIONED,</span>
+
+    /**
+     * Separate table for each time period (day/hour/month)
+     * - Each period gets its own table (table_2025_09_14, table_2025_09_15, etc.)
+     * - Tables created on-demand or upfront
+     * - Simple primary key (id only)
+     * - Better for complete day isolation and archival
+     */
+<span class="nc" id="L23">    MULTI_TABLE</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

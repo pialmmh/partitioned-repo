@@ -3,7 +3,10 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/ChronicleSimulatorOptimizedTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/CrudOperationsTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/DebugPartitionTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/MultiEntityComprehensiveTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/MultiEntityDemoTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PartitionBoundaryTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PartitionManagementDisabledTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/PerformanceTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SequentialLogRepositoryTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SequentialWriteTestSimulatorForChronicle.java
@@ -18,3 +21,6 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTestRetrieveAll.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/SmsRetrieveByIdOnlyTest.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/entities/AuditLogEntity.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/entities/OrderEntity.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/test/java/com/telcobright/splitverse/tests/entities/UserEntity.java

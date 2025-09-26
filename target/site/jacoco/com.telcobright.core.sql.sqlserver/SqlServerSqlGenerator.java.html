@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SqlServerSqlGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.sql.sqlserver</a> &gt; <span class="el_source">SqlServerSqlGenerator.java</span></div><h1>SqlServerSqlGenerator.java</h1><pre class="source lang-java linenums">package com.telcobright.core.sql.sqlserver;
+
+import com.telcobright.core.sql.BaseSqlGenerator;
+import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * SQL Server SQL Generator
+ * Optimized SQL generation for Microsoft SQL Server with support for:
+ * - Table and index partitioning
+ * - SQL Server-specific features and optimizations
+ * - Temporal tables and columnstore indexes
+ */
+<span class="nc" id="L17">public class SqlServerSqlGenerator extends BaseSqlGenerator {</span>
+
+    @Override
+    public String generateCreateTableWithPartitions(String tableName, EntityMetadata metadata,
+                                                   String partitionColumn, String partitionType) {
+        // SQL Server requires partition function and scheme first
+<span class="nc" id="L23">        StringBuilder sql = new StringBuilder();</span>
+
+        // Create partition function
+<span class="nc" id="L26">        String functionName = &quot;PF_&quot; + tableName;</span>
+<span class="nc" id="L27">        String schemeName = &quot;PS_&quot; + tableName;</span>
+
+<span class="nc" id="L29">        sql.append(&quot;-- Create partition function\n&quot;);</span>
+<span class="nc" id="L30">        sql.append(&quot;CREATE PARTITION FUNCTION &quot;).append(escapeIdentifier(functionName));</span>
+
+<span class="nc" id="L32">        FieldMetadata partitionField = getFieldByColumnName(metadata, partitionColumn);</span>
+<span class="nc bnc" id="L33" title="All 4 branches missed.">        if (partitionField != null &amp;&amp; partitionField.getType() == java.time.LocalDateTime.class) {</span>
+<span class="nc" id="L34">            sql.append(&quot;(datetime2)\n&quot;);</span>
+<span class="nc" id="L35">            sql.append(&quot;AS RANGE RIGHT FOR VALUES ();\n\n&quot;);</span>
+        } else {
+<span class="nc" id="L37">            sql.append(&quot;(&quot;).append(getSqlType(partitionField)).append(&quot;)\n&quot;);</span>
+<span class="nc" id="L38">            sql.append(&quot;AS RANGE RIGHT FOR VALUES ();\n\n&quot;);</span>
+        }
+
+        // Create partition scheme
+<span class="nc" id="L42">        sql.append(&quot;-- Create partition scheme\n&quot;);</span>
+<span class="nc" id="L43">        sql.append(&quot;CREATE PARTITION SCHEME &quot;).append(escapeIdentifier(schemeName)).append(&quot;\n&quot;);</span>
+<span class="nc" id="L44">        sql.append(&quot;AS PARTITION &quot;).append(escapeIdentifier(functionName)).append(&quot;\n&quot;);</span>
+<span class="nc" id="L45">        sql.append(&quot;ALL TO ([PRIMARY]);\n\n&quot;);</span>
+
+        // Create the table
+<span class="nc" id="L48">        sql.append(&quot;-- Create partitioned table\n&quot;);</span>
+<span class="nc" id="L49">        sql.append(&quot;CREATE TABLE &quot;).append(escapeIdentifier(tableName)).append(&quot; (\n&quot;);</span>
+
+        // Add columns
+<span class="nc" id="L52">        List&lt;FieldMetadata&gt; fields = metadata.getFields();</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        for (int i = 0; i &lt; fields.size(); i++) {</span>
+<span class="nc" id="L54">            FieldMetadata field = fields.get(i);</span>
+<span class="nc" id="L55">            sql.append(&quot;  &quot;).append(escapeIdentifier(field.getColumnName()))</span>
+<span class="nc" id="L56">               .append(&quot; &quot;).append(getSqlType(field));</span>
+
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if (field.equals(metadata.getIdField())) {</span>
+                // SQL Server clustered index for primary key
+<span class="nc" id="L60">                sql.append(&quot; NOT NULL&quot;);</span>
+            }
+
+<span class="nc bnc" id="L63" title="All 2 branches missed.">            if (i &lt; fields.size() - 1) {</span>
+<span class="nc" id="L64">                sql.append(&quot;,&quot;);</span>
+            }
+<span class="nc" id="L66">            sql.append(&quot;\n&quot;);</span>
+        }
+
+        // Add primary key constraint
+<span class="nc" id="L70">        sql.append(&quot;,  CONSTRAINT PK_&quot;).append(tableName)</span>
+<span class="nc" id="L71">           .append(&quot; PRIMARY KEY CLUSTERED (&quot;)</span>
+<span class="nc" id="L72">           .append(escapeIdentifier(metadata.getIdField().getColumnName()));</span>
+
+        // Include partition column in primary key for partitioning
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (!metadata.getIdField().getColumnName().equals(partitionColumn)) {</span>
+<span class="nc" id="L76">            sql.append(&quot;, &quot;).append(escapeIdentifier(partitionColumn));</span>
+        }
+<span class="nc" id="L78">        sql.append(&quot;)\n&quot;);</span>
+
+<span class="nc" id="L80">        sql.append(&quot;) ON &quot;).append(escapeIdentifier(schemeName))</span>
+<span class="nc" id="L81">           .append(&quot;(&quot;).append(escapeIdentifier(partitionColumn)).append(&quot;)&quot;);</span>
+
+<span class="nc" id="L83">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateAlterTableAddPartition(String tableName, String partitionName,
+                                                String partitionDefinition) {
+        // SQL Server adds partitions by altering the partition function
+<span class="nc" id="L90">        String functionName = &quot;PF_&quot; + tableName;</span>
+<span class="nc" id="L91">        return String.format(&quot;ALTER PARTITION FUNCTION %s() SPLIT RANGE (%s)&quot;,</span>
+<span class="nc" id="L92">                escapeIdentifier(functionName), partitionDefinition);</span>
+    }
+
+    @Override
+    public String generateDropTable(String tableName) {
+<span class="nc" id="L97">        return &quot;DROP TABLE IF EXISTS &quot; + escapeIdentifier(tableName);</span>
+    }
+
+    @Override
+    public String generateCreateIndex(String tableName, String indexName, List&lt;String&gt; columns) {
+<span class="nc" id="L102">        String columnList = columns.stream()</span>
+<span class="nc" id="L103">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L104">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+        // SQL Server nonclustered index
+<span class="nc" id="L107">        return String.format(&quot;CREATE NONCLUSTERED INDEX %s ON %s (%s)&quot;,</span>
+<span class="nc" id="L108">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L109">                escapeIdentifier(tableName),</span>
+                columnList);
+    }
+
+    @Override
+    public String generateDropIndex(String tableName, String indexName) {
+        // SQL Server requires table name in DROP INDEX
+<span class="nc" id="L116">        return String.format(&quot;DROP INDEX %s ON %s&quot;,</span>
+<span class="nc" id="L117">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L118">                escapeIdentifier(tableName));</span>
+    }
+
+    @Override
+    public String generateBatchInsert(String tableName, List&lt;Map&lt;String, Object&gt;&gt; records) {
+        // SQL Server supports table value constructors
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (records.isEmpty()) {</span>
+<span class="nc" id="L125">            throw new IllegalArgumentException(&quot;Cannot generate batch insert for empty records&quot;);</span>
+        }
+
+<span class="nc" id="L128">        Map&lt;String, Object&gt; firstRecord = records.get(0);</span>
+<span class="nc" id="L129">        String columns = firstRecord.keySet().stream()</span>
+<span class="nc" id="L130">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L131">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L133">        StringBuilder sql = new StringBuilder();</span>
+<span class="nc" id="L134">        sql.append(&quot;INSERT INTO &quot;).append(escapeIdentifier(tableName))</span>
+<span class="nc" id="L135">           .append(&quot; (&quot;).append(columns).append(&quot;) VALUES &quot;);</span>
+
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        for (int i = 0; i &lt; records.size(); i++) {</span>
+<span class="nc" id="L138">            String valuePlaceholders = firstRecord.keySet().stream()</span>
+<span class="nc" id="L139">                    .map(k -&gt; &quot;?&quot;)</span>
+<span class="nc" id="L140">                    .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L141">            sql.append(&quot;(&quot;).append(valuePlaceholders).append(&quot;)&quot;);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            if (i &lt; records.size() - 1) {</span>
+<span class="nc" id="L143">                sql.append(&quot;, &quot;);</span>
+            }
+        }
+
+<span class="nc" id="L147">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateSelectWithPagination(String baseQuery, int limit, int offset) {
+        // SQL Server 2012+ supports OFFSET/FETCH
+        // Requires ORDER BY clause
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (!baseQuery.toUpperCase().contains(&quot;ORDER BY&quot;)) {</span>
+<span class="nc" id="L155">            baseQuery += &quot; ORDER BY 1&quot;; // Default ordering</span>
+        }
+<span class="nc" id="L157">        return baseQuery + &quot; OFFSET &quot; + offset + &quot; ROWS FETCH NEXT &quot; + limit + &quot; ROWS ONLY&quot;;</span>
+    }
+
+    @Override
+    public String generateSelectBatchByIdGreaterThan(String tableName, String idColumn,
+                                                    String lastId, int batchSize) {
+        // SQL Server with TOP clause
+<span class="nc" id="L164">        return String.format(&quot;SELECT TOP %d * FROM %s WHERE %s &gt; ? ORDER BY %s&quot;,</span>
+<span class="nc" id="L165">                batchSize,</span>
+<span class="nc" id="L166">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L167">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L168">                escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String generateExistsQuery(String tableName, String idColumn) {
+        // SQL Server EXISTS optimization
+<span class="nc" id="L174">        return String.format(</span>
+            &quot;SELECT CASE WHEN EXISTS(SELECT 1 FROM %s WHERE %s = ?) THEN 1 ELSE 0 END AS record_exists&quot;,
+<span class="nc" id="L176">            escapeIdentifier(tableName),</span>
+<span class="nc" id="L177">            escapeIdentifier(idColumn)</span>
+        );
+    }
+
+    @Override
+    public String escapeIdentifier(String identifier) {
+        // SQL Server uses square brackets for identifiers
+<span class="nc" id="L184">        return &quot;[&quot; + identifier + &quot;]&quot;;</span>
+    }
+
+    @Override
+    public String getCurrentTimestamp() {
+        // SQL Server current timestamp
+<span class="nc" id="L190">        return &quot;GETDATE()&quot;;</span>
+    }
+
+    @Override
+    public boolean supportsIfNotExists() {
+        // SQL Server 2016+ supports DROP TABLE IF EXISTS
+<span class="nc" id="L196">        return true;</span>
+    }
+
+    @Override
+    public boolean supportsNativePartitioning() {
+<span class="nc" id="L201">        return true;</span>
+    }
+
+    @Override
+    protected String getSqlType(FieldMetadata field) {
+<span class="nc" id="L206">        Class&lt;?&gt; type = field.getType();</span>
+<span class="nc" id="L207">        String columnName = field.getColumnName();</span>
+
+<span class="nc bnc" id="L209" title="All 2 branches missed.">        if (type == String.class) {</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">            if (columnName.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L211">                return &quot;NVARCHAR(255)&quot;;</span>
+<span class="nc bnc" id="L212" title="All 4 branches missed.">            } else if (columnName.contains(&quot;email&quot;) || columnName.contains(&quot;name&quot;)) {</span>
+<span class="nc" id="L213">                return &quot;NVARCHAR(255)&quot;;</span>
+            } else {
+<span class="nc" id="L215">                return &quot;NVARCHAR(MAX)&quot;;</span>
+            }
+<span class="nc bnc" id="L217" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="nc" id="L218">            return &quot;INT&quot;;</span>
+<span class="nc bnc" id="L219" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="nc" id="L220">            return &quot;BIGINT&quot;;</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        } else if (type == java.time.LocalDateTime.class) {</span>
+<span class="nc" id="L222">            return &quot;DATETIME2&quot;;</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        } else if (type == java.time.LocalDate.class) {</span>
+<span class="nc" id="L224">            return &quot;DATE&quot;;</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        } else if (type == java.time.LocalTime.class) {</span>
+<span class="nc" id="L226">            return &quot;TIME&quot;;</span>
+<span class="nc bnc" id="L227" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="nc" id="L228">            return &quot;BIT&quot;;</span>
+<span class="nc bnc" id="L229" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="nc" id="L230">            return &quot;FLOAT&quot;;</span>
+<span class="nc bnc" id="L231" title="All 4 branches missed.">        } else if (type == Float.class || type == float.class) {</span>
+<span class="nc" id="L232">            return &quot;REAL&quot;;</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">        } else if (type == java.math.BigDecimal.class) {</span>
+<span class="nc" id="L234">            return &quot;DECIMAL(19, 4)&quot;;</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        } else if (type == byte[].class) {</span>
+<span class="nc" id="L236">            return &quot;VARBINARY(MAX)&quot;;</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">        } else if (type == java.util.UUID.class) {</span>
+<span class="nc" id="L238">            return &quot;UNIQUEIDENTIFIER&quot;;</span>
+        } else {
+<span class="nc" id="L240">            return &quot;NVARCHAR(MAX)&quot;;</span>
+        }
+    }
+
+    // SQL Server-specific methods
+
+    /**
+     * Generate SQL for MERGE statement (upsert)
+     */
+    public String generateMerge(String tableName, Map&lt;String, Object&gt; values, String idColumn) {
+<span class="nc" id="L250">        String columns = values.keySet().stream()</span>
+<span class="nc" id="L251">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L252">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L254">        String updateSetClause = values.keySet().stream()</span>
+<span class="nc bnc" id="L255" title="All 2 branches missed.">                .filter(col -&gt; !col.equals(idColumn))</span>
+<span class="nc" id="L256">                .map(col -&gt; &quot;T.&quot; + escapeIdentifier(col) + &quot; = S.&quot; + escapeIdentifier(col))</span>
+<span class="nc" id="L257">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L259">        String valuePlaceholders = values.keySet().stream()</span>
+<span class="nc" id="L260">                .map(k -&gt; &quot;? AS &quot; + escapeIdentifier(k))</span>
+<span class="nc" id="L261">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L263">        return String.format(</span>
+            &quot;MERGE %s AS T &quot; +
+            &quot;USING (SELECT %s) AS S &quot; +
+            &quot;ON T.%s = S.%s &quot; +
+            &quot;WHEN MATCHED THEN UPDATE SET %s &quot; +
+            &quot;WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s);&quot;,
+<span class="nc" id="L269">            escapeIdentifier(tableName),</span>
+            valuePlaceholders,
+<span class="nc" id="L271">            escapeIdentifier(idColumn), escapeIdentifier(idColumn),</span>
+            updateSetClause,
+<span class="nc" id="L273">            columns, columns.replace(&quot;[&quot;, &quot;S.[&quot;)</span>
+        );
+    }
+
+    /**
+     * Generate SQL for temporal table (system-versioned table)
+     */
+    public String generateTemporalTable(String tableName, EntityMetadata metadata) {
+<span class="nc" id="L281">        StringBuilder sql = new StringBuilder();</span>
+<span class="nc" id="L282">        sql.append(&quot;CREATE TABLE &quot;).append(escapeIdentifier(tableName)).append(&quot; (\n&quot;);</span>
+
+        // Add columns
+<span class="nc" id="L285">        List&lt;FieldMetadata&gt; fields = metadata.getFields();</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">        for (FieldMetadata field : fields) {</span>
+<span class="nc" id="L287">            sql.append(&quot;  &quot;).append(escapeIdentifier(field.getColumnName()))</span>
+<span class="nc" id="L288">               .append(&quot; &quot;).append(getSqlType(field));</span>
+
+<span class="nc bnc" id="L290" title="All 2 branches missed.">            if (field.equals(metadata.getIdField())) {</span>
+<span class="nc" id="L291">                sql.append(&quot; NOT NULL PRIMARY KEY&quot;);</span>
+            }
+<span class="nc" id="L293">            sql.append(&quot;,\n&quot;);</span>
+<span class="nc" id="L294">        }</span>
+
+        // Add temporal columns
+<span class="nc" id="L297">        sql.append(&quot;  SysStartTime DATETIME2 GENERATED ALWAYS AS ROW START NOT NULL,\n&quot;);</span>
+<span class="nc" id="L298">        sql.append(&quot;  SysEndTime DATETIME2 GENERATED ALWAYS AS ROW END NOT NULL,\n&quot;);</span>
+<span class="nc" id="L299">        sql.append(&quot;  PERIOD FOR SYSTEM_TIME (SysStartTime, SysEndTime)\n&quot;);</span>
+<span class="nc" id="L300">        sql.append(&quot;) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.&quot;)</span>
+<span class="nc" id="L301">           .append(tableName).append(&quot;_History))&quot;);</span>
+
+<span class="nc" id="L303">        return sql.toString();</span>
+    }
+
+    /**
+     * Generate SQL for checking partition information
+     */
+    public String generateShowPartitions(String tableName) {
+<span class="nc" id="L310">        return String.format(</span>
+            &quot;SELECT &quot; +
+            &quot;  p.partition_number, &quot; +
+            &quot;  p.rows, &quot; +
+            &quot;  prv.value AS boundary_value &quot; +
+            &quot;FROM sys.partitions p &quot; +
+            &quot;JOIN sys.indexes i ON p.object_id = i.object_id AND p.index_id = i.index_id &quot; +
+            &quot;LEFT JOIN sys.partition_range_values prv ON prv.function_id = i.data_space_id &quot; +
+            &quot;WHERE OBJECT_NAME(p.object_id) = '%s' &quot; +
+            &quot;ORDER BY p.partition_number&quot;,
+            tableName
+        );
+    }
+
+    /**
+     * Generate SQL for columnstore index
+     */
+    public String generateColumnstoreIndex(String tableName, String indexName) {
+<span class="nc" id="L328">        return String.format(&quot;CREATE CLUSTERED COLUMNSTORE INDEX %s ON %s&quot;,</span>
+<span class="nc" id="L329">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L330">                escapeIdentifier(tableName));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

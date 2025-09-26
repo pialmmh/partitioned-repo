@@ -303,6 +303,7 @@ public class MultiEntityRepository {
             private RepositoryMode repositoryMode = RepositoryMode.PARTITIONED;
             private PartitionRange partitionRange = PartitionRange.DAILY;
             private int retentionDays = 7;
+            private boolean autoManagePartitions = true;
             private String tableName;
             private String tablePrefix;
             private GenericMultiTableRepository.TableGranularity tableGranularity;
@@ -330,6 +331,11 @@ public class MultiEntityRepository {
 
             public EntityRegistration<T> retentionDays(int days) {
                 this.retentionDays = days;
+                return this;
+            }
+
+            public EntityRegistration<T> autoManagePartitions(boolean enable) {
+                this.autoManagePartitions = enable;
                 return this;
             }
 
@@ -368,6 +374,7 @@ public class MultiEntityRepository {
                             .password(defaultPassword)
                             .tableName(tableName)
                             .retentionDays(retentionDays)
+                            .autoManagePartitions(autoManagePartitions)
                             .build();
                     } else if (repositoryMode == RepositoryMode.MULTI_TABLE) {
                         // Create multi-table repository using raw types
@@ -379,7 +386,8 @@ public class MultiEntityRepository {
                                 .username(defaultUsername)
                                 .password(defaultPassword)
                                 .tablePrefix(tablePrefix)
-                                .retentionDays(retentionDays);
+                                .retentionDays(retentionDays)
+                                .autoManagePartitions(autoManagePartitions);
 
                         if (tableGranularity != null) {
                             rawBuilder.tableGranularity(tableGranularity);

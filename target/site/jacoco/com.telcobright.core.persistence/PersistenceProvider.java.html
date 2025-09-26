@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersistenceProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.persistence</a> &gt; <span class="el_source">PersistenceProvider.java</span></div><h1>PersistenceProvider.java</h1><pre class="source lang-java linenums">package com.telcobright.core.persistence;
+
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.metadata.EntityMetadata;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Database-agnostic persistence provider interface.
+ * Provides abstraction for database-specific SQL operations and optimizations.
+ *
+ * @author Split-Verse Framework
+ */
+public interface PersistenceProvider {
+
+    /**
+     * Get the database type
+     */
+    DatabaseType getDatabaseType();
+
+    /**
+     * Generate CREATE TABLE SQL for the entity
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @param charset Character set for the table
+     * @param collation Collation for the table
+     * @return CREATE TABLE SQL statement
+     */
+    String generateCreateTableSQL(String tableName, EntityMetadata&lt;?&gt; metadata, String charset, String collation);
+
+    /**
+     * Generate INSERT SQL for a single entity
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @return INSERT SQL statement with placeholders
+     */
+    String generateInsertSQL(String tableName, EntityMetadata&lt;?&gt; metadata);
+
+    /**
+     * Generate bulk INSERT SQL for multiple entities
+     * Uses database-specific optimizations (e.g., MySQL extended INSERT syntax)
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @param entityCount Number of entities to insert
+     * @return Bulk INSERT SQL statement with placeholders
+     */
+    String generateBulkInsertSQL(String tableName, EntityMetadata&lt;?&gt; metadata, int entityCount);
+
+    /**
+     * Generate UPDATE SQL for an entity by ID
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @return UPDATE SQL statement with placeholders
+     */
+    String generateUpdateSQL(String tableName, EntityMetadata&lt;?&gt; metadata);
+
+    /**
+     * Generate DELETE SQL by ID
+     * @param tableName Full table name including schema
+     * @param idColumn Name of the ID column
+     * @return DELETE SQL statement with placeholders
+     */
+    String generateDeleteSQL(String tableName, String idColumn);
+
+    /**
+     * Generate SELECT SQL for finding by ID
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @return SELECT SQL statement with placeholders
+     */
+    String generateSelectByIdSQL(String tableName, EntityMetadata&lt;?&gt; metadata);
+
+    /**
+     * Generate SELECT SQL for finding by date range
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @param dateColumn Name of the date column
+     * @return SELECT SQL statement with placeholders
+     */
+    String generateSelectByDateRangeSQL(String tableName, EntityMetadata&lt;?&gt; metadata, String dateColumn);
+
+    /**
+     * Generate SELECT SQL with pagination
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @param orderByColumn Column to order by
+     * @param ascending Whether to sort ascending
+     * @param limit Maximum number of records
+     * @param offset Number of records to skip
+     * @return SELECT SQL statement with pagination
+     */
+    String generateSelectWithPaginationSQL(String tableName, EntityMetadata&lt;?&gt; metadata,
+                                          String orderByColumn, boolean ascending,
+                                          int limit, int offset);
+
+    /**
+     * Execute bulk insert operation with optimal performance
+     * @param connection Database connection
+     * @param entities List of entities to insert
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @return Number of records inserted
+     */
+    &lt;T extends ShardingEntity&gt; int executeBulkInsert(Connection connection, List&lt;T&gt; entities,
+                                                     String tableName, EntityMetadata&lt;T&gt; metadata)
+                                                     throws SQLException;
+
+    /**
+     * Execute single insert operation
+     * @param connection Database connection
+     * @param entity Entity to insert
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @return Generated key if applicable, null otherwise
+     */
+    &lt;T extends ShardingEntity&gt; String executeInsert(Connection connection, T entity,
+                                                    String tableName, EntityMetadata&lt;T&gt; metadata)
+                                                    throws SQLException;
+
+    /**
+     * Execute update operation
+     * @param connection Database connection
+     * @param entity Entity to update
+     * @param tableName Full table name including schema
+     * @param metadata Entity metadata
+     * @return Number of rows affected
+     */
+    &lt;T extends ShardingEntity&gt; int executeUpdate(Connection connection, T entity,
+                                                 String tableName, EntityMetadata&lt;T&gt; metadata)
+                                                 throws SQLException;
+
+    /**
+     * Execute delete operation
+     * @param connection Database connection
+     * @param id Entity ID to delete
+     * @param tableName Full table name including schema
+     * @param idColumn Name of the ID column
+     * @return Number of rows affected
+     */
+    int executeDelete(Connection connection, String id, String tableName, String idColumn)
+                     throws SQLException;
+
+    /**
+     * Map ResultSet to entity
+     * @param rs ResultSet to map
+     * @param metadata Entity metadata
+     * @return Mapped entity
+     */
+    &lt;T extends ShardingEntity&gt; T mapResultSetToEntity(ResultSet rs, EntityMetadata&lt;T&gt; metadata)
+                                                      throws SQLException;
+
+    /**
+     * Check if a table exists
+     * @param connection Database connection
+     * @param schema Database schema
+     * @param tableName Table name (without schema prefix)
+     * @return true if table exists
+     */
+    boolean tableExists(Connection connection, String schema, String tableName) throws SQLException;
+
+    /**
+     * Drop a table if it exists
+     * @param connection Database connection
+     * @param tableName Full table name including schema
+     */
+    void dropTableIfExists(Connection connection, String tableName) throws SQLException;
+
+    /**
+     * Get the appropriate date/time function for the database
+     * @return Database-specific current timestamp function (e.g., NOW() for MySQL)
+     */
+    String getCurrentTimestampFunction();
+
+    /**
+     * Get the appropriate string concatenation operator
+     * @return Database-specific concatenation operator (e.g., CONCAT for MySQL, || for PostgreSQL)
+     */
+    String getConcatenationOperator();
+
+    /**
+     * Get the appropriate limit/offset syntax
+     * @param limit Maximum number of records
+     * @param offset Number of records to skip
+     * @return Database-specific LIMIT/OFFSET clause
+     */
+    String getLimitOffsetClause(int limit, int offset);
+
+    /**
+     * Validate database connection
+     * @param connection Connection to validate
+     * @return true if connection is valid
+     */
+    boolean isConnectionValid(Connection connection) throws SQLException;
+
+    /**
+     * Get database-specific connection URL
+     * @param host Database host
+     * @param port Database port
+     * @param database Database name
+     * @param additionalParams Additional connection parameters
+     * @return JDBC connection URL
+     */
+    String getConnectionUrl(String host, int port, String database, Map&lt;String, String&gt; additionalParams);
+
+    /**
+     * Database types supported by the framework
+     */
+<span class="fc" id="L212">    enum DatabaseType {</span>
+<span class="fc" id="L213">        MYSQL(&quot;MySQL&quot;),</span>
+<span class="fc" id="L214">        POSTGRESQL(&quot;PostgreSQL&quot;),</span>
+<span class="fc" id="L215">        ORACLE(&quot;Oracle&quot;),</span>
+<span class="fc" id="L216">        SQLSERVER(&quot;SQL Server&quot;),</span>
+<span class="fc" id="L217">        MARIADB(&quot;MariaDB&quot;),</span>
+<span class="fc" id="L218">        COCKROACHDB(&quot;CockroachDB&quot;),</span>
+<span class="fc" id="L219">        TIDB(&quot;TiDB&quot;);</span>
+
+        private final String displayName;
+
+<span class="fc" id="L223">        DatabaseType(String displayName) {</span>
+<span class="fc" id="L224">            this.displayName = displayName;</span>
+<span class="fc" id="L225">        }</span>
+
+        public String getDisplayName() {
+<span class="nc" id="L228">            return displayName;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

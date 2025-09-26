@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MySQLSqlGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.sql.mysql</a> &gt; <span class="el_source">MySQLSqlGenerator.java</span></div><h1>MySQLSqlGenerator.java</h1><pre class="source lang-java linenums">package com.telcobright.core.sql.mysql;
+
+import com.telcobright.core.sql.BaseSqlGenerator;
+import com.telcobright.core.metadata.EntityMetadata;
+import com.telcobright.core.metadata.FieldMetadata;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * MySQL SQL Generator
+ * Optimized SQL generation for MySQL database with support for:
+ * - Native partitioning (RANGE, LIST, HASH)
+ * - MySQL-specific syntax and features
+ * - Efficient batch operations
+ */
+<span class="nc" id="L17">public class MySQLSqlGenerator extends BaseSqlGenerator {</span>
+
+    @Override
+    public String generateCreateTableWithPartitions(String tableName, EntityMetadata metadata,
+                                                   String partitionColumn, String partitionType) {
+<span class="nc" id="L22">        StringBuilder sql = new StringBuilder(generateCreateTable(tableName, metadata));</span>
+
+        // Remove the closing semicolon if present
+<span class="nc" id="L25">        String baseTable = sql.toString().trim();</span>
+<span class="nc bnc" id="L26" title="All 2 branches missed.">        if (baseTable.endsWith(&quot;;&quot;)) {</span>
+<span class="nc" id="L27">            baseTable = baseTable.substring(0, baseTable.length() - 1);</span>
+        }
+
+        // Add partitioning clause
+<span class="nc" id="L31">        sql = new StringBuilder(baseTable);</span>
+<span class="nc" id="L32">        sql.append(&quot;\nPARTITION BY RANGE (&quot;);</span>
+
+        // Handle different partition column types
+<span class="nc" id="L35">        FieldMetadata partitionField = getFieldByColumnName(metadata, partitionColumn);</span>
+<span class="nc bnc" id="L36" title="All 4 branches missed.">        if (partitionField != null &amp;&amp; partitionField.getType() == java.time.LocalDateTime.class) {</span>
+<span class="nc" id="L37">            sql.append(&quot;TO_DAYS(&quot;).append(escapeIdentifier(partitionColumn)).append(&quot;)&quot;);</span>
+        } else {
+<span class="nc" id="L39">            sql.append(escapeIdentifier(partitionColumn));</span>
+        }
+<span class="nc" id="L41">        sql.append(&quot;)&quot;);</span>
+
+<span class="nc" id="L43">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateAlterTableAddPartition(String tableName, String partitionName,
+                                                String partitionDefinition) {
+<span class="nc" id="L49">        return String.format(&quot;ALTER TABLE %s ADD PARTITION (PARTITION %s VALUES LESS THAN (%s))&quot;,</span>
+<span class="nc" id="L50">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L51">                escapeIdentifier(partitionName),</span>
+                partitionDefinition);
+    }
+
+    @Override
+    public String generateCreateIndex(String tableName, String indexName, List&lt;String&gt; columns) {
+<span class="nc" id="L57">        String columnList = columns.stream()</span>
+<span class="nc" id="L58">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L59">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+        // MySQL allows index hints and types
+<span class="nc" id="L62">        return String.format(&quot;CREATE INDEX %s ON %s (%s) USING BTREE&quot;,</span>
+<span class="nc" id="L63">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L64">                escapeIdentifier(tableName),</span>
+                columnList);
+    }
+
+    @Override
+    public String generateDropIndex(String tableName, String indexName) {
+        // MySQL requires table name in DROP INDEX
+<span class="nc" id="L71">        return String.format(&quot;DROP INDEX %s ON %s&quot;,</span>
+<span class="nc" id="L72">                escapeIdentifier(indexName),</span>
+<span class="nc" id="L73">                escapeIdentifier(tableName));</span>
+    }
+
+    @Override
+    public String generateBatchInsert(String tableName, List&lt;Map&lt;String, Object&gt;&gt; records) {
+        // MySQL supports efficient multi-row INSERT
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (records.isEmpty()) {</span>
+<span class="nc" id="L80">            throw new IllegalArgumentException(&quot;Cannot generate batch insert for empty records&quot;);</span>
+        }
+
+<span class="nc" id="L83">        Map&lt;String, Object&gt; firstRecord = records.get(0);</span>
+<span class="nc" id="L84">        String columns = firstRecord.keySet().stream()</span>
+<span class="nc" id="L85">                .map(this::escapeIdentifier)</span>
+<span class="nc" id="L86">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L88">        StringBuilder sql = new StringBuilder();</span>
+<span class="nc" id="L89">        sql.append(&quot;INSERT INTO &quot;).append(escapeIdentifier(tableName))</span>
+<span class="nc" id="L90">           .append(&quot; (&quot;).append(columns).append(&quot;) VALUES &quot;);</span>
+
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        for (int i = 0; i &lt; records.size(); i++) {</span>
+<span class="nc" id="L93">            String valuePlaceholders = firstRecord.keySet().stream()</span>
+<span class="nc" id="L94">                    .map(k -&gt; &quot;?&quot;)</span>
+<span class="nc" id="L95">                    .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L96">            sql.append(&quot;(&quot;).append(valuePlaceholders).append(&quot;)&quot;);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (i &lt; records.size() - 1) {</span>
+<span class="nc" id="L98">                sql.append(&quot;, &quot;);</span>
+            }
+        }
+
+        // Add ON DUPLICATE KEY UPDATE for upsert behavior
+<span class="nc" id="L103">        sql.append(&quot; ON DUPLICATE KEY UPDATE &quot;);</span>
+<span class="nc" id="L104">        String updateClause = firstRecord.keySet().stream()</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                .filter(col -&gt; !col.equals(&quot;id&quot;)) // Don't update ID</span>
+<span class="nc" id="L106">                .map(col -&gt; escapeIdentifier(col) + &quot; = VALUES(&quot; + escapeIdentifier(col) + &quot;)&quot;)</span>
+<span class="nc" id="L107">                .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L108">        sql.append(updateClause);</span>
+
+<span class="nc" id="L110">        return sql.toString();</span>
+    }
+
+    @Override
+    public String generateSelectWithPagination(String baseQuery, int limit, int offset) {
+        // MySQL supports LIMIT with offset
+<span class="nc" id="L116">        return baseQuery + &quot; LIMIT &quot; + offset + &quot;, &quot; + limit;</span>
+    }
+
+    @Override
+    public String generateSelectBatchByIdGreaterThan(String tableName, String idColumn,
+                                                    String lastId, int batchSize) {
+        // MySQL optimization with index hints
+<span class="nc" id="L123">        return String.format(&quot;SELECT * FROM %s USE INDEX(PRIMARY) WHERE %s &gt; ? ORDER BY %s LIMIT %d&quot;,</span>
+<span class="nc" id="L124">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L125">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L126">                escapeIdentifier(idColumn),</span>
+<span class="nc" id="L127">                batchSize);</span>
+    }
+
+    @Override
+    public String generateExistsQuery(String tableName, String idColumn) {
+        // MySQL-optimized EXISTS query
+<span class="nc" id="L133">        return String.format(&quot;SELECT EXISTS(SELECT 1 FROM %s WHERE %s = ? LIMIT 1) as record_exists&quot;,</span>
+<span class="nc" id="L134">                escapeIdentifier(tableName),</span>
+<span class="nc" id="L135">                escapeIdentifier(idColumn));</span>
+    }
+
+    @Override
+    public String escapeIdentifier(String identifier) {
+        // MySQL uses backticks for identifiers
+<span class="nc" id="L141">        return &quot;`&quot; + identifier + &quot;`&quot;;</span>
+    }
+
+    @Override
+    public String getCurrentTimestamp() {
+        // MySQL-specific current timestamp
+<span class="nc" id="L147">        return &quot;NOW()&quot;;</span>
+    }
+
+    @Override
+    public boolean supportsIfNotExists() {
+<span class="nc" id="L152">        return true;</span>
+    }
+
+    @Override
+    public boolean supportsNativePartitioning() {
+<span class="nc" id="L157">        return true;</span>
+    }
+
+    @Override
+    protected String getSqlType(FieldMetadata field) {
+<span class="nc" id="L162">        Class&lt;?&gt; type = field.getType();</span>
+<span class="nc" id="L163">        String columnName = field.getColumnName();</span>
+
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (type == String.class) {</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            if (columnName.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L167">                return &quot;VARCHAR(255) NOT NULL&quot;;</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            } else if (columnName.contains(&quot;email&quot;)) {</span>
+<span class="nc" id="L169">                return &quot;VARCHAR(255)&quot;;</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            } else if (columnName.contains(&quot;name&quot;)) {</span>
+<span class="nc" id="L171">                return &quot;VARCHAR(100)&quot;;</span>
+            } else {
+<span class="nc" id="L173">                return &quot;TEXT&quot;;</span>
+            }
+<span class="nc bnc" id="L175" title="All 4 branches missed.">        } else if (type == Integer.class || type == int.class) {</span>
+<span class="nc" id="L176">            return &quot;INT&quot;;</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">        } else if (type == Long.class || type == long.class) {</span>
+<span class="nc" id="L178">            return &quot;BIGINT&quot;;</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        } else if (type == java.time.LocalDateTime.class) {</span>
+            // MySQL DATETIME for LocalDateTime
+<span class="nc" id="L181">            return &quot;DATETIME&quot;;</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        } else if (type == java.time.LocalDate.class) {</span>
+<span class="nc" id="L183">            return &quot;DATE&quot;;</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        } else if (type == java.time.LocalTime.class) {</span>
+<span class="nc" id="L185">            return &quot;TIME&quot;;</span>
+<span class="nc bnc" id="L186" title="All 4 branches missed.">        } else if (type == Boolean.class || type == boolean.class) {</span>
+<span class="nc" id="L187">            return &quot;TINYINT(1)&quot;;</span>
+<span class="nc bnc" id="L188" title="All 4 branches missed.">        } else if (type == Double.class || type == double.class) {</span>
+<span class="nc" id="L189">            return &quot;DOUBLE&quot;;</span>
+<span class="nc bnc" id="L190" title="All 4 branches missed.">        } else if (type == Float.class || type == float.class) {</span>
+<span class="nc" id="L191">            return &quot;FLOAT&quot;;</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        } else if (type == java.math.BigDecimal.class) {</span>
+<span class="nc" id="L193">            return &quot;DECIMAL(19, 4)&quot;;</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        } else if (type == byte[].class) {</span>
+<span class="nc" id="L195">            return &quot;BLOB&quot;;</span>
+        } else {
+<span class="nc" id="L197">            return &quot;TEXT&quot;;</span>
+        }
+    }
+
+    // MySQL-specific methods for advanced features
+
+    /**
+     * Generate SQL for creating a partitioned table with hourly partitions
+     */
+    public String generateHourlyPartitionedTable(String tableName, EntityMetadata metadata,
+                                                String partitionColumn) {
+<span class="nc" id="L208">        StringBuilder sql = new StringBuilder(generateCreateTable(tableName, metadata));</span>
+
+<span class="nc" id="L210">        String baseTable = sql.toString().trim();</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        if (baseTable.endsWith(&quot;;&quot;)) {</span>
+<span class="nc" id="L212">            baseTable = baseTable.substring(0, baseTable.length() - 1);</span>
+        }
+
+<span class="nc" id="L215">        sql = new StringBuilder(baseTable);</span>
+<span class="nc" id="L216">        sql.append(&quot;\nPARTITION BY RANGE (UNIX_TIMESTAMP(&quot;)</span>
+<span class="nc" id="L217">           .append(escapeIdentifier(partitionColumn))</span>
+<span class="nc" id="L218">           .append(&quot;))&quot;);</span>
+
+<span class="nc" id="L220">        return sql.toString();</span>
+    }
+
+    /**
+     * Generate SQL for partition pruning optimization
+     */
+    public String generatePartitionPrunedQuery(String tableName, String dateColumn,
+                                              String startDate, String endDate,
+                                              List&lt;String&gt; partitions) {
+<span class="nc" id="L229">        String partitionList = partitions.stream()</span>
+<span class="nc" id="L230">                .map(p -&gt; escapeIdentifier(p))</span>
+<span class="nc" id="L231">                .collect(Collectors.joining(&quot;, &quot;));</span>
+
+<span class="nc" id="L233">        return String.format(&quot;SELECT * FROM %s PARTITION (%s) WHERE %s &gt;= ? AND %s &lt; ?&quot;,</span>
+<span class="nc" id="L234">                escapeIdentifier(tableName),</span>
+                partitionList,
+<span class="nc" id="L236">                escapeIdentifier(dateColumn),</span>
+<span class="nc" id="L237">                escapeIdentifier(dateColumn));</span>
+    }
+
+    /**
+     * Generate SQL for checking partition information
+     */
+    public String generateShowPartitions(String tableName) {
+<span class="nc" id="L244">        return String.format(</span>
+            &quot;SELECT PARTITION_NAME, PARTITION_EXPRESSION, PARTITION_DESCRIPTION &quot; +
+            &quot;FROM INFORMATION_SCHEMA.PARTITIONS &quot; +
+            &quot;WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' &quot; +
+            &quot;AND PARTITION_NAME IS NOT NULL&quot;,
+            tableName
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

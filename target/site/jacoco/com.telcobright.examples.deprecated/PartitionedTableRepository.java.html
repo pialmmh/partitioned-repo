@@ -1,0 +1,818 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PartitionedTableRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.examples.deprecated</a> &gt; <span class="el_source">PartitionedTableRepository.java</span></div><h1>PartitionedTableRepository.java</h1><pre class="source lang-java linenums">package com.telcobright.examples.deprecated;
+
+import com.telcobright.core.query.QueryDSL;
+import com.telcobright.examples.entity.OrderEntity;
+
+import javax.sql.DataSource;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.math.BigDecimal;
+
+/**
+ * Single partitioned table repository for entities with generic ID type
+ * Uses MySQL native partitioning on single table
+ * Partitions by date: p20250803, p20250804, etc.
+ * @param &lt;T&gt; The type of the ID column (Long, String, UUID, etc.)
+ */
+public class PartitionedTableRepository&lt;T&gt; {
+    
+    private final DataSource dataSource;
+    private final String database;
+    private final String tableName;
+    private final int partitionRetentionPeriod;
+    private final boolean autoManagePartitions;
+    private final boolean initializePartitionsOnStart;
+    private final LocalTime partitionAdjustmentTime;
+    private final ScheduledExecutorService scheduler;
+<span class="nc" id="L33">    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;);</span>
+    
+<span class="nc" id="L35">    private PartitionedTableRepository(Builder&lt;T&gt; builder) {</span>
+<span class="nc" id="L36">        this.dataSource = createDataSource(builder.host, builder.port, builder.database, </span>
+                                          builder.username, builder.password);
+<span class="nc" id="L38">        this.database = builder.database;</span>
+<span class="nc" id="L39">        this.tableName = builder.tableName;</span>
+<span class="nc" id="L40">        this.partitionRetentionPeriod = builder.partitionRetentionPeriod;</span>
+<span class="nc" id="L41">        this.autoManagePartitions = builder.autoManagePartitions;</span>
+<span class="nc" id="L42">        this.initializePartitionsOnStart = builder.initializePartitionsOnStart;</span>
+<span class="nc" id="L43">        this.partitionAdjustmentTime = builder.partitionAdjustmentTime;</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        this.scheduler = autoManagePartitions ? Executors.newScheduledThreadPool(1) : null;</span>
+        
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (initializePartitionsOnStart) {</span>
+            try {
+<span class="nc" id="L48">                createTableIfNotExists();</span>
+<span class="nc" id="L49">                LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L50">                addPartitions(</span>
+<span class="nc" id="L51">                    now.minusDays(partitionRetentionPeriod), </span>
+<span class="nc" id="L52">                    now.plusDays(partitionRetentionPeriod)</span>
+                );
+<span class="nc" id="L54">            } catch (SQLException e) {</span>
+<span class="nc" id="L55">                throw new RuntimeException(&quot;Failed to initialize partitions on start&quot;, e);</span>
+<span class="nc" id="L56">            }</span>
+        }
+        
+        // Start daily scheduler if auto-management is enabled
+<span class="nc bnc" id="L60" title="All 4 branches missed.">        if (autoManagePartitions &amp;&amp; scheduler != null) {</span>
+<span class="nc" id="L61">            startDailyScheduler();</span>
+        }
+<span class="nc" id="L63">    }</span>
+    
+    public static &lt;T&gt; Builder&lt;T&gt; builder() {
+<span class="nc" id="L66">        return new Builder&lt;T&gt;();</span>
+    }
+    
+<span class="nc" id="L69">    public static class Builder&lt;T&gt; {</span>
+<span class="nc" id="L70">        private String host = &quot;localhost&quot;;</span>
+<span class="nc" id="L71">        private int port = 3306;</span>
+        private String database;
+        private String username;
+        private String password;
+        private String tableName;
+<span class="nc" id="L76">        private int partitionRetentionPeriod = 7; // Default 7 days</span>
+<span class="nc" id="L77">        private boolean autoManagePartitions = true; // Default enabled</span>
+<span class="nc" id="L78">        private boolean initializePartitionsOnStart = false; // Default disabled</span>
+<span class="nc" id="L79">        private LocalTime partitionAdjustmentTime = LocalTime.of(4, 0); // Default 04:00</span>
+        
+        public Builder&lt;T&gt; host(String host) {
+<span class="nc" id="L82">            this.host = host;</span>
+<span class="nc" id="L83">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; port(int port) {
+<span class="nc" id="L87">            this.port = port;</span>
+<span class="nc" id="L88">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; username(String username) {
+<span class="nc" id="L92">            this.username = username;</span>
+<span class="nc" id="L93">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; password(String password) {
+<span class="nc" id="L97">            this.password = password;</span>
+<span class="nc" id="L98">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; database(String database) {
+<span class="nc" id="L102">            this.database = database;</span>
+<span class="nc" id="L103">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; tableName(String tableName) {
+<span class="nc" id="L107">            this.tableName = tableName;</span>
+<span class="nc" id="L108">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; partitionRetentionPeriod(int days) {
+<span class="nc" id="L112">            this.partitionRetentionPeriod = days;</span>
+<span class="nc" id="L113">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; autoManagePartitions(boolean autoManage) {
+<span class="nc" id="L117">            this.autoManagePartitions = autoManage;</span>
+<span class="nc" id="L118">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; initializePartitionsOnStart(boolean initialize) {
+<span class="nc" id="L122">            this.initializePartitionsOnStart = initialize;</span>
+<span class="nc" id="L123">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; partitionAdjustmentTime(LocalTime adjustmentTime) {
+<span class="nc" id="L127">            this.partitionAdjustmentTime = adjustmentTime;</span>
+<span class="nc" id="L128">            return this;</span>
+        }
+        
+        public Builder&lt;T&gt; partitionAdjustmentTime(int hour, int minute) {
+<span class="nc" id="L132">            this.partitionAdjustmentTime = LocalTime.of(hour, minute);</span>
+<span class="nc" id="L133">            return this;</span>
+        }
+        
+        public PartitionedTableRepository&lt;T&gt; build() {
+<span class="nc bnc" id="L137" title="All 4 branches missed.">            if (database == null || database.trim().isEmpty()) {</span>
+<span class="nc" id="L138">                throw new IllegalArgumentException(&quot;Database name is required&quot;);</span>
+            }
+<span class="nc bnc" id="L140" title="All 4 branches missed.">            if (username == null || username.trim().isEmpty()) {</span>
+<span class="nc" id="L141">                throw new IllegalArgumentException(&quot;Username is required&quot;);</span>
+            }
+<span class="nc bnc" id="L143" title="All 2 branches missed.">            if (password == null) {</span>
+<span class="nc" id="L144">                throw new IllegalArgumentException(&quot;Password is required&quot;);</span>
+            }
+<span class="nc bnc" id="L146" title="All 4 branches missed.">            if (tableName == null || tableName.trim().isEmpty()) {</span>
+<span class="nc" id="L147">                throw new IllegalArgumentException(&quot;Table name is required&quot;);</span>
+            }
+<span class="nc bnc" id="L149" title="All 2 branches missed.">            if (partitionRetentionPeriod &lt;= 0) {</span>
+<span class="nc" id="L150">                throw new IllegalArgumentException(&quot;Partition retention period must be positive&quot;);</span>
+            }
+            
+<span class="nc" id="L153">            return new PartitionedTableRepository&lt;T&gt;(this);</span>
+        }
+    }
+    
+    /**
+     * Insert order into partitioned table (MySQL handles routing)
+     */
+    public void insert(OrderEntity order) throws SQLException {
+        // Automatically ensure partitions exist for the order date
+<span class="nc" id="L162">        ensurePartitionExistsForDate(order.getPartitionColValue());</span>
+        
+<span class="nc" id="L164">        String sql = &quot;INSERT INTO &quot; + database + &quot;.&quot; + tableName + </span>
+            &quot; (customer_id, order_number, total_amount, status, payment_method, &quot; +
+            &quot;shipping_address, created_at, shipped_at, delivered_at, item_count) &quot; +
+            &quot;VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)&quot;;
+        
+<span class="nc" id="L169">        try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L170">             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {</span>
+            
+<span class="nc" id="L172">            stmt.setString(1, order.getCustomerId());</span>
+<span class="nc" id="L173">            stmt.setString(2, order.getOrderNumber());</span>
+<span class="nc" id="L174">            stmt.setBigDecimal(3, order.getTotalAmount());</span>
+<span class="nc" id="L175">            stmt.setString(4, order.getStatus());</span>
+<span class="nc" id="L176">            stmt.setString(5, order.getPaymentMethod());</span>
+<span class="nc" id="L177">            stmt.setString(6, order.getShippingAddress());</span>
+<span class="nc" id="L178">            stmt.setTimestamp(7, Timestamp.valueOf(order.getPartitionColValue()));</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            stmt.setTimestamp(8, order.getShippedAt() != null ? </span>
+<span class="nc" id="L180">                Timestamp.valueOf(order.getShippedAt()) : null);</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            stmt.setTimestamp(9, order.getDeliveredAt() != null ? </span>
+<span class="nc" id="L182">                Timestamp.valueOf(order.getDeliveredAt()) : null);</span>
+<span class="nc" id="L183">            stmt.setInt(10, order.getItemCount());</span>
+            
+<span class="nc" id="L185">            stmt.executeUpdate();</span>
+            
+<span class="nc" id="L187">            try (ResultSet keys = stmt.getGeneratedKeys()) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">                if (keys.next()) {</span>
+<span class="nc" id="L189">                    order.setId(String.valueOf(keys.getLong(1)));</span>
+                }
+            }
+        }
+<span class="nc" id="L193">    }</span>
+    
+    /**
+     * Execute query using Query DSL (MySQL handles partition pruning)
+     */
+    public &lt;R&gt; List&lt;R&gt; executeQuery(QueryDSL.FromBuilder queryBuilder,
+                                   Object[] parameters,
+                                   ResultMapper&lt;R&gt; mapper) throws SQLException {
+<span class="nc" id="L201">        String query = queryBuilder.build();</span>
+<span class="nc" id="L202">        return executeQuery(query, null, mapper);</span>
+    }
+    
+    /**
+     * Find orders by date range (MySQL partition pruning)
+     */
+    public List&lt;OrderEntity&gt; findByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+<span class="nc" id="L209">        String query = QueryDSL.select()</span>
+<span class="nc" id="L210">            .column(&quot;*&quot;)</span>
+<span class="nc" id="L211">            .from(tableName)</span>
+<span class="nc" id="L212">            .where(w -&gt; w.dateRange(&quot;created_at&quot;, startDate, endDate))</span>
+<span class="nc" id="L213">            .build();</span>
+        
+<span class="nc" id="L215">        return executeQuery(query, null, this::mapOrderEntity);</span>
+    }
+    
+    /**
+     * Find entity by ID (partition scan - MySQL will scan all partitions)
+     * Warning: This may be slower than date-range queries as MySQL scans all partitions
+     * @param id The ID value to search for
+     * @return The found entity or null if not found
+     */
+    public OrderEntity findById(T id) throws SQLException {
+<span class="nc" id="L225">        return findById(&quot;id&quot;, id);</span>
+    }
+    
+    /**
+     * Find entity by ID column value (partition scan - MySQL will scan all partitions)
+     * Warning: This may be slower than date-range queries as MySQL scans all partitions
+     * 
+     * @param idColumnName The name of the ID column to search by
+     * @param value The value to search for
+     * @return The found entity or null if not found
+     */
+    private OrderEntity findById(String idColumnName, T value) throws SQLException {
+<span class="nc" id="L237">        String query = QueryDSL.select()</span>
+<span class="nc" id="L238">            .column(&quot;*&quot;)</span>
+<span class="nc" id="L239">            .from(tableName)</span>
+<span class="nc" id="L240">            .where(w -&gt; w.equals(idColumnName, value))</span>
+<span class="nc" id="L241">            .limit(1)</span>
+<span class="nc" id="L242">            .build();</span>
+        
+<span class="nc" id="L244">        List&lt;OrderEntity&gt; results = executeQuery(query, null, this::mapOrderEntity);</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        return results.isEmpty() ? null : results.get(0);</span>
+    }
+    
+    /**
+     * Find all entities by ID column value (partition scan - MySQL will scan all partitions)
+     * Useful when ID column is not unique or when searching by non-primary key
+     * @param idColumnName The name of the ID column to search by
+     * @param value The value to search for
+     * @return List of found entities
+     */
+    public List&lt;OrderEntity&gt; findAllById(String idColumnName, T value) throws SQLException {
+<span class="nc" id="L256">        String query = QueryDSL.select()</span>
+<span class="nc" id="L257">            .column(&quot;*&quot;)</span>
+<span class="nc" id="L258">            .from(tableName)</span>
+<span class="nc" id="L259">            .where(w -&gt; w.equals(idColumnName, value))</span>
+<span class="nc" id="L260">            .build();</span>
+        
+<span class="nc" id="L262">        return executeQuery(query, null, this::mapOrderEntity);</span>
+    }
+    
+    /**
+     * Count orders in date range
+     */
+    public long countByDateRange(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+<span class="nc" id="L269">        String query = QueryDSL.select()</span>
+<span class="nc" id="L270">            .count(&quot;*&quot;, &quot;total_count&quot;)</span>
+<span class="nc" id="L271">            .from(tableName)</span>
+<span class="nc" id="L272">            .where(w -&gt; w.dateRange(&quot;created_at&quot;, startDate, endDate))</span>
+<span class="nc" id="L273">            .build();</span>
+        
+<span class="nc" id="L275">        List&lt;Long&gt; results = executeQuery(query, null, </span>
+<span class="nc" id="L276">            rs -&gt; rs.getLong(&quot;total_count&quot;));</span>
+        
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        return results.isEmpty() ? 0 : results.get(0);</span>
+    }
+    
+    /**
+     * Get customer order statistics
+     */
+    public List&lt;CustomerOrderStats&gt; getCustomerStats(LocalDateTime startDate, LocalDateTime endDate, int limit) throws SQLException {
+<span class="nc" id="L285">        String query = QueryDSL.select()</span>
+<span class="nc" id="L286">            .column(&quot;customer_id&quot;)</span>
+<span class="nc" id="L287">            .count(&quot;*&quot;, &quot;order_count&quot;)</span>
+<span class="nc" id="L288">            .sum(&quot;total_amount&quot;, &quot;total_spent&quot;)</span>
+<span class="nc" id="L289">            .avg(&quot;total_amount&quot;, &quot;avg_order_value&quot;)</span>
+<span class="nc" id="L290">            .sum(&quot;item_count&quot;, &quot;total_items&quot;)</span>
+<span class="nc" id="L291">            .min(&quot;created_at&quot;, &quot;first_order&quot;)</span>
+<span class="nc" id="L292">            .max(&quot;created_at&quot;, &quot;last_order&quot;)</span>
+<span class="nc" id="L293">            .from(tableName)</span>
+<span class="nc" id="L294">            .where(w -&gt; w</span>
+<span class="nc" id="L295">                .dateRange(&quot;created_at&quot;, startDate, endDate)</span>
+<span class="nc" id="L296">                .isNotNull(&quot;customer_id&quot;))</span>
+<span class="nc" id="L297">            .groupBy(&quot;customer_id&quot;)</span>
+<span class="nc" id="L298">            .orderByDesc(&quot;total_spent&quot;)</span>
+<span class="nc" id="L299">            .limit(limit)</span>
+<span class="nc" id="L300">            .build();</span>
+        
+<span class="nc" id="L302">        return executeQuery(query, null, rs -&gt; new CustomerOrderStats(</span>
+<span class="nc" id="L303">            rs.getString(&quot;customer_id&quot;),</span>
+<span class="nc" id="L304">            rs.getLong(&quot;order_count&quot;),</span>
+<span class="nc" id="L305">            rs.getBigDecimal(&quot;total_spent&quot;),</span>
+<span class="nc" id="L306">            rs.getBigDecimal(&quot;avg_order_value&quot;),</span>
+<span class="nc" id="L307">            rs.getLong(&quot;total_items&quot;),</span>
+<span class="nc" id="L308">            rs.getTimestamp(&quot;first_order&quot;).toLocalDateTime(),</span>
+<span class="nc" id="L309">            rs.getTimestamp(&quot;last_order&quot;).toLocalDateTime()</span>
+        ));
+    }
+    
+    /**
+     * Get daily order statistics
+     */
+    public List&lt;DailyOrderStats&gt; getDailyStats(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+<span class="nc" id="L317">        String query = QueryDSL.select()</span>
+<span class="nc" id="L318">            .column(&quot;DATE(created_at)&quot;, &quot;order_date&quot;)</span>
+<span class="nc" id="L319">            .count(&quot;*&quot;, &quot;order_count&quot;)</span>
+<span class="nc" id="L320">            .aggregate(QueryDSL.AggregateFunction.COUNT, &quot;customer_id&quot;, &quot;unique_customers&quot;, true)</span>
+<span class="nc" id="L321">            .sum(&quot;total_amount&quot;, &quot;daily_revenue&quot;)</span>
+<span class="nc" id="L322">            .avg(&quot;total_amount&quot;, &quot;avg_order_value&quot;)</span>
+<span class="nc" id="L323">            .sum(&quot;item_count&quot;, &quot;total_items&quot;)</span>
+<span class="nc" id="L324">            .sum(&quot;CASE WHEN status = 'DELIVERED' THEN 1 ELSE 0 END&quot;, &quot;delivered_count&quot;)</span>
+<span class="nc" id="L325">            .sum(&quot;CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END&quot;, &quot;cancelled_count&quot;)</span>
+<span class="nc" id="L326">            .from(tableName)</span>
+<span class="nc" id="L327">            .where(w -&gt; w.dateRange(&quot;created_at&quot;, startDate, endDate))</span>
+<span class="nc" id="L328">            .groupBy(&quot;DATE(created_at)&quot;)</span>
+<span class="nc" id="L329">            .orderByDesc(&quot;order_date&quot;)</span>
+<span class="nc" id="L330">            .build();</span>
+        
+<span class="nc" id="L332">        return executeQuery(query, null, rs -&gt; new DailyOrderStats(</span>
+<span class="nc" id="L333">            rs.getDate(&quot;order_date&quot;).toLocalDate(),</span>
+<span class="nc" id="L334">            rs.getLong(&quot;order_count&quot;),</span>
+<span class="nc" id="L335">            rs.getLong(&quot;unique_customers&quot;),</span>
+<span class="nc" id="L336">            rs.getBigDecimal(&quot;daily_revenue&quot;),</span>
+<span class="nc" id="L337">            rs.getBigDecimal(&quot;avg_order_value&quot;),</span>
+<span class="nc" id="L338">            rs.getLong(&quot;total_items&quot;),</span>
+<span class="nc" id="L339">            rs.getLong(&quot;delivered_count&quot;),</span>
+<span class="nc" id="L340">            rs.getLong(&quot;cancelled_count&quot;)</span>
+        ));
+    }
+    
+    /**
+     * Create partitioned table if not exists
+     */
+    public void createTableIfNotExists() throws SQLException {
+<span class="nc" id="L348">        String createSQL = &quot;CREATE TABLE IF NOT EXISTS &quot; + database + &quot;.&quot; + tableName + &quot; (&quot; +</span>
+            &quot;id BIGINT AUTO_INCREMENT, &quot; +
+            &quot;customer_id VARCHAR(50) NOT NULL, &quot; +
+            &quot;order_number VARCHAR(100) NOT NULL, &quot; +
+            &quot;total_amount DECIMAL(12,2) NOT NULL, &quot; +
+            &quot;status VARCHAR(20) NOT NULL, &quot; +
+            &quot;payment_method VARCHAR(50), &quot; +
+            &quot;shipping_address TEXT, &quot; +
+            &quot;created_at DATETIME NOT NULL, &quot; +
+            &quot;shipped_at DATETIME, &quot; +
+            &quot;delivered_at DATETIME, &quot; +
+            &quot;item_count INT NOT NULL DEFAULT 1, &quot; +
+            &quot;PRIMARY KEY (id, created_at), &quot; +
+            &quot;INDEX idx_customer_id (customer_id), &quot; +
+            &quot;INDEX idx_status (status), &quot; +
+            &quot;INDEX idx_order_number (order_number)&quot; +
+            &quot;) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 &quot; +
+            &quot;PARTITION BY RANGE (TO_DAYS(created_at)) (&quot; +
+<span class="nc" id="L366">            generateInitialPartitions() +</span>
+            &quot;)&quot;;
+        
+<span class="nc" id="L369">        try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L370">             Statement stmt = conn.createStatement()) {</span>
+<span class="nc" id="L371">            stmt.execute(createSQL);</span>
+        }
+<span class="nc" id="L373">    }</span>
+    
+    /**
+     * Add new partitions for future dates
+     */
+    public void addPartitions(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        // Get list of existing partitions
+<span class="nc" id="L380">        Set&lt;String&gt; existingPartitions = getExistingPartitions();</span>
+        
+<span class="nc" id="L382">        List&lt;String&gt; newPartitions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L383">        LocalDateTime current = startDate;</span>
+        
+<span class="nc bnc" id="L385" title="All 2 branches missed.">        while (!current.isAfter(endDate)) {</span>
+<span class="nc" id="L386">            String partitionName = &quot;p&quot; + current.format(DATE_FORMAT);</span>
+            
+            // Only add if partition doesn't already exist
+<span class="nc bnc" id="L389" title="All 2 branches missed.">            if (!existingPartitions.contains(partitionName)) {</span>
+<span class="nc" id="L390">                LocalDateTime nextDay = current.plusDays(1);</span>
+                
+<span class="nc" id="L392">                newPartitions.add(String.format(</span>
+                    &quot;PARTITION %s VALUES LESS THAN (TO_DAYS('%s'))&quot;,
+                    partitionName,
+<span class="nc" id="L395">                    nextDay.format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;))</span>
+                ));
+            }
+            
+<span class="nc" id="L399">            current = current.plusDays(1);</span>
+<span class="nc" id="L400">        }</span>
+        
+<span class="nc bnc" id="L402" title="All 2 branches missed.">        if (!newPartitions.isEmpty()) {</span>
+<span class="nc" id="L403">            String alterSQL = &quot;ALTER TABLE &quot; + database + &quot;.&quot; + tableName + </span>
+<span class="nc" id="L404">                &quot; ADD PARTITION (&quot; + String.join(&quot;, &quot;, newPartitions) + &quot;)&quot;;</span>
+            
+<span class="nc" id="L406">            try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L407">                 Statement stmt = conn.createStatement()) {</span>
+<span class="nc" id="L408">                stmt.execute(alterSQL);</span>
+<span class="nc" id="L409">                System.out.println(&quot;Added &quot; + newPartitions.size() + &quot; partitions to &quot; + tableName);</span>
+            }
+        }
+<span class="nc" id="L412">    }</span>
+    
+    /**
+     * Drop old partitions
+     */
+    public void dropOldPartitions(LocalDateTime cutoffDate) throws SQLException {
+<span class="nc bnc" id="L418" title="All 2 branches missed.">        if (!autoManagePartitions) {</span>
+<span class="nc" id="L419">            return; // Skip dropping if auto-management is disabled</span>
+        }
+        // Get existing partitions
+<span class="nc" id="L422">        List&lt;String&gt; oldPartitions = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc" id="L424">        try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L425">             PreparedStatement stmt = conn.prepareStatement(</span>
+                 &quot;SELECT partition_name FROM information_schema.partitions &quot; +
+                 &quot;WHERE table_schema = ? AND table_name = ? AND partition_name IS NOT NULL&quot;)) {
+            
+<span class="nc" id="L429">            stmt.setString(1, database);</span>
+<span class="nc" id="L430">            stmt.setString(2, tableName);</span>
+            
+<span class="nc" id="L432">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L434">                    String partitionName = rs.getString(&quot;partition_name&quot;);</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">                    if (isPartitionOlderThan(partitionName, cutoffDate)) {</span>
+<span class="nc" id="L436">                        oldPartitions.add(partitionName);</span>
+                    }
+<span class="nc" id="L438">                }</span>
+            }
+        }
+        
+        // Drop old partitions
+<span class="nc bnc" id="L443" title="All 2 branches missed.">        if (!oldPartitions.isEmpty()) {</span>
+<span class="nc" id="L444">            String dropSQL = &quot;ALTER TABLE &quot; + database + &quot;.&quot; + tableName +</span>
+<span class="nc" id="L445">                &quot; DROP PARTITION &quot; + String.join(&quot;, &quot;, oldPartitions);</span>
+            
+<span class="nc" id="L447">            try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L448">                 Statement stmt = conn.createStatement()) {</span>
+<span class="nc" id="L449">                stmt.execute(dropSQL);</span>
+<span class="nc" id="L450">                System.out.println(&quot;Dropped &quot; + oldPartitions.size() + &quot; old partitions from &quot; + tableName);</span>
+            }
+        }
+<span class="nc" id="L453">    }</span>
+    
+    /**
+     * Clean up old partitions based on retention period
+     */
+    public void cleanupOldPartitions() throws SQLException {
+<span class="nc bnc" id="L459" title="All 2 branches missed.">        if (autoManagePartitions) {</span>
+<span class="nc" id="L460">            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(partitionRetentionPeriod);</span>
+<span class="nc" id="L461">            dropOldPartitions(cutoffDate);</span>
+        }
+<span class="nc" id="L463">    }</span>
+    
+    // Getter methods for configuration
+    public int getPartitionRetentionPeriod() {
+<span class="nc" id="L467">        return partitionRetentionPeriod;</span>
+    }
+    
+    public boolean isAutoManagePartitions() {
+<span class="nc" id="L471">        return autoManagePartitions;</span>
+    }
+    
+    public boolean isInitializePartitionsOnStart() {
+<span class="nc" id="L475">        return initializePartitionsOnStart;</span>
+    }
+    
+    public String getDatabase() {
+<span class="nc" id="L479">        return database;</span>
+    }
+    
+    public String getTableName() {
+<span class="nc" id="L483">        return tableName;</span>
+    }
+    
+    public LocalTime getPartitionAdjustmentTime() {
+<span class="nc" id="L487">        return partitionAdjustmentTime;</span>
+    }
+    
+    // Private helper methods
+    
+    /**
+     * Get existing partition names for the table
+     */
+    private Set&lt;String&gt; getExistingPartitions() throws SQLException {
+<span class="nc" id="L496">        Set&lt;String&gt; partitions = new HashSet&lt;&gt;();</span>
+        
+<span class="nc" id="L498">        try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L499">             PreparedStatement stmt = conn.prepareStatement(</span>
+                 &quot;SELECT partition_name FROM information_schema.partitions &quot; +
+                 &quot;WHERE table_schema = ? AND table_name = ? AND partition_name IS NOT NULL&quot;)) {
+            
+<span class="nc" id="L503">            stmt.setString(1, database);</span>
+<span class="nc" id="L504">            stmt.setString(2, tableName);</span>
+            
+<span class="nc" id="L506">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L507" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L508">                    partitions.add(rs.getString(&quot;partition_name&quot;));</span>
+                }
+            }
+        }
+        
+<span class="nc" id="L513">        return partitions;</span>
+    }
+    
+    /**
+     * Create DataSource with MySQL configuration
+     */
+    private static DataSource createDataSource(String host, int port, String database, 
+                                             String username, String password) {
+<span class="nc" id="L521">        return new DataSource() {</span>
+            @Override
+            public Connection getConnection() throws SQLException {
+                // Try MariaDB URL first, then MySQL
+<span class="nc" id="L525">                String mariadbUrl = String.format(&quot;jdbc:mariadb://%s:%d/%s?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&quot;, </span>
+<span class="nc" id="L526">                                         host, port, database);</span>
+<span class="nc" id="L527">                String mysqlUrl = String.format(&quot;jdbc:mysql://%s:%d/%s?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&quot;, </span>
+<span class="nc" id="L528">                                         host, port, database);</span>
+                
+                try {
+<span class="nc" id="L531">                    return DriverManager.getConnection(mariadbUrl, username, password);</span>
+<span class="nc" id="L532">                } catch (SQLException e) {</span>
+                    // Fallback to MySQL URL
+<span class="nc" id="L534">                    return DriverManager.getConnection(mysqlUrl, username, password);</span>
+                }
+            }
+            
+            @Override
+            public Connection getConnection(String user, String pass) throws SQLException {
+<span class="nc" id="L540">                return getConnection();</span>
+            }
+            
+            // Other DataSource methods with default implementations
+<span class="nc" id="L544">            @Override public java.io.PrintWriter getLogWriter() throws SQLException { return null; }</span>
+<span class="nc" id="L545">            @Override public void setLogWriter(java.io.PrintWriter out) throws SQLException { }</span>
+<span class="nc" id="L546">            @Override public void setLoginTimeout(int seconds) throws SQLException { }</span>
+<span class="nc" id="L547">            @Override public int getLoginTimeout() throws SQLException { return 0; }</span>
+<span class="nc" id="L548">            @Override public java.util.logging.Logger getParentLogger() { return null; }</span>
+<span class="nc" id="L549">            @Override public &lt;T&gt; T unwrap(Class&lt;T&gt; iface) throws SQLException { return null; }</span>
+<span class="nc" id="L550">            @Override public boolean isWrapperFor(Class&lt;?&gt; iface) throws SQLException { return false; }</span>
+        };
+    }
+    
+    /**
+     * Automatically ensure partition exists for the given date
+     * Also performs maintenance if auto-management is enabled
+     */
+    private void ensurePartitionExistsForDate(LocalDateTime date) throws SQLException {
+<span class="nc" id="L559">        createTableIfNotExists();</span>
+        
+        // Perform automatic maintenance if enabled
+<span class="nc bnc" id="L562" title="All 2 branches missed.">        if (autoManagePartitions) {</span>
+<span class="nc" id="L563">            performAutomaticPartitionMaintenance(date);</span>
+        }
+<span class="nc" id="L565">    }</span>
+    
+    /**
+     * Perform automatic partition maintenance tasks
+     */
+    private void performAutomaticPartitionMaintenance(LocalDateTime currentDate) throws SQLException {
+        // Add partitions for near future dates (next few days)
+<span class="nc" id="L572">        LocalDateTime futureDate = currentDate.plusDays(7);</span>
+<span class="nc" id="L573">        addPartitions(currentDate, futureDate);</span>
+        
+        // Clean up old partitions based on retention period
+<span class="nc" id="L576">        LocalDateTime cutoffDate = currentDate.minusDays(partitionRetentionPeriod);</span>
+<span class="nc" id="L577">        dropOldPartitions(cutoffDate);</span>
+<span class="nc" id="L578">    }</span>
+    
+    /**
+     * Start daily scheduler for automatic partition management
+     */
+    private void startDailyScheduler() {
+<span class="nc" id="L584">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L585">        LocalDateTime nextRun = now.toLocalDate().atTime(partitionAdjustmentTime);</span>
+        
+        // If the adjustment time has already passed today, schedule for tomorrow
+<span class="nc bnc" id="L588" title="All 4 branches missed.">        if (nextRun.isBefore(now) || nextRun.isEqual(now)) {</span>
+<span class="nc" id="L589">            nextRun = nextRun.plusDays(1);</span>
+        }
+        
+<span class="nc" id="L592">        long initialDelayMinutes = java.time.Duration.between(now, nextRun).toMinutes();</span>
+        
+<span class="nc" id="L594">        System.out.println(&quot; Partitioned Scheduler: Next maintenance at &quot; + nextRun + </span>
+                          &quot; (in &quot; + initialDelayMinutes + &quot; minutes)&quot;);
+        
+<span class="nc" id="L597">        scheduler.scheduleAtFixedRate(() -&gt; {</span>
+            try {
+<span class="nc" id="L599">                performScheduledMaintenance();</span>
+<span class="nc" id="L600">            } catch (Exception e) {</span>
+<span class="nc" id="L601">                System.err.println(&quot; Partitioned scheduled maintenance failed: &quot; + e.getMessage());</span>
+<span class="nc" id="L602">                e.printStackTrace();</span>
+<span class="nc" id="L603">            }</span>
+<span class="nc" id="L604">        }, initialDelayMinutes, 24 * 60, TimeUnit.MINUTES); // Run daily</span>
+<span class="nc" id="L605">    }</span>
+    
+    /**
+     * Perform scheduled maintenance - creates/drops partitions based on retention period
+     */
+    private void performScheduledMaintenance() throws SQLException {
+<span class="nc" id="L611">        LocalDateTime today = LocalDateTime.now();</span>
+        
+<span class="nc" id="L613">        System.out.println(&quot; Partitioned scheduled maintenance started at &quot; + today);</span>
+        
+        // Calculate the valid range: {today - retentionDays} to {today + retentionDays}
+<span class="nc" id="L616">        LocalDateTime startRange = today.minusDays(partitionRetentionPeriod);</span>
+<span class="nc" id="L617">        LocalDateTime endRange = today.plusDays(partitionRetentionPeriod);</span>
+        
+<span class="nc" id="L619">        System.out.println(&quot; Valid partition range: &quot; + startRange.toLocalDate() + &quot; to &quot; + endRange.toLocalDate());</span>
+        
+        // Ensure table exists
+<span class="nc" id="L622">        createTableIfNotExists();</span>
+        
+        // Create missing partitions in the valid range
+<span class="nc" id="L625">        addPartitions(startRange, endRange);</span>
+        
+        // Drop partitions outside the valid range (older than startRange)
+<span class="nc" id="L628">        dropOldPartitions(startRange);</span>
+        
+<span class="nc" id="L630">        System.out.println(&quot; Partitioned scheduled maintenance completed&quot;);</span>
+<span class="nc" id="L631">    }</span>
+    
+    /**
+     * Shutdown the scheduler (call this when application stops)
+     */
+    public void shutdown() {
+<span class="nc bnc" id="L637" title="All 4 branches missed.">        if (scheduler != null &amp;&amp; !scheduler.isShutdown()) {</span>
+<span class="nc" id="L638">            scheduler.shutdown();</span>
+            try {
+<span class="nc bnc" id="L640" title="All 2 branches missed.">                if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {</span>
+<span class="nc" id="L641">                    scheduler.shutdownNow();</span>
+                }
+<span class="nc" id="L643">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L644">                scheduler.shutdownNow();</span>
+<span class="nc" id="L645">                Thread.currentThread().interrupt();</span>
+<span class="nc" id="L646">            }</span>
+        }
+<span class="nc" id="L648">    }</span>
+    
+    private String generateInitialPartitions() {
+<span class="nc" id="L651">        List&lt;String&gt; partitions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L652">        LocalDateTime start = LocalDateTime.now().minusDays(7);</span>
+<span class="nc" id="L653">        LocalDateTime end = LocalDateTime.now().plusDays(30);</span>
+<span class="nc" id="L654">        LocalDateTime current = start;</span>
+        
+<span class="nc bnc" id="L656" title="All 2 branches missed.">        while (!current.isAfter(end)) {</span>
+<span class="nc" id="L657">            String partitionName = &quot;p&quot; + current.format(DATE_FORMAT);</span>
+<span class="nc" id="L658">            LocalDateTime nextDay = current.plusDays(1);</span>
+            
+<span class="nc" id="L660">            partitions.add(String.format(</span>
+                &quot;PARTITION %s VALUES LESS THAN (TO_DAYS('%s'))&quot;,
+                partitionName,
+<span class="nc" id="L663">                nextDay.format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;))</span>
+            ));
+            
+<span class="nc" id="L666">            current = nextDay;</span>
+<span class="nc" id="L667">        }</span>
+        
+        // Add a catch-all partition for future dates
+<span class="nc" id="L670">        partitions.add(&quot;PARTITION pmax VALUES LESS THAN MAXVALUE&quot;);</span>
+        
+<span class="nc" id="L672">        return String.join(&quot;, &quot;, partitions);</span>
+    }
+    
+    private boolean isPartitionOlderThan(String partitionName, LocalDateTime cutoffDate) {
+<span class="nc bnc" id="L676" title="All 4 branches missed.">        if (!partitionName.startsWith(&quot;p&quot;) || partitionName.equals(&quot;pmax&quot;)) {</span>
+<span class="nc" id="L677">            return false;</span>
+        }
+        
+        try {
+<span class="nc" id="L681">            String dateStr = partitionName.substring(1);</span>
+<span class="nc" id="L682">            LocalDateTime partitionDate = LocalDateTime.parse(dateStr + &quot;000000&quot;, </span>
+<span class="nc" id="L683">                DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
+<span class="nc" id="L684">            return partitionDate.isBefore(cutoffDate);</span>
+<span class="nc" id="L685">        } catch (Exception e) {</span>
+<span class="nc" id="L686">            return false;</span>
+        }
+    }
+    
+    private &lt;R&gt; List&lt;R&gt; executeQuery(String sql, Object[] parameters, ResultMapper&lt;R&gt; mapper) throws SQLException {
+<span class="nc" id="L691">        List&lt;R&gt; results = new ArrayList&lt;&gt;();</span>
+        
+<span class="nc" id="L693">        try (Connection conn = dataSource.getConnection();</span>
+<span class="nc" id="L694">             PreparedStatement stmt = conn.prepareStatement(sql)) {</span>
+            
+<span class="nc bnc" id="L696" title="All 2 branches missed.">            if (parameters != null) {</span>
+<span class="nc bnc" id="L697" title="All 2 branches missed.">                for (int i = 0; i &lt; parameters.length; i++) {</span>
+<span class="nc" id="L698">                    setParameter(stmt, i + 1, parameters[i]);</span>
+                }
+            }
+            
+<span class="nc" id="L702">            try (ResultSet rs = stmt.executeQuery()) {</span>
+<span class="nc bnc" id="L703" title="All 2 branches missed.">                while (rs.next()) {</span>
+<span class="nc" id="L704">                    results.add(mapper.map(rs));</span>
+                }
+            }
+        }
+        
+<span class="nc" id="L709">        return results;</span>
+    }
+    
+    private void setParameter(PreparedStatement stmt, int index, Object value) throws SQLException {
+<span class="nc bnc" id="L713" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L714">            stmt.setNull(index, Types.NULL);</span>
+<span class="nc bnc" id="L715" title="All 2 branches missed.">        } else if (value instanceof String) {</span>
+<span class="nc" id="L716">            stmt.setString(index, (String) value);</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">        } else if (value instanceof LocalDateTime) {</span>
+<span class="nc" id="L718">            stmt.setTimestamp(index, Timestamp.valueOf((LocalDateTime) value));</span>
+<span class="nc bnc" id="L719" title="All 2 branches missed.">        } else if (value instanceof Integer) {</span>
+<span class="nc" id="L720">            stmt.setInt(index, (Integer) value);</span>
+<span class="nc bnc" id="L721" title="All 2 branches missed.">        } else if (value instanceof Long) {</span>
+<span class="nc" id="L722">            stmt.setLong(index, (Long) value);</span>
+<span class="nc bnc" id="L723" title="All 2 branches missed.">        } else if (value instanceof BigDecimal) {</span>
+<span class="nc" id="L724">            stmt.setBigDecimal(index, (BigDecimal) value);</span>
+        } else {
+<span class="nc" id="L726">            stmt.setObject(index, value);</span>
+        }
+<span class="nc" id="L728">    }</span>
+    
+    private OrderEntity mapOrderEntity(ResultSet rs) throws SQLException {
+<span class="nc" id="L731">        OrderEntity order = new OrderEntity();</span>
+<span class="nc" id="L732">        order.setId(String.valueOf(rs.getLong(&quot;id&quot;)));</span>
+<span class="nc" id="L733">        order.setCustomerId(rs.getString(&quot;customer_id&quot;));</span>
+<span class="nc" id="L734">        order.setOrderNumber(rs.getString(&quot;order_number&quot;));</span>
+<span class="nc" id="L735">        order.setTotalAmount(rs.getBigDecimal(&quot;total_amount&quot;));</span>
+<span class="nc" id="L736">        order.setStatus(rs.getString(&quot;status&quot;));</span>
+<span class="nc" id="L737">        order.setPaymentMethod(rs.getString(&quot;payment_method&quot;));</span>
+<span class="nc" id="L738">        order.setShippingAddress(rs.getString(&quot;shipping_address&quot;));</span>
+<span class="nc" id="L739">        order.setPartitionColValue(rs.getTimestamp(&quot;created_at&quot;).toLocalDateTime());</span>
+        
+<span class="nc" id="L741">        Timestamp shipped = rs.getTimestamp(&quot;shipped_at&quot;);</span>
+<span class="nc bnc" id="L742" title="All 2 branches missed.">        order.setShippedAt(shipped != null ? shipped.toLocalDateTime() : null);</span>
+        
+<span class="nc" id="L744">        Timestamp delivered = rs.getTimestamp(&quot;delivered_at&quot;);</span>
+<span class="nc bnc" id="L745" title="All 2 branches missed.">        order.setDeliveredAt(delivered != null ? delivered.toLocalDateTime() : null);</span>
+        
+<span class="nc" id="L747">        order.setItemCount(rs.getInt(&quot;item_count&quot;));</span>
+        
+<span class="nc" id="L749">        return order;</span>
+    }
+    
+    // Result classes
+    public static class CustomerOrderStats {
+        public final String customerId;
+        public final long orderCount;
+        public final BigDecimal totalSpent;
+        public final BigDecimal avgOrderValue;
+        public final long totalItems;
+        public final LocalDateTime firstOrder;
+        public final LocalDateTime lastOrder;
+        
+        public CustomerOrderStats(String customerId, long orderCount, BigDecimal totalSpent,
+                                 BigDecimal avgOrderValue, long totalItems, 
+<span class="nc" id="L764">                                 LocalDateTime firstOrder, LocalDateTime lastOrder) {</span>
+<span class="nc" id="L765">            this.customerId = customerId;</span>
+<span class="nc" id="L766">            this.orderCount = orderCount;</span>
+<span class="nc" id="L767">            this.totalSpent = totalSpent;</span>
+<span class="nc" id="L768">            this.avgOrderValue = avgOrderValue;</span>
+<span class="nc" id="L769">            this.totalItems = totalItems;</span>
+<span class="nc" id="L770">            this.firstOrder = firstOrder;</span>
+<span class="nc" id="L771">            this.lastOrder = lastOrder;</span>
+<span class="nc" id="L772">        }</span>
+        
+        @Override
+        public String toString() {
+<span class="nc" id="L776">            return String.format(&quot;Customer: %s | Orders: %d | Spent: $%s | Avg: $%s | Items: %d&quot;,</span>
+<span class="nc" id="L777">                customerId, orderCount, totalSpent, avgOrderValue, totalItems);</span>
+        }
+    }
+    
+    public static class DailyOrderStats {
+        public final java.time.LocalDate date;
+        public final long orderCount;
+        public final long uniqueCustomers;
+        public final BigDecimal dailyRevenue;
+        public final BigDecimal avgOrderValue;
+        public final long totalItems;
+        public final long deliveredCount;
+        public final long cancelledCount;
+        public final double fulfillmentRate;
+        
+        public DailyOrderStats(java.time.LocalDate date, long orderCount, long uniqueCustomers,
+                              BigDecimal dailyRevenue, BigDecimal avgOrderValue, long totalItems,
+<span class="nc" id="L794">                              long deliveredCount, long cancelledCount) {</span>
+<span class="nc" id="L795">            this.date = date;</span>
+<span class="nc" id="L796">            this.orderCount = orderCount;</span>
+<span class="nc" id="L797">            this.uniqueCustomers = uniqueCustomers;</span>
+<span class="nc" id="L798">            this.dailyRevenue = dailyRevenue;</span>
+<span class="nc" id="L799">            this.avgOrderValue = avgOrderValue;</span>
+<span class="nc" id="L800">            this.totalItems = totalItems;</span>
+<span class="nc" id="L801">            this.deliveredCount = deliveredCount;</span>
+<span class="nc" id="L802">            this.cancelledCount = cancelledCount;</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">            this.fulfillmentRate = orderCount &gt; 0 ? (double) deliveredCount / orderCount * 100 : 0;</span>
+<span class="nc" id="L804">        }</span>
+        
+        @Override
+        public String toString() {
+<span class="nc" id="L808">            return String.format(&quot;Date: %s | Orders: %d | Revenue: $%s | Customers: %d | Fulfillment: %.1f%%&quot;,</span>
+<span class="nc" id="L809">                date, orderCount, dailyRevenue, uniqueCustomers, fulfillmentRate);</span>
+        }
+    }
+    
+    @FunctionalInterface
+    public interface ResultMapper&lt;R&gt; {
+        R map(ResultSet rs) throws SQLException;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

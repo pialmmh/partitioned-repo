@@ -95,7 +95,8 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
         
         // Initialize table and partitions if needed
         // Initialize table and partitions for retention period on startup
-        if (initializePartitionsOnStart) {
+        // If autoManagePartitions is false, skip ALL table/partition creation - assume they exist
+        if (autoManagePartitions && initializePartitionsOnStart) {
             try {
                 logger.info("Initializing partitioned table and partitions for retention period...");
                 initializeTable();
@@ -110,6 +111,8 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
                     throw new RuntimeException("Failed to initialize table even without partitions", fallbackError);
                 }
             }
+        } else if (!autoManagePartitions) {
+            logger.info("Auto-management disabled. Assuming table '{}' and partitions already exist.", tableName);
         }
         
         // Start scheduler if auto-management is enabled

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OraclePersistenceProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.core.persistence</a> &gt; <span class="el_source">OraclePersistenceProvider.java</span></div><h1>OraclePersistenceProvider.java</h1><pre class="source lang-java linenums">package com.telcobright.core.persistence;
+
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.metadata.EntityMetadata;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Oracle Database persistence provider - stub implementation.
+ * Full implementation pending.
+ *
+ * @author Split-Verse Framework
+ */
+<span class="nc" id="L17">public class OraclePersistenceProvider implements PersistenceProvider {</span>
+
+    private static final String NOT_IMPLEMENTED = &quot;Oracle Database support is not yet implemented&quot;;
+
+    @Override
+    public DatabaseType getDatabaseType() {
+<span class="nc" id="L23">        return DatabaseType.ORACLE;</span>
+    }
+
+    @Override
+    public String generateCreateTableSQL(String tableName, EntityMetadata&lt;?&gt; metadata,
+                                        String charset, String collation) {
+<span class="nc" id="L29">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateInsertSQL(String tableName, EntityMetadata&lt;?&gt; metadata) {
+<span class="nc" id="L34">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateBulkInsertSQL(String tableName, EntityMetadata&lt;?&gt; metadata, int entityCount) {
+        // Note: Oracle would use INSERT ALL syntax or FORALL in PL/SQL for bulk operations
+        // Example: INSERT ALL INTO table VALUES (row1) INTO table VALUES (row2) SELECT * FROM dual
+<span class="nc" id="L41">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateUpdateSQL(String tableName, EntityMetadata&lt;?&gt; metadata) {
+<span class="nc" id="L46">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateDeleteSQL(String tableName, String idColumn) {
+<span class="nc" id="L51">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateSelectByIdSQL(String tableName, EntityMetadata&lt;?&gt; metadata) {
+<span class="nc" id="L56">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateSelectByDateRangeSQL(String tableName, EntityMetadata&lt;?&gt; metadata,
+                                              String dateColumn) {
+<span class="nc" id="L62">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String generateSelectWithPaginationSQL(String tableName, EntityMetadata&lt;?&gt; metadata,
+                                                 String orderByColumn, boolean ascending,
+                                                 int limit, int offset) {
+        // Note: Oracle uses ROWNUM or FETCH FIRST (12c+) for pagination
+        // Example: SELECT * FROM table OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY
+<span class="nc" id="L71">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public &lt;T extends ShardingEntity&gt; int executeBulkInsert(Connection connection, List&lt;T&gt; entities,
+                                                           String tableName, EntityMetadata&lt;T&gt; metadata)
+                                                           throws SQLException {
+<span class="nc" id="L78">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public &lt;T extends ShardingEntity&gt; String executeInsert(Connection connection, T entity,
+                                                          String tableName, EntityMetadata&lt;T&gt; metadata)
+                                                          throws SQLException {
+<span class="nc" id="L85">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public &lt;T extends ShardingEntity&gt; int executeUpdate(Connection connection, T entity,
+                                                       String tableName, EntityMetadata&lt;T&gt; metadata)
+                                                       throws SQLException {
+<span class="nc" id="L92">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public int executeDelete(Connection connection, String id, String tableName, String idColumn)
+                            throws SQLException {
+<span class="nc" id="L98">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public &lt;T extends ShardingEntity&gt; T mapResultSetToEntity(ResultSet rs, EntityMetadata&lt;T&gt; metadata)
+                                                            throws SQLException {
+<span class="nc" id="L104">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public boolean tableExists(Connection connection, String schema, String tableName) throws SQLException {
+        // Note: Oracle would query ALL_TABLES or USER_TABLES
+<span class="nc" id="L110">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public void dropTableIfExists(Connection connection, String tableName) throws SQLException {
+        // Note: Oracle doesn't have DROP TABLE IF EXISTS until 23c
+        // Would need to use PL/SQL block or check existence first
+<span class="nc" id="L117">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String getCurrentTimestampFunction() {
+<span class="nc" id="L122">        return &quot;SYSTIMESTAMP&quot;; // Oracle syntax</span>
+    }
+
+    @Override
+    public String getConcatenationOperator() {
+<span class="nc" id="L127">        return &quot;||&quot;; // Oracle uses || for concatenation</span>
+    }
+
+    @Override
+    public String getLimitOffsetClause(int limit, int offset) {
+        // Oracle 12c+ syntax
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (offset &gt; 0) {</span>
+<span class="nc" id="L134">            return &quot; OFFSET &quot; + offset + &quot; ROWS FETCH NEXT &quot; + limit + &quot; ROWS ONLY&quot;;</span>
+        }
+<span class="nc" id="L136">        return &quot; FETCH FIRST &quot; + limit + &quot; ROWS ONLY&quot;;</span>
+    }
+
+    @Override
+    public boolean isConnectionValid(Connection connection) throws SQLException {
+<span class="nc" id="L141">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+
+    @Override
+    public String getConnectionUrl(String host, int port, String database, Map&lt;String, String&gt; additionalParams) {
+        // Oracle JDBC URL format: jdbc:oracle:thin:@host:port:sid
+        // or jdbc:oracle:thin:@//host:port/service_name
+<span class="nc" id="L148">        throw new UnsupportedOperationException(NOT_IMPLEMENTED);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

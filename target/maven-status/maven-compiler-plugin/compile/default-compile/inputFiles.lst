@@ -29,6 +29,7 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/partition/PartitionStrategy.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/partition/PartitionStrategyFactory.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/partition/PartitionType.java
+/home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/partitioning/RepositoryMode.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/persistence/MySQLPersistenceProvider.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/persistence/OraclePersistenceProvider.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/core/persistence/PersistenceProvider.java

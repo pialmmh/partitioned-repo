@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepositoryProxy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Generic Sharding-Aware Repository Framework</a> &gt; <a href="index.source.html" class="el_package">com.telcobright.api</a> &gt; <span class="el_source">RepositoryProxy.java</span></div><h1>RepositoryProxy.java</h1><pre class="source lang-java linenums">package com.telcobright.api;
+
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.repository.GenericMultiTableRepository;
+import com.telcobright.core.repository.GenericPartitionedTableRepository;
+
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Public API proxy for sharding repositories.
+ * This class provides a unified interface for both multi-table and partitioned table strategies.
+ *
+ * @param &lt;T&gt; Entity type that must implement ShardingEntity
+ * @param &lt;P&gt; Partition column value type (must be Comparable)
+ */
+public class RepositoryProxy&lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;? super P&gt;&gt; implements ShardingRepository&lt;T, P&gt; {
+    
+    private final ShardingRepository&lt;T, P&gt; delegate;
+    private final RepositoryType type;
+    
+<span class="nc" id="L23">    public enum RepositoryType {</span>
+<span class="nc" id="L24">        MULTI_TABLE,</span>
+<span class="nc" id="L25">        PARTITIONED_TABLE</span>
+    }
+    
+<span class="nc" id="L28">    private RepositoryProxy(ShardingRepository&lt;T, P&gt; delegate, RepositoryType type) {</span>
+<span class="nc" id="L29">        this.delegate = delegate;</span>
+<span class="nc" id="L30">        this.type = type;</span>
+<span class="nc" id="L31">    }</span>
+    
+    /**
+     * Create a proxy for a multi-table repository
+     */
+    public static &lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;P&gt;&gt; RepositoryProxy&lt;T, P&gt; forMultiTable(
+            GenericMultiTableRepository&lt;T, P&gt; repository) {
+<span class="nc" id="L38">        return new RepositoryProxy&lt;T, P&gt;(repository, RepositoryType.MULTI_TABLE);</span>
+    }
+    
+    /**
+     * Create a proxy for a partitioned table repository
+     */
+    public static &lt;T extends ShardingEntity&lt;P&gt;, P extends Comparable&lt;P&gt;&gt; RepositoryProxy&lt;T, P&gt; forPartitionedTable(
+            GenericPartitionedTableRepository&lt;T, P&gt; repository) {
+<span class="nc" id="L46">        return new RepositoryProxy&lt;T, P&gt;(repository, RepositoryType.PARTITIONED_TABLE);</span>
+    }
+    
+    /**
+     * Get the repository type (MULTI_TABLE or PARTITIONED_TABLE)
+     */
+    public RepositoryType getType() {
+<span class="nc" id="L53">        return type;</span>
+    }
+    
+    @Override
+    public void insert(T entity) throws SQLException {
+<span class="nc" id="L58">        delegate.insert(entity);</span>
+<span class="nc" id="L59">    }</span>
+    
+    @Override
+    public void insertMultiple(List&lt;T&gt; entities) throws SQLException {
+<span class="nc" id="L63">        delegate.insertMultiple(entities);</span>
+<span class="nc" id="L64">    }</span>
+    
+    @Override
+    public List&lt;T&gt; findAllByPartitionRange(P startValue, P endValue) throws SQLException {
+<span class="nc" id="L68">        return delegate.findAllByPartitionRange(startValue, endValue);</span>
+    }
+    
+    @Override
+    public T findById(String id) throws SQLException {
+<span class="nc" id="L73">        return delegate.findById(id);</span>
+    }
+    
+    @Override
+    public T findByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L78">        return delegate.findByIdAndPartitionColRange(id, startValue, endValue);</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllByIdsAndPartitionColRange(List&lt;String&gt; ids, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L83">        return delegate.findAllByIdsAndPartitionColRange(ids, startValue, endValue);</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllBeforePartitionValue(P beforeValue) throws SQLException {
+<span class="nc" id="L88">        return delegate.findAllBeforePartitionValue(beforeValue);</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findAllAfterPartitionValue(P afterValue) throws SQLException {
+<span class="nc" id="L93">        return delegate.findAllAfterPartitionValue(afterValue);</span>
+    }
+    
+    @Override
+    public void updateById(String id, T entity) throws SQLException {
+<span class="nc" id="L98">        delegate.updateById(id, entity);</span>
+<span class="nc" id="L99">    }</span>
+    
+    @Override
+    public void updateByIdAndPartitionColRange(String id, T entity, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L103">        delegate.updateByIdAndPartitionColRange(id, entity, startValue, endValue);</span>
+<span class="nc" id="L104">    }</span>
+    
+    @Override
+    public T findOneByIdGreaterThan(String id) throws SQLException {
+<span class="nc" id="L108">        return delegate.findOneByIdGreaterThan(id);</span>
+    }
+    
+    @Override
+    public List&lt;T&gt; findBatchByIdGreaterThan(String id, int batchSize) throws SQLException {
+<span class="nc" id="L113">        return delegate.findBatchByIdGreaterThan(id, batchSize);</span>
+    }
+    
+    @Override
+    public void deleteById(String id) throws SQLException {
+<span class="nc" id="L118">        delegate.deleteById(id);</span>
+<span class="nc" id="L119">    }</span>
+
+    @Override
+    public void deleteByIdAndPartitionColRange(String id, P startValue, P endValue) throws SQLException {
+<span class="nc" id="L123">        delegate.deleteByIdAndPartitionColRange(id, startValue, endValue);</span>
+<span class="nc" id="L124">    }</span>
+
+    @Override
+    public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
+<span class="nc" id="L128">        delegate.deleteAllByPartitionRange(startValue, endValue);</span>
+<span class="nc" id="L129">    }</span>
+
+    @Override
+    public void shutdown() {
+<span class="nc" id="L133">        delegate.shutdown();</span>
+<span class="nc" id="L134">    }</span>
+    
+    /**
+     * Get the underlying repository implementation
+     * Use with caution - this exposes internal implementation details
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public &lt;R extends ShardingRepository&lt;T, P&gt;&gt; R getDelegate() {
+<span class="nc" id="L142">        return (R) delegate;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
