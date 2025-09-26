@@ -1740,7 +1740,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
     /**
      * Builder for GenericMultiTableRepository
      */
-    static class Builder<T extends ShardingEntity<P>, P extends Comparable<? super P>> {
+    public static class Builder<T extends ShardingEntity<P>, P extends Comparable<? super P>> {
         private final Class<T> entityClass;
         private String host = "localhost";
         private int port = 3306;
@@ -1923,7 +1923,7 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
      * Create a new builder
      */
     // Package-private factory method - only SplitVerseRepository can use this
-    static <T extends ShardingEntity<P>, P extends Comparable<? super P>> Builder<T, P> builder(Class<T> entityClass) {
+    public static <T extends ShardingEntity<P>, P extends Comparable<? super P>> Builder<T, P> builder(Class<T> entityClass) {
         return new Builder<T, P>(entityClass);
     }
 }

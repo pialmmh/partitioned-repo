@@ -1,0 +1,410 @@
+package com.telcobright.core.repository;
+
+import com.telcobright.core.entity.ShardingEntity;
+import com.telcobright.core.enums.PartitionRange;
+import com.telcobright.core.partitioning.RepositoryMode;
+import com.telcobright.core.annotation.*;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.lang.reflect.Field;
+
+/**
+ * Multi-entity repository that manages multiple entity types with different storage strategies.
+ * Acts as a router/coordinator to delegate operations to appropriate single-entity repositories.
+ */
+public class MultiEntityRepository {
+
+    private final Map<Class<?>, Object> repositoryMap = new ConcurrentHashMap<>();
+    private final Map<Class<?>, EntityInfo> entityInfoMap = new ConcurrentHashMap<>();
+
+    /**
+     * Entity metadata extracted during registration
+     */
+    public static class EntityInfo {
+        public final String tableName;
+        public final String idFieldName;
+        public final String shardingKeyFieldName;
+        public final Class<?> shardingKeyType;
+        public final RepositoryMode repositoryMode;
+
+        EntityInfo(String tableName, String idFieldName, String shardingKeyFieldName,
+                  Class<?> shardingKeyType, RepositoryMode repositoryMode) {
+            this.tableName = tableName;
+            this.idFieldName = idFieldName;
+            this.shardingKeyFieldName = shardingKeyFieldName;
+            this.shardingKeyType = shardingKeyType;
+            this.repositoryMode = repositoryMode;
+        }
+    }
+
+    // Private constructor - use builder
+    private MultiEntityRepository() {}
+
+    /**
+     * Check if an entity is registered
+     */
+    public boolean isEntityRegistered(Class<?> entityClass) {
+        return repositoryMap.containsKey(entityClass);
+    }
+
+    /**
+     * Get entity metadata
+     */
+    public EntityInfo getEntityInfo(Class<?> entityClass) {
+        return entityInfoMap.get(entityClass);
+    }
+
+    /**
+     * Insert a single entity
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<?>> void insert(Class<T> entityClass, T entity) throws SQLException {
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            ((GenericPartitionedTableRepository<T, ?>) repo).insert(entity);
+        } else if (repo instanceof GenericMultiTableRepository) {
+            ((GenericMultiTableRepository<T, ?>) repo).insert(entity);
+        } else {
+            throw new UnsupportedOperationException("Unknown repository type for entity: " + entityClass);
+        }
+    }
+
+    /**
+     * Insert multiple entities
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<?>> void insertMultiple(Class<T> entityClass, List<T> entities) throws SQLException {
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            ((GenericPartitionedTableRepository<T, ?>) repo).insertMultiple(entities);
+        } else if (repo instanceof GenericMultiTableRepository) {
+            ((GenericMultiTableRepository<T, ?>) repo).insertMultiple(entities);
+        } else {
+            throw new UnsupportedOperationException("Unknown repository type for entity: " + entityClass);
+        }
+    }
+
+    /**
+     * Find entity by ID
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<?>> T findById(Class<T> entityClass, String id) throws SQLException {
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            return ((GenericPartitionedTableRepository<T, ?>) repo).findById(id);
+        } else if (repo instanceof GenericMultiTableRepository) {
+            return ((GenericMultiTableRepository<T, ?>) repo).findById(id);
+        } else {
+            throw new UnsupportedOperationException("Unknown repository type for entity: " + entityClass);
+        }
+    }
+
+    /**
+     * Update entity by ID
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<?>> void updateById(Class<T> entityClass, String id, T entity) throws SQLException {
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            ((GenericPartitionedTableRepository<T, ?>) repo).updateById(id, entity);
+        } else if (repo instanceof GenericMultiTableRepository) {
+            ((GenericMultiTableRepository<T, ?>) repo).updateById(id, entity);
+        } else if (repo instanceof SimpleSequentialRepository) {
+            // SimpleSequentialRepository doesn't have updateById, need to handle differently
+            throw new UnsupportedOperationException("Update not supported for SimpleSequentialRepository");
+        } else {
+            throw new UnsupportedOperationException("Unknown repository type for entity: " + entityClass);
+        }
+    }
+
+    /**
+     * Delete entity by ID
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<?>> void deleteById(Class<T> entityClass, String id) throws SQLException {
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            ((GenericPartitionedTableRepository<T, ?>) repo).deleteById(id);
+        } else if (repo instanceof GenericMultiTableRepository) {
+            ((GenericMultiTableRepository<T, ?>) repo).deleteById(id);
+        } else if (repo instanceof SimpleSequentialRepository) {
+            // SimpleSequentialRepository doesn't have deleteById
+            throw new UnsupportedOperationException("Delete not supported for SimpleSequentialRepository");
+        } else {
+            throw new UnsupportedOperationException("Unknown repository type for entity: " + entityClass);
+        }
+    }
+
+    /**
+     * Find entities by date range (for LocalDateTime partition columns)
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<LocalDateTime>> List<T> findByPartitionColBetween(
+            Class<T> entityClass, LocalDateTime start, LocalDateTime end) throws SQLException {
+
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            return ((GenericPartitionedTableRepository<T, LocalDateTime>) repo)
+                .findAllByPartitionRange(start, end);
+        } else if (repo instanceof GenericMultiTableRepository) {
+            return ((GenericMultiTableRepository<T, LocalDateTime>) repo)
+                .findAllByPartitionRange(start, end);
+        } else if (repo instanceof SimpleSequentialRepository) {
+            // SimpleSequentialRepository doesn't have range queries
+            throw new UnsupportedOperationException("Range queries not supported for SimpleSequentialRepository");
+        } else {
+            throw new UnsupportedOperationException("Unknown repository type for entity: " + entityClass);
+        }
+    }
+
+    /**
+     * Count entities by date range (for LocalDateTime partition columns)
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends ShardingEntity<LocalDateTime>> long countByPartitionColBetween(
+            Class<T> entityClass, LocalDateTime start, LocalDateTime end) throws SQLException {
+
+        Object repo = getRepository(entityClass);
+
+        if (repo instanceof GenericPartitionedTableRepository) {
+            // Would need to implement count method
+            List<T> results = ((GenericPartitionedTableRepository<T, LocalDateTime>) repo)
+                .findAllByPartitionRange(start, end);
+            return results.size();
+        } else if (repo instanceof GenericMultiTableRepository) {
+            // Would need to implement count method
+            List<T> results = ((GenericMultiTableRepository<T, LocalDateTime>) repo)
+                .findAllByPartitionRange(start, end);
+            return results.size();
+        } else {
+            throw new UnsupportedOperationException("Count not supported for this repository type");
+        }
+    }
+
+    /**
+     * Shutdown all repositories
+     */
+    public void shutdown() {
+        for (Object repo : repositoryMap.values()) {
+            try {
+                if (repo instanceof GenericPartitionedTableRepository) {
+                    ((GenericPartitionedTableRepository<?, ?>) repo).shutdown();
+                } else if (repo instanceof GenericMultiTableRepository) {
+                    ((GenericMultiTableRepository<?, ?>) repo).shutdown();
+                }
+            } catch (Exception e) {
+                // Log error but continue shutting down other repositories
+                e.printStackTrace();
+            }
+        }
+        repositoryMap.clear();
+        entityInfoMap.clear();
+    }
+
+    // Helper method to get repository with validation
+    private Object getRepository(Class<?> entityClass) {
+        Object repo = repositoryMap.get(entityClass);
+        if (repo == null) {
+            throw new IllegalArgumentException("Entity not registered: " + entityClass.getName());
+        }
+        return repo;
+    }
+
+    // Extract entity metadata using reflection
+    private static EntityInfo extractEntityInfo(Class<?> entityClass) {
+        // Get table name
+        Table tableAnnotation = entityClass.getAnnotation(Table.class);
+        String tableName = tableAnnotation != null ? tableAnnotation.name() :
+            entityClass.getSimpleName().toLowerCase() + "s";
+
+        // Find ID field
+        String idFieldName = "id";
+        String shardingKeyFieldName = null;
+        Class<?> shardingKeyType = LocalDateTime.class;
+
+        for (Field field : entityClass.getDeclaredFields()) {
+            if (field.isAnnotationPresent(Id.class)) {
+                Column colAnnotation = field.getAnnotation(Column.class);
+                idFieldName = colAnnotation != null ? colAnnotation.name() : field.getName();
+            }
+            if (field.isAnnotationPresent(ShardingKey.class)) {
+                Column colAnnotation = field.getAnnotation(Column.class);
+                shardingKeyFieldName = colAnnotation != null ? colAnnotation.name() : field.getName();
+                shardingKeyType = field.getType();
+            }
+        }
+
+        return new EntityInfo(tableName, idFieldName, shardingKeyFieldName,
+                            shardingKeyType, RepositoryMode.PARTITIONED);
+    }
+
+    /**
+     * Create a new builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder for MultiEntityRepository
+     */
+    public static class Builder {
+        private final MultiEntityRepository repository = new MultiEntityRepository();
+        private String defaultHost = "localhost";
+        private int defaultPort = 3306;
+        private String defaultDatabase;
+        private String defaultUsername;
+        private String defaultPassword;
+
+        /**
+         * Set default connection parameters
+         */
+        public Builder defaultConnection(String host, int port, String database,
+                                       String username, String password) {
+            this.defaultHost = host;
+            this.defaultPort = port;
+            this.defaultDatabase = database;
+            this.defaultUsername = username;
+            this.defaultPassword = password;
+            return this;
+        }
+
+        /**
+         * Register an entity with specific configuration
+         */
+        public <T extends ShardingEntity<?>> EntityRegistration<T> registerEntity(Class<T> entityClass) {
+            return new EntityRegistration<>(this, entityClass);
+        }
+
+        /**
+         * Build the repository
+         */
+        public MultiEntityRepository build() {
+            if (repository.repositoryMap.isEmpty()) {
+                throw new IllegalStateException("No entities registered");
+            }
+            return repository;
+        }
+
+        /**
+         * Entity registration helper
+         */
+        public class EntityRegistration<T extends ShardingEntity<?>> {
+            private final Builder builder;
+            private final Class<T> entityClass;
+            private RepositoryMode repositoryMode = RepositoryMode.PARTITIONED;
+            private PartitionRange partitionRange = PartitionRange.DAILY;
+            private int retentionDays = 7;
+            private String tableName;
+            private String tablePrefix;
+            private GenericMultiTableRepository.TableGranularity tableGranularity;
+
+            EntityRegistration(Builder builder, Class<T> entityClass) {
+                this.builder = builder;
+                this.entityClass = entityClass;
+
+                // Extract default table name
+                Table tableAnnotation = entityClass.getAnnotation(Table.class);
+                this.tableName = tableAnnotation != null ? tableAnnotation.name() :
+                    entityClass.getSimpleName().toLowerCase() + "s";
+                this.tablePrefix = this.tableName;
+            }
+
+            public EntityRegistration<T> repositoryMode(RepositoryMode mode) {
+                this.repositoryMode = mode;
+                return this;
+            }
+
+            public EntityRegistration<T> partitionRange(PartitionRange range) {
+                this.partitionRange = range;
+                return this;
+            }
+
+            public EntityRegistration<T> retentionDays(int days) {
+                this.retentionDays = days;
+                return this;
+            }
+
+            public EntityRegistration<T> tableName(String name) {
+                this.tableName = name;
+                return this;
+            }
+
+            public EntityRegistration<T> tablePrefix(String prefix) {
+                this.tablePrefix = prefix;
+                return this;
+            }
+
+            public EntityRegistration<T> tableGranularity(GenericMultiTableRepository.TableGranularity granularity) {
+                this.tableGranularity = granularity;
+                return this;
+            }
+
+            /**
+             * Complete registration and return to builder
+             */
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public Builder and() {
+                try {
+                    // Create repository based on mode
+                    Object repo;
+                    if (repositoryMode == RepositoryMode.PARTITIONED) {
+                        // Create partitioned repository using raw types
+                        GenericPartitionedTableRepository.Builder rawBuilder =
+                            GenericPartitionedTableRepository.builder(entityClass);
+                        repo = rawBuilder
+                            .host(defaultHost)
+                            .port(defaultPort)
+                            .database(defaultDatabase)
+                            .username(defaultUsername)
+                            .password(defaultPassword)
+                            .tableName(tableName)
+                            .retentionDays(retentionDays)
+                            .build();
+                    } else if (repositoryMode == RepositoryMode.MULTI_TABLE) {
+                        // Create multi-table repository using raw types
+                        GenericMultiTableRepository.Builder rawBuilder =
+                            GenericMultiTableRepository.builder(entityClass)
+                                .host(defaultHost)
+                                .port(defaultPort)
+                                .database(defaultDatabase)
+                                .username(defaultUsername)
+                                .password(defaultPassword)
+                                .tablePrefix(tablePrefix)
+                                .retentionDays(retentionDays);
+
+                        if (tableGranularity != null) {
+                            rawBuilder.tableGranularity(tableGranularity);
+                        }
+
+                        repo = rawBuilder.build();
+                    } else {
+                        throw new IllegalArgumentException("Unsupported repository mode: " + repositoryMode);
+                    }
+
+                    // Register repository
+                    repository.repositoryMap.put(entityClass, repo);
+
+                    // Extract and store entity info
+                    EntityInfo info = extractEntityInfo(entityClass);
+                    repository.entityInfoMap.put(entityClass,
+                        new EntityInfo(tableName, info.idFieldName, info.shardingKeyFieldName,
+                                     info.shardingKeyType, repositoryMode));
+
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to create repository for " + entityClass, e);
+                }
+
+                return builder;
+            }
+        }
+    }
+}
