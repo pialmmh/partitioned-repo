@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.telcobright.splitverse.tests.SmsRetrieveByIdOnlyTest
--------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 42.76 s -- in com.telcobright.splitverse.tests.SmsRetrieveByIdOnlyTest

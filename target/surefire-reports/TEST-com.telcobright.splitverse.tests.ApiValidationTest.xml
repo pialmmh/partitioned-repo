@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.SimpleSmsDebugTest" time="2.122" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.ApiValidationTest" time="0.02" tests="6" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -55,31 +55,10 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testInsertAndImmediateRetrieve" classname="com.telcobright.splitverse.tests.SimpleSmsDebugTest" time="0.025">
-    <system-out><![CDATA[[SplitVerse] Building repository with:
-  Entity: SmsRecord
-  Table: auto-detect
-  Sharding Strategy: SINGLE_KEY_HASH
-  Repository Mode: MULTI_TABLE
-  Table Granularity: DAILY
-  Retention Days: 30
-  ID Size: 22 bytes
-  Charset: utf8mb4, Collation: utf8mb4_bin
-  Shards: 1
-[2025-09-26 03:02:18.027] INFO  [MultiTableRepo.sms] Initializing daily tables for retention period: 2025-08-27 to 2025-10-26 (61 days)
-[2025-09-26 03:02:20.107] INFO  [MultiTableRepo.sms] Completed table initialization
-[SplitVerse] Initialized shard: shard_01
-[SplitVerse] Initialized with 1 active shard(s)
-=== Simple Debug Test ===
-Inserting SMS with ID: 041c9d1e-225b-4ece-a886-4563c3c3c6c9
-Timestamp: 2025-09-26T03:02:20.110806280
-Insert complete
-
-Attempting immediate retrieval...
-SUCCESS: Retrieved SMS with ID: 041c9d1e-225b-4ece-a886-4563c3c3c6c9
-]]></system-out>
-    <system-err><![CDATA[Sep 26, 2025 3:02:18 AM com.telcobright.core.connection.ConnectionProvider <init>
-INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/sms_debug_test?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
-]]></system-err>
-  </testcase>
+  <testcase name="testRequiredFieldValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.005"/>
+  <testcase name="testDataSourceConfigValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.003"/>
+  <testcase name="testDualKeyStrategyValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
+  <testcase name="testIdSizeValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
+  <testcase name="testTableNameValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.001"/>
+  <testcase name="testRetentionDaysValidation" classname="com.telcobright.splitverse.tests.ApiValidationTest" time="0.002"/>
 </testsuite>

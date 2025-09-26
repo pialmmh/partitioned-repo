@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.SimpleSmsDebugTest" time="2.122" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.PerformanceTest" time="35.435" tests="6" errors="1" skipped="0" failures="1">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -55,31 +55,110 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testInsertAndImmediateRetrieve" classname="com.telcobright.splitverse.tests.SimpleSmsDebugTest" time="0.025">
-    <system-out><![CDATA[[SplitVerse] Building repository with:
-  Entity: SmsRecord
-  Table: auto-detect
-  Sharding Strategy: SINGLE_KEY_HASH
+  <testcase name="testBulkInsertPerformance" classname="com.telcobright.splitverse.tests.PerformanceTest" time="1.068">
+    <system-out><![CDATA[Created test database: split_verse_perf_test
+[SplitVerse] Building repository with:
+  Entity: Event
+  Table: events
+  Sharding Strategy: DUAL_KEY_HASH_RANGE
   Repository Mode: MULTI_TABLE
+  Partition Column: sequence_number (LONG)
+  Partition Range: VALUE_RANGE_10K
   Table Granularity: DAILY
-  Retention Days: 30
+  Retention Days: 10
   ID Size: 22 bytes
   Charset: utf8mb4, Collation: utf8mb4_bin
   Shards: 1
-[2025-09-26 03:02:18.027] INFO  [MultiTableRepo.sms] Initializing daily tables for retention period: 2025-08-27 to 2025-10-26 (61 days)
-[2025-09-26 03:02:20.107] INFO  [MultiTableRepo.sms] Completed table initialization
-[SplitVerse] Initialized shard: shard_01
+[2025-09-26 03:02:20.188] INFO  [MultiTableRepo.events] Initializing 10 value-range tables (size: 10000)
+[2025-09-26 03:02:20.511] INFO  [MultiTableRepo.events] Completed table initialization
+[SplitVerse] Initialized shard: shard-0
 [SplitVerse] Initialized with 1 active shard(s)
-=== Simple Debug Test ===
-Inserting SMS with ID: 041c9d1e-225b-4ece-a886-4563c3c3c6c9
-Timestamp: 2025-09-26T03:02:20.110806280
-Insert complete
+Performance test setup complete
 
-Attempting immediate retrieval...
-SUCCESS: Retrieved SMS with ID: 041c9d1e-225b-4ece-a886-4563c3c3c6c9
+=== Bulk Insert Performance Test ===
+Inserted 10000 records in 928ms
+Throughput: 10775.86 records/sec
+Avg latency: 0.093 ms/record
+✓ Bulk insert performance test passed
 ]]></system-out>
-    <system-err><![CDATA[Sep 26, 2025 3:02:18 AM com.telcobright.core.connection.ConnectionProvider <init>
-INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/sms_debug_test?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+    <system-err><![CDATA[Sep 26, 2025 3:02:20 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/split_verse_perf_test?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
 ]]></system-err>
+  </testcase>
+  <testcase name="testSequentialInsertPerformance" classname="com.telcobright.splitverse.tests.PerformanceTest" time="9.6">
+    <system-out><![CDATA[
+=== Sequential Insert Performance Test ===
+Sequential insert statistics for 1000 records:
+Avg latency: 9.52 ms
+P50 latency: 8 ms
+P95 latency: 15 ms
+P99 latency: 22 ms
+✓ Sequential insert performance test passed
+]]></system-out>
+  </testcase>
+  <testcase name="testQueryPerformance" classname="com.telcobright.splitverse.tests.PerformanceTest" time="2.944">
+    <failure message="Single record lookup should be &lt; 20ms ==&gt; expected: &lt;true&gt; but was: &lt;false&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: Single record lookup should be < 20ms ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at com.telcobright.splitverse.tests.PerformanceTest.testQueryPerformance(PerformanceTest.java:280)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></failure>
+    <system-out><![CDATA[
+=== Query Performance Test ===
+Avg single record lookup: 25.36 ms
+Range query returned 16000 records in 212 ms
+]]></system-out>
+  </testcase>
+  <testcase name="testConcurrentOperationsPerformance" classname="com.telcobright.splitverse.tests.PerformanceTest" time="18.38">
+    <error message="java.sql.SQLException: No rows updated for ID: EVT_00010000_0b578bd0" type="java.util.concurrent.ExecutionException"><![CDATA[java.util.concurrent.ExecutionException: java.sql.SQLException: No rows updated for ID: EVT_00010000_0b578bd0
+	at java.base/java.util.concurrent.FutureTask.report(FutureTask.java:122)
+	at java.base/java.util.concurrent.FutureTask.get(FutureTask.java:191)
+	at com.telcobright.splitverse.tests.PerformanceTest.testConcurrentOperationsPerformance(PerformanceTest.java:354)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.sql.SQLException: No rows updated for ID: EVT_00010000_0b578bd0
+	at com.telcobright.core.repository.GenericMultiTableRepository.updateById(GenericMultiTableRepository.java:611)
+	at com.telcobright.core.repository.SplitVerseRepository.updateById(SplitVerseRepository.java:303)
+	at com.telcobright.splitverse.tests.PerformanceTest.lambda$testConcurrentOperationsPerformance$0(PerformanceTest.java:329)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+]]></error>
+    <system-out><![CDATA[
+=== Concurrent Operations Performance Test ===
+]]></system-out>
+  </testcase>
+  <testcase name="testLargeDatasetHandling" classname="com.telcobright.splitverse.tests.PerformanceTest" time="2.575">
+    <system-out><![CDATA[
+=== Large Dataset Handling Test ===
+Inserting 50000 records...
+Progress: 10000/50000
+Progress: 20000/50000
+Progress: 30000/50000
+Progress: 40000/50000
+Progress: 50000/50000
+Total insert time: 2403 ms
+Avg batch insert time: 240.30 ms
+Retrieved 1000 records from large dataset in 16 ms
+✓ Large dataset handling test passed
+]]></system-out>
+  </testcase>
+  <testcase name="testPaginationPerformance" classname="com.telcobright.splitverse.tests.PerformanceTest" time="0.289">
+    <system-out><![CDATA[
+=== Pagination Performance Test ===
+Pagination statistics for 50 pages:
+Avg page fetch time: 5.62 ms
+P50 page fetch time: 5 ms
+P95 page fetch time: 11 ms
+Total records paginated: 5000
+✓ Pagination performance test passed
+]]></system-out>
   </testcase>
 </testsuite>

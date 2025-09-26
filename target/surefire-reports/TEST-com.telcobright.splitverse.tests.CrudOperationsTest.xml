@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.SimpleSmsDebugTest" time="2.122" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.056" tests="1" errors="1" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -55,31 +55,119 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testInsertAndImmediateRetrieve" classname="com.telcobright.splitverse.tests.SimpleSmsDebugTest" time="0.025">
+  <testcase name="" classname="com.telcobright.splitverse.tests.CrudOperationsTest" time="0.056">
+    <error message="No shards could be initialized" type="java.lang.IllegalStateException"><![CDATA[java.lang.IllegalStateException: No shards could be initialized
+	at com.telcobright.core.repository.SplitVerseRepository.<init>(SplitVerseRepository.java:83)
+	at com.telcobright.core.repository.SplitVerseRepository$Builder.build(SplitVerseRepository.java:848)
+	at com.telcobright.splitverse.tests.CrudOperationsTest.setUpRepository(CrudOperationsTest.java:133)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+]]></error>
     <system-out><![CDATA[[SplitVerse] Building repository with:
-  Entity: SmsRecord
-  Table: auto-detect
-  Sharding Strategy: SINGLE_KEY_HASH
+  Entity: User
+  Table: users
+  Sharding Strategy: DUAL_KEY_HASH_RANGE
   Repository Mode: MULTI_TABLE
+  Partition Column: created_at (LOCAL_DATE_TIME)
+  Partition Range: DAILY
   Table Granularity: DAILY
-  Retention Days: 30
+  Retention Days: 7
   ID Size: 22 bytes
   Charset: utf8mb4, Collation: utf8mb4_bin
   Shards: 1
-[2025-09-26 03:02:18.027] INFO  [MultiTableRepo.sms] Initializing daily tables for retention period: 2025-08-27 to 2025-10-26 (61 days)
-[2025-09-26 03:02:20.107] INFO  [MultiTableRepo.sms] Completed table initialization
-[SplitVerse] Initialized shard: shard_01
-[SplitVerse] Initialized with 1 active shard(s)
-=== Simple Debug Test ===
-Inserting SMS with ID: 041c9d1e-225b-4ece-a886-4563c3c3c6c9
-Timestamp: 2025-09-26T03:02:20.110806280
-Insert complete
-
-Attempting immediate retrieval...
-SUCCESS: Retrieved SMS with ID: 041c9d1e-225b-4ece-a886-4563c3c3c6c9
+[2025-09-26 03:02:13.406] INFO  [MultiTableRepo.users] Initializing daily tables for retention period: 2025-09-19 to 2025-10-03 (15 days)
 ]]></system-out>
-    <system-err><![CDATA[Sep 26, 2025 3:02:18 AM com.telcobright.core.connection.ConnectionProvider <init>
-INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/sms_debug_test?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+    <system-err><![CDATA[Sep 26, 2025 3:02:13 AM com.telcobright.core.connection.ConnectionProvider <init>
+INFO: ConnectionProvider initialized for: jdbc:mysql://127.0.0.1:3306/test_split_verse?useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false&preserveInstants=true
+[SplitVerse] Failed to initialize shard shard-0: Failed to initialize tables for retention period
+java.lang.RuntimeException: Failed to initialize tables for retention period
+	at com.telcobright.core.repository.GenericMultiTableRepository.<init>(GenericMultiTableRepository.java:158)
+	at com.telcobright.core.repository.GenericMultiTableRepository$Builder.build(GenericMultiTableRepository.java:1918)
+	at com.telcobright.core.repository.SplitVerseRepository.createShardRepository(SplitVerseRepository.java:135)
+	at com.telcobright.core.repository.SplitVerseRepository.<init>(SplitVerseRepository.java:68)
+	at com.telcobright.core.repository.SplitVerseRepository$Builder.build(SplitVerseRepository.java:848)
+	at com.telcobright.splitverse.tests.CrudOperationsTest.setUpRepository(CrudOperationsTest.java:133)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:787)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:478)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:161)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptLifecycleMethod(TimeoutExtension.java:133)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptBeforeAllMethod(TimeoutExtension.java:75)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:112)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:94)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:93)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:87)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$invokeBeforeAllMethods$14(ClassBasedTestDescriptor.java:446)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.invokeBeforeAllMethods(ClassBasedTestDescriptor.java:444)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.before(ClassBasedTestDescriptor.java:247)
+	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.before(ClassBasedTestDescriptor.java:87)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:154)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:147)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:145)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:101)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:161)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:147)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:145)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:144)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:101)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.executeEngine(EngineExecutionOrchestrator.java:230)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.failOrExecuteEngine(EngineExecutionOrchestrator.java:204)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:172)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:101)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:64)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:150)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:63)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:109)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:91)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:194)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:150)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:124)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+Caused by: java.sql.SQLSyntaxErrorException: Unknown database 'test_split_verse'
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:121)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:122)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:825)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:446)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:239)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:188)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:683)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:230)
+	at com.telcobright.core.connection.ConnectionProvider.createConnection(ConnectionProvider.java:104)
+	at com.telcobright.core.connection.ConnectionProvider.getConnection(ConnectionProvider.java:69)
+	at com.telcobright.core.repository.GenericMultiTableRepository.createTableIfNotExists(GenericMultiTableRepository.java:1065)
+	at com.telcobright.core.repository.GenericMultiTableRepository.createTablesForDateRange(GenericMultiTableRepository.java:1346)
+	at com.telcobright.core.repository.GenericMultiTableRepository.initializeTablesForRetentionPeriod(GenericMultiTableRepository.java:1566)
+	at com.telcobright.core.repository.GenericMultiTableRepository.<init>(GenericMultiTableRepository.java:154)
+	... 70 more
 ]]></system-err>
   </testcase>
 </testsuite>

@@ -1,0 +1,33 @@
+-------------------------------------------------------------------------------
+Test set: com.telcobright.splitverse.tests.PerformanceTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 1, Errors: 1, Skipped: 0, Time elapsed: 35.44 s <<< FAILURE! -- in com.telcobright.splitverse.tests.PerformanceTest
+com.telcobright.splitverse.tests.PerformanceTest.testQueryPerformance -- Time elapsed: 2.944 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: Single record lookup should be < 20ms ==> expected: <true> but was: <false>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+	at com.telcobright.splitverse.tests.PerformanceTest.testQueryPerformance(PerformanceTest.java:280)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+com.telcobright.splitverse.tests.PerformanceTest.testConcurrentOperationsPerformance -- Time elapsed: 18.38 s <<< ERROR!
+java.util.concurrent.ExecutionException: java.sql.SQLException: No rows updated for ID: EVT_00010000_0b578bd0
+	at java.base/java.util.concurrent.FutureTask.report(FutureTask.java:122)
+	at java.base/java.util.concurrent.FutureTask.get(FutureTask.java:191)
+	at com.telcobright.splitverse.tests.PerformanceTest.testConcurrentOperationsPerformance(PerformanceTest.java:354)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.sql.SQLException: No rows updated for ID: EVT_00010000_0b578bd0
+	at com.telcobright.core.repository.GenericMultiTableRepository.updateById(GenericMultiTableRepository.java:611)
+	at com.telcobright.core.repository.SplitVerseRepository.updateById(SplitVerseRepository.java:303)
+	at com.telcobright.splitverse.tests.PerformanceTest.lambda$testConcurrentOperationsPerformance$0(PerformanceTest.java:329)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
