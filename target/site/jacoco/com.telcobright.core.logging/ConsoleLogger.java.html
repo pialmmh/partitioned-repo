@@ -46,8 +46,8 @@ public class ConsoleLogger implements Logger {
 <span class="fc" id="L46">        String output = String.format(&quot;[%s] %-5s [%s] %s&quot;, </span>
             timestamp, level, name, message);
         
-<span class="pc bpc" id="L49" title="1 of 4 branches missed.">        if (level == Level.ERROR || level == Level.WARN) {</span>
-<span class="fc" id="L50">            System.err.println(output);</span>
+<span class="pc bpc" id="L49" title="2 of 4 branches missed.">        if (level == Level.ERROR || level == Level.WARN) {</span>
+<span class="nc" id="L50">            System.err.println(output);</span>
         } else {
 <span class="fc" id="L52">            System.out.println(output);</span>
         }

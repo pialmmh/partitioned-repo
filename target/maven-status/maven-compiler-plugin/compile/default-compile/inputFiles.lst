@@ -63,11 +63,8 @@
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/examples/entity/OrderEntity.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/examples/entity/SmsEntity.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/examples/entity/Student.java
-/home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/config/JpaConfig.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/config/RepositoryMode.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/config/ShardConfig.java
-/home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/entity/jpa/TestUser.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/examples/TelecomSubscriberExample.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/examples/entity/SubscriberEntity.java
-/home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/repository/jpa/TestUserRepository.java
 /home/mustafa/telcobright-projects/routesphere/split-verse/src/main/java/com/telcobright/splitverse/routing/HashRouter.java

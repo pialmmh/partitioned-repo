@@ -55,22 +55,22 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
                 }
 <span class="pc bpc" id="L56" title="2 of 4 branches missed.">            } else if (type == Long.class || type == long.class) {</span>
 <span class="nc" id="L57">                sql.append(&quot;BIGINT&quot;);</span>
-<span class="pc bpc" id="L58" title="2 of 4 branches missed.">            } else if (type == Integer.class || type == int.class) {</span>
-<span class="nc" id="L59">                sql.append(&quot;INT&quot;);</span>
+<span class="pc bpc" id="L58" title="1 of 4 branches missed.">            } else if (type == Integer.class || type == int.class) {</span>
+<span class="fc" id="L59">                sql.append(&quot;INT&quot;);</span>
 <span class="pc bpc" id="L60" title="2 of 4 branches missed.">            } else if (type == Double.class || type == double.class) {</span>
 <span class="nc" id="L61">                sql.append(&quot;DOUBLE&quot;);</span>
 <span class="pc bpc" id="L62" title="2 of 4 branches missed.">            } else if (type == Float.class || type == float.class) {</span>
 <span class="nc" id="L63">                sql.append(&quot;FLOAT&quot;);</span>
 <span class="pc bpc" id="L64" title="2 of 4 branches missed.">            } else if (type == Boolean.class || type == boolean.class) {</span>
 <span class="nc" id="L65">                sql.append(&quot;BOOLEAN&quot;);</span>
-<span class="fc bfc" id="L66" title="All 2 branches covered.">            } else if (type == LocalDateTime.class) {</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">            } else if (type == LocalDateTime.class) {</span>
 <span class="fc" id="L67">                sql.append(&quot;DATETIME(6)&quot;);</span>
-<span class="pc bpc" id="L68" title="1 of 2 branches missed.">            } else if (type == java.time.LocalDate.class) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            } else if (type == java.time.LocalDate.class) {</span>
 <span class="nc" id="L69">                sql.append(&quot;DATE&quot;);</span>
-<span class="pc bpc" id="L70" title="1 of 2 branches missed.">            } else if (type == java.time.LocalTime.class) {</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            } else if (type == java.time.LocalTime.class) {</span>
 <span class="nc" id="L71">                sql.append(&quot;TIME&quot;);</span>
-<span class="pc bpc" id="L72" title="1 of 2 branches missed.">            } else if (type == java.math.BigDecimal.class) {</span>
-<span class="fc" id="L73">                sql.append(&quot;DECIMAL(19,4)&quot;);</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            } else if (type == java.math.BigDecimal.class) {</span>
+<span class="nc" id="L73">                sql.append(&quot;DECIMAL(19,4)&quot;);</span>
             } else {
 <span class="nc" id="L75">                sql.append(&quot;TEXT&quot;);</span>
             }
@@ -129,12 +129,12 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
 
     @Override
     public String generateBulkInsertSQL(String tableName, EntityMetadata&lt;?&gt; metadata, int entityCount) {
-<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (entityCount &lt;= 0) {</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">        if (entityCount &lt;= 0) {</span>
 <span class="nc" id="L133">            throw new IllegalArgumentException(&quot;Entity count must be positive&quot;);</span>
         }
 
         // Check cache first if available
-<span class="nc bnc" id="L137" title="All 2 branches missed.">        if (sqlCache != null) {</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        if (sqlCache != null) {</span>
 <span class="nc" id="L138">            SqlStatementCache.StatementType cacheType = getCacheTypeForBatchSize(entityCount);</span>
 <span class="nc bnc" id="L139" title="All 2 branches missed.">            if (cacheType != null) {</span>
 <span class="nc" id="L140">                Class&lt;?&gt; entityClass = metadata.getClass();</span>
@@ -147,31 +147,31 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
             }
         }
 
-<span class="nc" id="L150">        StringBuilder sql = new StringBuilder(&quot;INSERT INTO &quot;).append(tableName).append(&quot; (&quot;);</span>
+<span class="fc" id="L150">        StringBuilder sql = new StringBuilder(&quot;INSERT INTO &quot;).append(tableName).append(&quot; (&quot;);</span>
 
         // Add column names
-<span class="nc" id="L153">        String columns = metadata.getFields().stream()</span>
-<span class="nc" id="L154">            .map(FieldMetadata::getColumnName)</span>
-<span class="nc" id="L155">            .collect(Collectors.joining(&quot;, &quot;));</span>
-<span class="nc" id="L156">        sql.append(columns).append(&quot;) VALUES &quot;);</span>
+<span class="fc" id="L153">        String columns = metadata.getFields().stream()</span>
+<span class="fc" id="L154">            .map(FieldMetadata::getColumnName)</span>
+<span class="fc" id="L155">            .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="fc" id="L156">        sql.append(columns).append(&quot;) VALUES &quot;);</span>
 
         // Add value placeholders for each entity
         // MySQL extended INSERT syntax: INSERT INTO table (cols) VALUES (?,?), (?,?), (?,?)
-<span class="nc" id="L160">        StringJoiner valueGroups = new StringJoiner(&quot;, &quot;);</span>
-<span class="nc" id="L161">        String singleValueGroup = &quot;(&quot; +</span>
-<span class="nc" id="L162">            metadata.getFields().stream()</span>
-<span class="nc" id="L163">                .map(f -&gt; &quot;?&quot;)</span>
-<span class="nc" id="L164">                .collect(Collectors.joining(&quot;, &quot;)) + &quot;)&quot;;</span>
+<span class="fc" id="L160">        StringJoiner valueGroups = new StringJoiner(&quot;, &quot;);</span>
+<span class="fc" id="L161">        String singleValueGroup = &quot;(&quot; +</span>
+<span class="fc" id="L162">            metadata.getFields().stream()</span>
+<span class="fc" id="L163">                .map(f -&gt; &quot;?&quot;)</span>
+<span class="fc" id="L164">                .collect(Collectors.joining(&quot;, &quot;)) + &quot;)&quot;;</span>
 
-<span class="nc bnc" id="L166" title="All 2 branches missed.">        for (int i = 0; i &lt; entityCount; i++) {</span>
-<span class="nc" id="L167">            valueGroups.add(singleValueGroup);</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">        for (int i = 0; i &lt; entityCount; i++) {</span>
+<span class="fc" id="L167">            valueGroups.add(singleValueGroup);</span>
         }
 
-<span class="nc" id="L170">        sql.append(valueGroups.toString());</span>
-<span class="nc" id="L171">        String sqlString = sql.toString();</span>
+<span class="fc" id="L170">        sql.append(valueGroups.toString());</span>
+<span class="fc" id="L171">        String sqlString = sql.toString();</span>
 
         // Store in cache if available and if it's a standard batch size
-<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (sqlCache != null) {</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if (sqlCache != null) {</span>
 <span class="nc" id="L175">            SqlStatementCache.StatementType cacheType = getCacheTypeForBatchSize(entityCount);</span>
 <span class="nc bnc" id="L176" title="All 2 branches missed.">            if (cacheType != null) {</span>
                 // We need the actual entity class - this is a limitation we'd fix in production
@@ -180,7 +180,7 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
             }
         }
 
-<span class="nc" id="L183">        return sqlString;</span>
+<span class="fc" id="L183">        return sqlString;</span>
     }
 
     private SqlStatementCache.StatementType getCacheTypeForBatchSize(int size) {
@@ -255,26 +255,26 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
     public &lt;T extends ShardingEntity&gt; int executeBulkInsert(Connection connection, List&lt;T&gt; entities,
                                                            String tableName, EntityMetadata&lt;T&gt; metadata)
                                                            throws SQLException {
-<span class="nc bnc" id="L258" title="All 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
+<span class="pc bpc" id="L258" title="2 of 4 branches missed.">        if (entities == null || entities.isEmpty()) {</span>
 <span class="nc" id="L259">            return 0;</span>
         }
 
         // Use MySQL extended INSERT syntax for optimal performance
         // INSERT INTO table (cols) VALUES (row1), (row2), (row3)...
-<span class="nc" id="L264">        String sql = generateBulkInsertSQL(tableName, metadata, entities.size());</span>
+<span class="fc" id="L264">        String sql = generateBulkInsertSQL(tableName, metadata, entities.size());</span>
 
-<span class="nc" id="L266">        try (PreparedStatement stmt = connection.prepareStatement(sql)) {</span>
-<span class="nc" id="L267">            int paramIndex = 1;</span>
+<span class="fc" id="L266">        try (PreparedStatement stmt = connection.prepareStatement(sql)) {</span>
+<span class="fc" id="L267">            int paramIndex = 1;</span>
 
             // Set parameters for all entities
-<span class="nc bnc" id="L270" title="All 2 branches missed.">            for (T entity : entities) {</span>
-<span class="nc bnc" id="L271" title="All 2 branches missed.">                for (FieldMetadata field : metadata.getFields()) {</span>
-<span class="nc" id="L272">                    Object value = field.getValue(entity);</span>
-<span class="nc" id="L273">                    setParameter(stmt, paramIndex++, value);</span>
-<span class="nc" id="L274">                }</span>
-<span class="nc" id="L275">            }</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">            for (T entity : entities) {</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">                for (FieldMetadata field : metadata.getFields()) {</span>
+<span class="fc" id="L272">                    Object value = field.getValue(entity);</span>
+<span class="fc" id="L273">                    setParameter(stmt, paramIndex++, value);</span>
+<span class="fc" id="L274">                }</span>
+<span class="fc" id="L275">            }</span>
 
-<span class="nc" id="L277">            return stmt.executeUpdate();</span>
+<span class="fc" id="L277">            return stmt.executeUpdate();</span>
         }
     }
 
@@ -414,22 +414,22 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
      * Helper method to set parameter values with proper type handling
      */
     private void setParameter(PreparedStatement stmt, int index, Object value) throws SQLException {
-<span class="nc bnc" id="L417" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="pc bpc" id="L417" title="1 of 2 branches missed.">        if (value == null) {</span>
 <span class="nc" id="L418">            stmt.setNull(index, Types.NULL);</span>
-<span class="nc bnc" id="L419" title="All 2 branches missed.">        } else if (value instanceof String) {</span>
-<span class="nc" id="L420">            stmt.setString(index, (String) value);</span>
-<span class="nc bnc" id="L421" title="All 2 branches missed.">        } else if (value instanceof Long) {</span>
+<span class="fc bfc" id="L419" title="All 2 branches covered.">        } else if (value instanceof String) {</span>
+<span class="fc" id="L420">            stmt.setString(index, (String) value);</span>
+<span class="pc bpc" id="L421" title="1 of 2 branches missed.">        } else if (value instanceof Long) {</span>
 <span class="nc" id="L422">            stmt.setLong(index, (Long) value);</span>
-<span class="nc bnc" id="L423" title="All 2 branches missed.">        } else if (value instanceof Integer) {</span>
-<span class="nc" id="L424">            stmt.setInt(index, (Integer) value);</span>
-<span class="nc bnc" id="L425" title="All 2 branches missed.">        } else if (value instanceof Double) {</span>
+<span class="fc bfc" id="L423" title="All 2 branches covered.">        } else if (value instanceof Integer) {</span>
+<span class="fc" id="L424">            stmt.setInt(index, (Integer) value);</span>
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">        } else if (value instanceof Double) {</span>
 <span class="nc" id="L426">            stmt.setDouble(index, (Double) value);</span>
-<span class="nc bnc" id="L427" title="All 2 branches missed.">        } else if (value instanceof Float) {</span>
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">        } else if (value instanceof Float) {</span>
 <span class="nc" id="L428">            stmt.setFloat(index, (Float) value);</span>
-<span class="nc bnc" id="L429" title="All 2 branches missed.">        } else if (value instanceof Boolean) {</span>
+<span class="pc bpc" id="L429" title="1 of 2 branches missed.">        } else if (value instanceof Boolean) {</span>
 <span class="nc" id="L430">            stmt.setBoolean(index, (Boolean) value);</span>
-<span class="nc bnc" id="L431" title="All 2 branches missed.">        } else if (value instanceof LocalDateTime) {</span>
-<span class="nc" id="L432">            stmt.setTimestamp(index, Timestamp.valueOf((LocalDateTime) value));</span>
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">        } else if (value instanceof LocalDateTime) {</span>
+<span class="fc" id="L432">            stmt.setTimestamp(index, Timestamp.valueOf((LocalDateTime) value));</span>
 <span class="nc bnc" id="L433" title="All 2 branches missed.">        } else if (value instanceof java.time.LocalDate) {</span>
 <span class="nc" id="L434">            stmt.setDate(index, Date.valueOf((java.time.LocalDate) value));</span>
 <span class="nc bnc" id="L435" title="All 2 branches missed.">        } else if (value instanceof java.time.LocalTime) {</span>
@@ -439,6 +439,6 @@ public class MySQLPersistenceProvider implements PersistenceProvider {
         } else {
 <span class="nc" id="L440">            stmt.setObject(index, value);</span>
         }
-<span class="nc" id="L442">    }</span>
+<span class="fc" id="L442">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1489,20 +1489,25 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
             boolean inconsistent = false;
             String inconsistencyDetails = "";
 
-            // Check if actual boundaries match configured boundaries
-            if (minPartitionDate != null && !actualMinDate.equals(minPartitionDate)) {
+            // Check if actual boundaries match configured boundaries (normalized to granularity)
+            LocalDateTime normalizedExpectedMin = normalizeToGranularity(minPartitionDate);
+            LocalDateTime normalizedActualMin = normalizeToGranularity(actualMinDate);
+            LocalDateTime normalizedExpectedMax = normalizeToGranularity(maxPartitionDate);
+            LocalDateTime normalizedActualMax = normalizeToGranularity(actualMaxDate);
+
+            if (normalizedExpectedMin != null && !normalizedActualMin.equals(normalizedExpectedMin)) {
                 inconsistent = true;
                 inconsistencyDetails += String.format(
                     "Min partition mismatch: expected=%s, actual=%s. ",
-                    minPartitionDate, actualMinDate
+                    normalizedExpectedMin, normalizedActualMin
                 );
             }
 
-            if (maxPartitionDate != null && !actualMaxDate.equals(maxPartitionDate)) {
+            if (normalizedExpectedMax != null && !normalizedActualMax.equals(normalizedExpectedMax)) {
                 inconsistent = true;
                 inconsistencyDetails += String.format(
                     "Max partition mismatch: expected=%s, actual=%s. ",
-                    maxPartitionDate, actualMaxDate
+                    normalizedExpectedMax, normalizedActualMax
                 );
             }
 
@@ -1529,6 +1534,38 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                 "Partition metadata validated successfully. Min=%s, Max=%s",
                 minPartitionDate, maxPartitionDate
             ));
+        }
+    }
+
+    /**
+     * Normalize LocalDateTime to the appropriate granularity based on tableGranularity.
+     * This ensures consistent comparisons between expected and actual partition boundaries.
+     *
+     * - HOURLY: Truncate to hour (set minutes, seconds, nanos to 0)
+     * - DAILY: Truncate to day (set time to midnight)
+     * - MONTHLY: Truncate to first day of month at midnight
+     *
+     * @param dateTime The datetime to normalize
+     * @return Normalized datetime, or null if input is null
+     */
+    private LocalDateTime normalizeToGranularity(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return null;
+        }
+
+        switch (tableGranularity) {
+            case HOURLY:
+                // Truncate to hour: keep year, month, day, hour; zero out minutes, seconds, nanos
+                return dateTime.withMinute(0).withSecond(0).withNano(0);
+
+            case MONTHLY:
+                // Truncate to first day of month at midnight
+                return dateTime.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+
+            case DAILY:
+            default:
+                // Truncate to day: keep year, month, day; zero out time component
+                return dateTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
         }
     }
 
@@ -1609,9 +1646,9 @@ public class GenericMultiTableRepository<T extends ShardingEntity<P>, P extends 
                             partitionRetentionPeriod * 2 + 1));
             }
 
-            // Store the min/max partition boundaries
-            this.minPartitionDate = startDate;
-            this.maxPartitionDate = endDate;
+            // Store the min/max partition boundaries (normalized to table granularity)
+            this.minPartitionDate = normalizeToGranularity(startDate);
+            this.maxPartitionDate = normalizeToGranularity(endDate);
 
             createTablesForDateRange(startDate, endDate);
         } else if (isHashBased(partitionRange)) {

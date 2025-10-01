@@ -28,7 +28,6 @@ com/telcobright/examples/deprecated/PartitionedTableRepository$DailyOrderStats.c
 com/telcobright/core/partition/DateBasedPartitionStrategy.class
 com/telcobright/core/repository/SplitVerseRepository$1.class
 com/telcobright/core/metadata/FieldMetadata.class
-com/telcobright/splitverse/config/JpaConfig.class
 com/telcobright/core/monitoring/MetricsCollector.class
 com/telcobright/core/query/QueryDSL$Operator.class
 com/telcobright/examples/deprecated/MultiTableRepository$Builder.class
@@ -89,7 +88,6 @@ com/telcobright/core/monitoring/MonitoringService.class
 com/telcobright/core/partition/PartitionStrategy.class
 com/telcobright/core/sql/SqlStatementCache$CacheStatistics.class
 com/telcobright/core/metadata/EntityMetadata.class
-com/telcobright/splitverse/repository/jpa/TestUserRepository.class
 com/telcobright/core/sql/SqlGeneratorFactory$DatabaseType.class
 com/telcobright/core/repository/SequentialLogRepositoryBuilder$Builder.class
 com/telcobright/core/connection/ConnectionProvider$MaintenanceConnection.class
@@ -109,7 +107,6 @@ com/telcobright/core/annotation/Column.class
 com/telcobright/core/connection/ConnectionProvider.class
 com/telcobright/core/partitioning/RepositoryMode.class
 com/telcobright/core/persistence/PostgreSQLPersistenceProvider.class
-com/telcobright/splitverse/entity/jpa/TestUser.class
 com/telcobright/core/repository/GenericMultiTableRepository.class
 com/telcobright/core/query/QueryDSL$FromBuilder.class
 com/telcobright/core/pagination/PaginationConfig.class

@@ -22,6 +22,7 @@ com/telcobright/splitverse/tests/SingleShardNativePartitionTest.class
 com/telcobright/splitverse/tests/SequentialWriteTestSimulatorForChronicle.class
 com/telcobright/splitverse/tests/SingleShardMultiTableNestedPartitionTest$ProductRecord.class
 com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest$ValidLongShardingEntity.class
+com/telcobright/splitverse/tests/BatchInsertOptimizationTest.class
 com/telcobright/splitverse/tests/SingleShardMultiTableDateTest.class
 com/telcobright/splitverse/tests/SequentialLogRepositoryTest.class
 com/telcobright/splitverse/tests/PartitionManagementDisabledTest.class
@@ -37,6 +38,7 @@ com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTestRetrieveAll$Sms
 com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest$DateShardingEntity.class
 com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest$LongIdEntity.class
 com/telcobright/splitverse/tests/UnsupportedDataTypeValidationTest.class
+com/telcobright/splitverse/tests/BatchInsertOptimizationTest$BatchTestEntity.class
 com/telcobright/splitverse/tests/MultiEntityDemoTest.class
 com/telcobright/splitverse/tests/SingleShardMultiTableNestedPartitionTest$EventRecord.class
 com/telcobright/splitverse/tests/SmsMultiTableHourlyPartitionTest$1OffsetType.class
