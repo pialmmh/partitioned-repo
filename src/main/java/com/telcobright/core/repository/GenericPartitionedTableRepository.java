@@ -1,6 +1,10 @@
 package com.telcobright.core.repository;
 import com.telcobright.api.ShardingRepository;
 
+import com.telcobright.core.aggregation.AggregationQuery;
+import com.telcobright.core.aggregation.AggregationResult;
+import com.telcobright.core.aggregation.PartialResult;
+import com.telcobright.core.aggregation.ShardQueryExecutor;
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.metadata.EntityMetadata;
 import com.telcobright.core.metadata.FieldMetadata;
@@ -13,6 +17,8 @@ import com.telcobright.core.connection.ConnectionProvider.MaintenanceConnection;
 import com.telcobright.core.partition.PartitionType;
 import com.telcobright.core.partition.PartitionStrategy;
 import com.telcobright.core.partition.PartitionStrategyFactory;
+import com.telcobright.splitverse.config.RepositoryMode;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -940,6 +946,75 @@ public class GenericPartitionedTableRepository<T extends ShardingEntity<P>, P ex
                 stmt.setObject(2, endValue);
             }
             stmt.executeUpdate();
+        }
+    }
+
+    @Override
+    public List<AggregationResult> aggregate(
+        AggregationQuery query,
+        P startValue,
+        P endValue,
+        Object... params
+    ) throws SQLException {
+        logger.info("Executing aggregation query in native partition mode");
+
+        if (!(startValue instanceof LocalDateTime && endValue instanceof LocalDateTime)) {
+            throw new UnsupportedOperationException(
+                "Aggregation is currently only supported for LocalDateTime partition types. " +
+                "Generic partition value types not yet implemented."
+            );
+        }
+
+        logger.debug("Aggregation on partitioned table: " + tableName);
+
+        // Execute aggregation using ShardQueryExecutor
+        try (Connection conn = connectionProvider.getConnection()) {
+            ShardQueryExecutor executor = new ShardQueryExecutor(
+                conn,
+                RepositoryMode.PARTITIONED,
+                tableName,
+                logger
+            );
+
+            // For native partition, we pass single table (MySQL will prune partitions)
+            List<PartialResult> partialResults = executor.execute(
+                query,
+                Collections.singletonList(tableName),  // Single table with native partitions
+                (LocalDateTime) startValue,
+                (LocalDateTime) endValue,
+                params
+            );
+
+            // Convert PartialResult to AggregationResult
+            List<AggregationResult> results = new ArrayList<>();
+            for (PartialResult partial : partialResults) {
+                Map<String, Object> aggregateValues = new java.util.HashMap<>(partial.getAggregateValues());
+
+                // Compute AVG values from SUM and COUNT
+                for (com.telcobright.core.aggregation.AggregateColumn aggCol : query.getAggregateColumns()) {
+                    if (aggCol.getFunction() == com.telcobright.core.aggregation.AggregateFunction.AVG) {
+                        BigDecimal sum = (BigDecimal) partial.getAggregateValues().get("__" + aggCol.getAlias() + "_sum");
+                        Long count = ((Number) partial.getAggregateValues().get("__" + aggCol.getAlias() + "_count")).longValue();
+                        if (sum != null && count != null && count > 0) {
+                            BigDecimal avg = sum.divide(new BigDecimal(count), 4, java.math.RoundingMode.HALF_UP);
+                            aggregateValues.put(aggCol.getAlias(), avg);
+                        }
+                    }
+                }
+
+                AggregationResult result = new AggregationResult(
+                    partial.getGroupByValues(),
+                    aggregateValues
+                );
+                results.add(result);
+            }
+
+            logger.info("Aggregation complete. Returning " + results.size() + " result(s)");
+            return results;
+
+        } catch (SQLException e) {
+            logger.error("Aggregation query failed: " + e.getMessage());
+            throw e;
         }
     }
 

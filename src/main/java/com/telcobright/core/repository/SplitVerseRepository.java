@@ -1,6 +1,10 @@
 package com.telcobright.core.repository;
 
 import com.telcobright.api.ShardingRepository;
+import com.telcobright.core.aggregation.AggregationQuery;
+import com.telcobright.core.aggregation.AggregationResult;
+import com.telcobright.core.aggregation.PartialResult;
+import com.telcobright.core.aggregation.ResultMerger;
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.repository.GenericPartitionedTableRepository;
 import com.telcobright.core.repository.GenericMultiTableRepository;
@@ -18,6 +22,8 @@ import com.telcobright.core.sql.SqlGeneratorByEntityRegistry;
 import com.telcobright.core.sql.SqlStatementCache;
 import com.telcobright.core.persistence.PersistenceProvider;
 import com.telcobright.core.persistence.MySQLPersistenceProvider;
+import com.telcobright.core.logging.Logger;
+import com.telcobright.core.logging.ConsoleLogger;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -45,6 +51,8 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
     private final String partitionKeyColumn;
     private final SqlGeneratorByEntityRegistry sqlRegistry;
     private final SqlStatementCache sqlCache;
+    private final Logger logger;
+    private final ResultMerger resultMerger;
     
     private SplitVerseRepository(Builder<T, P> builder) {
         this.entityClass = builder.entityClass;
@@ -59,7 +67,9 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         this.sqlRegistry = builder.sqlRegistry;
         this.sqlCache = builder.sqlCache != null ? builder.sqlCache :
             (sqlRegistry != null ? sqlRegistry.getCache() : new SqlStatementCache());
-        
+        this.logger = new ConsoleLogger("SplitVerse");
+        this.resultMerger = new ResultMerger(logger);
+
         // Initialize shard repositories
         List<String> activeShardIds = new ArrayList<>();
         for (ShardConfig config : shardConfigs) {
@@ -383,6 +393,79 @@ public class SplitVerseRepository<T extends ShardingEntity<P>, P extends Compara
         // Fan-out delete to all shards
         for (ShardingRepository<T, P> shard : shardRepositories.values()) {
             shard.deleteAllByPartitionRange(startValue, endValue);
+        }
+    }
+
+    @Override
+    public List<AggregationResult> aggregate(
+        AggregationQuery query,
+        P startValue,
+        P endValue,
+        Object... params
+    ) throws SQLException {
+        logger.info("Executing aggregation query across " + shardRepositories.size() + " shard(s)");
+
+        if (shardRepositories.size() == 1) {
+            // Optimization: Single shard - delegate directly
+            return shardRepositories.values().iterator().next().aggregate(query, startValue, endValue, params);
+        }
+
+        // Multi-shard aggregation: fan-out, then merge
+        List<CompletableFuture<List<PartialResult>>> futures = shardRepositories.entrySet().stream()
+            .map(entry -> CompletableFuture.supplyAsync(() -> {
+                String shardId = entry.getKey();
+                ShardingRepository<T, P> shard = entry.getValue();
+
+                try {
+                    logger.debug("Querying shard " + shardId + " for aggregation");
+
+                    // Cast to implementation that supports aggregation
+                    // For now, we delegate to the shard - it will handle both multi-table and native partition
+                    List<AggregationResult> shardResults = shard.aggregate(query, startValue, endValue, params);
+
+                    // Convert AggregationResult back to PartialResult for merging
+                    // This is a workaround - ideally shards should return PartialResult
+                    List<PartialResult> partials = new ArrayList<>();
+                    for (AggregationResult result : shardResults) {
+                        PartialResult partial = new PartialResult();
+
+                        // Add dimensions as group by values
+                        result.getDimensions().forEach(partial::addGroupByValue);
+
+                        // Add metrics as aggregate values
+                        result.getMetrics().forEach(partial::addAggregateValue);
+
+                        partials.add(partial);
+                    }
+
+                    logger.debug("Shard " + shardId + " returned " + partials.size() + " partial results");
+                    return partials;
+
+                } catch (SQLException e) {
+                    throw new CompletionException("Aggregation failed on shard " + shardId, e);
+                }
+            }, executorService))
+            .collect(Collectors.toList());
+
+        try {
+            // Wait for all shards to complete
+            List<PartialResult> allPartials = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> futures.stream()
+                    .map(CompletableFuture::join)
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList()))
+                .get();
+
+            logger.info("Received " + allPartials.size() + " partial results from all shards, merging...");
+
+            // Merge partial results
+            List<AggregationResult> finalResults = resultMerger.merge(allPartials, query);
+
+            logger.info("Aggregation complete. Returning " + finalResults.size() + " results");
+            return finalResults;
+
+        } catch (InterruptedException | ExecutionException e) {
+            throw new SQLException("Failed to aggregate across shards", e);
         }
     }
 

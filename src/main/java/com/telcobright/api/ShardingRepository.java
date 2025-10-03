@@ -1,5 +1,7 @@
 package com.telcobright.api;
 
+import com.telcobright.core.aggregation.AggregationQuery;
+import com.telcobright.core.aggregation.AggregationResult;
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.pagination.Page;
 import com.telcobright.core.pagination.PageRequest;
@@ -229,6 +231,53 @@ public interface ShardingRepository<T extends ShardingEntity<P>, P extends Compa
             @SuppressWarnings("unchecked")
             P end = (P) endDate;
             deleteAllByPartitionRange(start, end);
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
+        }
+    }
+
+    /**
+     * Execute aggregation query across multiple shards and tables.
+     * Supports SUM, AVG, COUNT, MAX, MIN with GROUP BY, HAVING, ORDER BY, and LIMIT.
+     *
+     * @param query Aggregation query specification
+     * @param startValue Start of partition value range
+     * @param endValue End of partition value range
+     * @param params Parameters for WHERE clause (if any)
+     * @return List of aggregation results
+     * @throws SQLException if query execution fails
+     */
+    List<AggregationResult> aggregate(
+        AggregationQuery query,
+        P startValue,
+        P endValue,
+        Object... params
+    ) throws SQLException;
+
+    /**
+     * Execute aggregation query across multiple shards and tables (date-specific).
+     *
+     * @param query Aggregation query specification
+     * @param startDate Start date
+     * @param endDate End date
+     * @param params Parameters for WHERE clause (if any)
+     * @return List of aggregation results
+     * @throws SQLException if query execution fails
+     * @deprecated Use aggregate(AggregationQuery, P, P, Object...) for generic support
+     */
+    @Deprecated
+    default List<AggregationResult> aggregateByDateRange(
+        AggregationQuery query,
+        LocalDateTime startDate,
+        LocalDateTime endDate,
+        Object... params
+    ) throws SQLException {
+        try {
+            @SuppressWarnings("unchecked")
+            P start = (P) startDate;
+            @SuppressWarnings("unchecked")
+            P end = (P) endDate;
+            return aggregate(query, start, end, params);
         } catch (ClassCastException e) {
             throw new UnsupportedOperationException("This repository does not use LocalDateTime for partitioning", e);
         }

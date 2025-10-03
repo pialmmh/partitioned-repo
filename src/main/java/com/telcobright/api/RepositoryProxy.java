@@ -1,5 +1,7 @@
 package com.telcobright.api;
 
+import com.telcobright.core.aggregation.AggregationQuery;
+import com.telcobright.core.aggregation.AggregationResult;
 import com.telcobright.core.entity.ShardingEntity;
 import com.telcobright.core.repository.GenericMultiTableRepository;
 import com.telcobright.core.repository.GenericPartitionedTableRepository;
@@ -126,6 +128,16 @@ public class RepositoryProxy<T extends ShardingEntity<P>, P extends Comparable<?
     @Override
     public void deleteAllByPartitionRange(P startValue, P endValue) throws SQLException {
         delegate.deleteAllByPartitionRange(startValue, endValue);
+    }
+
+    @Override
+    public List<AggregationResult> aggregate(
+        AggregationQuery query,
+        P startValue,
+        P endValue,
+        Object... params
+    ) throws SQLException {
+        return delegate.aggregate(query, startValue, endValue, params);
     }
 
     @Override
