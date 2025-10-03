@@ -122,6 +122,9 @@ public class PartitionManagementDisabledTest {
     public void testPartitionedRepositoryWithDisabledManagement() throws Exception {
         System.out.println("Testing GenericPartitionedTableRepository with disabled partition management...");
 
+        // PRE-CREATE the table with partitions manually
+        createPartitionedTableManually();
+
         // Create repository with partition management disabled
         GenericPartitionedTableRepository<TestEvent, LocalDateTime> repository =
             GenericPartitionedTableRepository.<TestEvent, LocalDateTime>builder(TestEvent.class)
@@ -176,6 +179,9 @@ public class PartitionManagementDisabledTest {
     @Test
     public void testMultiTableRepositoryWithDisabledManagement() throws Exception {
         System.out.println("Testing GenericMultiTableRepository with disabled partition management...");
+
+        // PRE-CREATE tables manually for the date range
+        createMultiTablesManually();
 
         // Create repository with partition management disabled
         GenericMultiTableRepository<TestEvent, LocalDateTime> repository =
@@ -279,5 +285,59 @@ public class PartitionManagementDisabledTest {
         }
 
         System.out.println("✓ Partitioned repository correctly manages partitions when management is enabled");
+    }
+
+    private void createPartitionedTableManually() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        StringBuilder sql = new StringBuilder();
+        sql.append("CREATE TABLE IF NOT EXISTS test_events (");
+        sql.append("event_id VARCHAR(255), ");
+        sql.append("event_time DATETIME, ");
+        sql.append("event_data VARCHAR(255), ");
+        sql.append("PRIMARY KEY (event_id, event_time), ");
+        sql.append("KEY idx_event_time (event_time)");
+        sql.append(") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ");
+        sql.append("PARTITION BY RANGE (TO_DAYS(event_time)) (");
+
+        // Create partitions for -7 to +2 days (10 days total)
+        for (int i = -7; i <= 2; i++) {
+            LocalDateTime date = now.plusDays(i);
+            String partName = "p" + date.toLocalDate().toString().replace("-", "");
+            LocalDateTime nextDate = date.plusDays(1);
+            sql.append("PARTITION ").append(partName);
+            sql.append(" VALUES LESS THAN (TO_DAYS('").append(nextDate.toLocalDate()).append("'))");
+            if (i < 2) {
+                sql.append(", ");
+            }
+        }
+        sql.append(")");
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(sql.toString());
+            System.out.println("Created partitioned table with 10 partitions");
+        }
+    }
+
+    private void createMultiTablesManually() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Create tables for -7 to +2 days (10 days total)
+        for (int i = -7; i <= 2; i++) {
+            LocalDateTime date = now.plusDays(i);
+            String tableName = "test_multi_" + date.toLocalDate().toString().replace("-", "");
+
+            String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+                "event_id VARCHAR(255), " +
+                "event_time DATETIME, " +
+                "event_data VARCHAR(255), " +
+                "PRIMARY KEY (event_id), " +
+                "KEY idx_event_time (event_time)" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin";
+
+            try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate(sql);
+            }
+        }
+        System.out.println("Created 10 multi-tables for date range");
     }
 }

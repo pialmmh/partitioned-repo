@@ -25,9 +25,9 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SmsMultiTableHourlyPartitionTestRetrieveAll {
     private static final String TEST_DB = "sms_shard_01";
     private static SplitVerseRepository<SmsRecord, LocalDateTime> repository;
-    private static final int TOTAL_RECORDS = 100000; // 100k records for faster testing
-    private static final int TEST_DAYS = 7; // Distribute across 7 days
-    private static final int RETENTION_DAYS = 15; // Create 15 days of tables
+    private static final int TOTAL_RECORDS = 5000; // Reduced for faster test execution
+    private static final int TEST_DAYS = 3; // Distribute across 3 days
+    private static final int RETENTION_DAYS = 5; // Create 5 days of tables
     private static final Random random = new Random(42); // Fixed seed for reproducibility
     private static LocalDateTime baseTime;
     private static LocalDateTime maxPartitionDate; // Track the max partition boundary

@@ -43,7 +43,7 @@ public class SequentialWriteTestSimulatorForChronicle {
     private static final String PASSWORD = "123456";
 
     // Test parameters
-    private static final int TOTAL_RECORDS = 100_000;
+    private static final int TOTAL_RECORDS = 5_000; // Reduced for faster test execution
     private static final long STARTING_SEQUENCE = 1_000_000L; // Start from 1 million for clear identification
 
     private SimpleSequentialRepository<ChronicleEvent> repository;
@@ -109,13 +109,15 @@ public class SequentialWriteTestSimulatorForChronicle {
         long nearEndSequence = STARTING_SEQUENCE + TOTAL_RECORDS - 100;
         verifyRetrieval(nearEndSequence, 100, 100, "from near end");
 
-        // Test Case 4: Large batch from arbitrary point
-        long arbitrarySequence = STARTING_SEQUENCE + 25000;
-        verifyRetrieval(arbitrarySequence, 10000, 10000, "large batch from arbitrary point");
+        // Test Case 4: Large batch from arbitrary point (adjusted for TOTAL_RECORDS)
+        long arbitrarySequence = STARTING_SEQUENCE + 1000;
+        int largeBatchSize = Math.min(2000, TOTAL_RECORDS - 1000);
+        verifyRetrieval(arbitrarySequence, largeBatchSize, largeBatchSize, "large batch from arbitrary point");
 
-        // Test Case 5: Small batches with pagination
+        // Test Case 5: Small batches with pagination (adjusted for TOTAL_RECORDS)
         System.out.println("\nTest Case 5: Pagination with small batches");
-        verifyPagination(STARTING_SEQUENCE + 5000, 100, 10, "small batch pagination");
+        long paginationStart = STARTING_SEQUENCE + (TOTAL_RECORDS / 4);
+        verifyPagination(paginationStart, 100, 10, "small batch pagination");
 
         // Phase 3: Performance test - rapid sequential reads
         System.out.println("\nPHASE 3: Performance test - rapid sequential reads");

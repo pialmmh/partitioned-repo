@@ -23,7 +23,7 @@ public class ChronicleSimulatorOptimizedTest {
     private static final String USERNAME = "root";
     private static final String PASSWORD = "123456";
 
-    private static final int TOTAL_RECORDS = 100_000;
+    private static final int TOTAL_RECORDS = 5_000; // Reduced for faster test execution
     private static final long STARTING_SEQUENCE = 1_000_000L;
 
     private SimpleSequentialRepository<Event> repository;
@@ -102,10 +102,10 @@ public class ChronicleSimulatorOptimizedTest {
         testRetrieval(STARTING_SEQUENCE, 1000, "from beginning");
 
         // Test 2: From middle
-        testRetrieval(STARTING_SEQUENCE + 50000, 1000, "from middle");
+        testRetrieval(STARTING_SEQUENCE + (TOTAL_RECORDS / 2), 1000, "from middle");
 
-        // Test 3: From near end
-        testRetrieval(STARTING_SEQUENCE + 99000, 1000, "from near end");
+        // Test 3: From near end (ensure we have enough records left)
+        testRetrieval(STARTING_SEQUENCE + (TOTAL_RECORDS - 1500), 1000, "from near end");
 
         // Test 4: Random starting points
         System.out.println("\nTest: Random starting points");

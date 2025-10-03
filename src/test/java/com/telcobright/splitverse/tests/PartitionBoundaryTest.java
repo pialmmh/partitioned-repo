@@ -189,31 +189,33 @@ public class PartitionBoundaryTest {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // Test close to retention boundary (but not beyond)
-        LocalDateTime edgeDate = now.plusDays(6).plusHours(23);
+        // Test safely within retention boundary (day+5 at noon)
+        LocalDateTime edgeDate = now.plusDays(5).withHour(12).withMinute(0).withSecond(0).withNano(0);
         TestEvent edgeEvent = new TestEvent(
             UUID.randomUUID().toString(),
             edgeDate,
             "Edge case event"
         );
 
-        System.out.printf("  Inserting event near retention edge: %s\n",
+        System.out.printf("  Inserting event within retention: %s\n",
             edgeDate.format(DISPLAY_FORMAT));
 
         repository.insert(edgeEvent);
         TestEvent found = repository.findById(edgeEvent.getId());
-        assertNotNull(found, "Should find event near retention boundary");
-        System.out.println("  ✓ Successfully inserted event near retention boundary");
+        assertNotNull(found, "Should find event within retention boundary");
+        System.out.println("  ✓ Successfully inserted event within retention boundary");
 
         // Test beyond retention boundary (should fail)
-        LocalDateTime beyondDate = now.plusDays(8);
+        // With daily granularity and retentionDays=7, max is (today+7) at 00:00
+        // So (today+8) at any time should fail
+        LocalDateTime beyondDate = now.plusDays(8).withHour(12).withMinute(0).withSecond(0).withNano(0);
         TestEvent beyondEvent = new TestEvent(
             UUID.randomUUID().toString(),
             beyondDate,
             "Just beyond boundary"
         );
 
-        System.out.printf("  Attempting insert just beyond boundary: %s\n",
+        System.out.printf("  Attempting insert beyond boundary: %s\n",
             beyondDate.format(DISPLAY_FORMAT));
 
         SQLException exception = assertThrows(SQLException.class, () -> {

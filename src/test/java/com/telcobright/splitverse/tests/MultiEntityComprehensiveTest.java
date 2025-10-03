@@ -125,7 +125,8 @@ public class MultiEntityComprehensiveTest {
         orderRepo.insert(order);
         OrderEntity retrievedOrder = orderRepo.findById("single_order_1");
         assertNotNull(retrievedOrder, "Order should be retrieved");
-        assertEquals(new BigDecimal("99.99"), retrievedOrder.getTotalAmount());
+        assertEquals(0, new BigDecimal("99.99").compareTo(retrievedOrder.getTotalAmount()),
+            "Total amount should be 99.99");
         System.out.println("✓ OrderEntity insert/retrieve successful");
 
         // Test AuditLogEntity
@@ -230,7 +231,8 @@ public class MultiEntityComprehensiveTest {
 
         OrderEntity updatedOrder = orderRepo.findById("update_order_1");
         assertEquals("updated_customer", updatedOrder.getCustomerId());
-        assertEquals(new BigDecimal("75.00"), updatedOrder.getTotalAmount());
+        assertEquals(0, new BigDecimal("75.00").compareTo(updatedOrder.getTotalAmount()),
+            "Total amount should be 75.00");
         System.out.println("✓ Order update successful");
     }
 

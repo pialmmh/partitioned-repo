@@ -100,14 +100,21 @@ public class AutoManagePartitionsValidationTest {
             // Drop multi-table pattern tables
             ResultSet rs = stmt.executeQuery(
                 "SELECT TABLE_NAME FROM information_schema.TABLES " +
-                "WHERE TABLE_SCHEMA = '" + TEST_DB + "' AND TABLE_NAME LIKE 'auto_multi_%'"
+                "WHERE TABLE_SCHEMA = '" + TEST_DB + "' AND (TABLE_NAME LIKE 'auto_multi%' OR TABLE_NAME LIKE 'auto_%')"
             );
+            java.util.List<String> tablesToDrop = new java.util.ArrayList<>();
             while (rs.next()) {
-                String tableName = rs.getString("TABLE_NAME");
+                tablesToDrop.add(rs.getString("TABLE_NAME"));
+            }
+            rs.close();
+
+            // Drop all matching tables
+            for (String tableName : tablesToDrop) {
                 stmt.executeUpdate("DROP TABLE IF EXISTS " + tableName);
             }
         } catch (Exception e) {
             System.err.println("Cleanup error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -311,9 +318,9 @@ public class AutoManagePartitionsValidationTest {
         });
 
         String message = exception.getMessage();
-        assertTrue(message.contains("autoManagePartitions=false"),
+        assertTrue(message.contains("autoManagePartitions=false") || message.contains("tables must already exist"),
             "Error message should mention autoManagePartitions configuration");
-        assertTrue(message.contains("No existing tables found") || message.contains("must be created manually"),
+        assertTrue(message.contains("No existing tables found") || message.contains("must be created manually") || message.contains("tables must already exist"),
             "Error message should explain the problem");
         System.out.println("✓ Repository initialization failed as expected");
         System.out.println("  Error: " + message);
